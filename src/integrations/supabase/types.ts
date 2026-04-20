@@ -14,7 +14,161 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      event_financials: {
+        Row: {
+          created_at: string
+          event_id: string
+          expenses: number
+          hookah_share_percent: number
+          id: string
+          notes: string | null
+          revenue_door: number
+          revenue_drinks: number
+          revenue_hookah_total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          expenses?: number
+          hookah_share_percent?: number
+          id?: string
+          notes?: string | null
+          revenue_door?: number
+          revenue_drinks?: number
+          revenue_hookah_total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          expenses?: number
+          hookah_share_percent?: number
+          id?: string
+          notes?: string | null
+          revenue_door?: number
+          revenue_drinks?: number
+          revenue_hookah_total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_financials_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          date: string
+          description: string | null
+          flyer_url: string | null
+          id: string
+          location: string | null
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          description?: string | null
+          flyer_url?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          description?: string | null
+          flyer_url?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      promoters: {
+        Row: {
+          accumulated_balance: number
+          commission_percent: number
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accumulated_balance?: number
+          commission_percent?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accumulated_balance?: number
+          commission_percent?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
