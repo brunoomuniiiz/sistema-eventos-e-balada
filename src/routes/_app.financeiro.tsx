@@ -262,7 +262,7 @@ function FinancialDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Money label="Bar / Drinks (R$)" value={drinks} onChange={setDrinks} />
+            <Money label="Bar (R$)" value={drinks} onChange={setDrinks} />
             <Money label="Portaria (R$)" value={door} onChange={setDoor} />
           </div>
 
