@@ -1,4 +1,5 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 
@@ -8,17 +9,20 @@ export const Route = createFileRoute("/_app")({
 
 function AppGuard() {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate({ to: "/auth", replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  if (loading || !user) {
     return (
       <div className="min-h-screen grid place-items-center">
         <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       </div>
     );
-  }
-
-  if (!user) {
-    throw redirect({ to: "/auth" });
   }
 
   return <AppLayout />;
