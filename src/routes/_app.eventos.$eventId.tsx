@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Calendar, MapPin, Pencil, Trash2, DollarSign, TrendingUp, TrendingDown, Save } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Pencil, Trash2, DollarSign, TrendingUp, TrendingDown, Save, Wine, Percent } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { formatBRL, calcEventGross, calcEventNet } from "@/lib/format";
+import { formatBRL, formatPercent, calcEventGross, calcEventNet, calcBarMargin } from "@/lib/format";
+import { EventCostsManager } from "@/components/EventCostsManager";
 
 export const Route = createFileRoute("/_app/eventos/$eventId")({
   component: EventDetailPage,
@@ -50,12 +51,29 @@ function EventDetailPage() {
     },
   });
 
-  // Local form state for financials
+  const { data: extraCostsTotal = 0 } = useQuery({
+    queryKey: ["event-costs-total", eventId],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_costs")
+        .select("amount")
+        .eq("event_id", eventId);
+      if (error) throw error;
+      return (data ?? []).reduce((s, c) => s + Number(c.amount), 0);
+    },
+  });
+
+  // Refetch the costs total when event-costs invalidates
+  useEffect(() => {
+    qc.invalidateQueries({ queryKey: ["event-costs-total", eventId] });
+  }, [qc, eventId]);
+
   const [drinks, setDrinks] = useState("0");
   const [hookahTotal, setHookahTotal] = useState("0");
   const [hookahShare, setHookahShare] = useState("40");
   const [door, setDoor] = useState("0");
-  const [expenses, setExpenses] = useState("0");
+  const [barCMV, setBarCMV] = useState("0");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -64,7 +82,7 @@ function EventDetailPage() {
       setHookahTotal(String(financial.revenue_hookah_total ?? 0));
       setHookahShare(String(financial.hookah_share_percent ?? 40));
       setDoor(String(financial.revenue_door ?? 0));
-      setExpenses(String(financial.expenses ?? 0));
+      setBarCMV(String(financial.bar_cmv ?? 0));
       setNotes(financial.notes ?? "");
     }
   }, [financial]);
@@ -92,7 +110,8 @@ function EventDetailPage() {
         revenue_hookah_total: Number(hookahTotal) || 0,
         hookah_share_percent: Number(hookahShare) || 0,
         revenue_door: Number(door) || 0,
-        expenses: Number(expenses) || 0,
+        bar_cmv: Number(barCMV) || 0,
+        expenses: Number(financial?.expenses ?? 0),
         notes: notes.trim() || null,
       };
       if (financial) {
@@ -104,8 +123,10 @@ function EventDetailPage() {
       }
     },
     onSuccess: () => {
-      toast.success("Financeiro salvo");
+      toast.success("Faturamento salvo");
       qc.invalidateQueries({ queryKey: ["event-financial", eventId] });
+      qc.invalidateQueries({ queryKey: ["financials"] });
+      qc.invalidateQueries({ queryKey: ["monthly-summary"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -136,10 +157,13 @@ function EventDetailPage() {
     revenue_hookah_total: Number(hookahTotal) || 0,
     hookah_share_percent: Number(hookahShare) || 0,
     revenue_door: Number(door) || 0,
-    expenses: Number(expenses) || 0,
+    bar_cmv: Number(barCMV) || 0,
+    expenses: Number(financial?.expenses ?? 0),
   };
   const gross = calcEventGross(live);
-  const net = calcEventNet(live);
+  const net = calcEventNet(live, extraCostsTotal);
+  const barMargin = calcBarMargin(live);
+  const totalCosts = (Number(barCMV) || 0) + Number(financial?.expenses ?? 0) + extraCostsTotal;
 
   return (
     <div className="space-y-6">
@@ -202,42 +226,58 @@ function EventDetailPage() {
       </Card>
 
       {/* Resumo financeiro */}
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="glass border-border/60">
-          <CardContent className="p-5">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">Bruto</span>
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Faturamento</span>
               <TrendingUp className="h-4 w-4 text-primary" />
             </div>
-            <p className="text-2xl font-bold mt-2">{formatBRL(gross)}</p>
+            <p className="text-lg md:text-xl font-bold mt-1">{formatBRL(gross)}</p>
           </CardContent>
         </Card>
         <Card className="glass border-border/60">
-          <CardContent className="p-5">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">Despesas</span>
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Custos totais</span>
               <TrendingDown className="h-4 w-4 text-destructive" />
             </div>
-            <p className="text-2xl font-bold mt-2">{formatBRL(Number(expenses) || 0)}</p>
+            <p className="text-lg md:text-xl font-bold mt-1 text-destructive">{formatBRL(totalCosts)}</p>
           </CardContent>
         </Card>
         <Card className="glass border-border/60 glow-primary">
-          <CardContent className="p-5">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground uppercase tracking-wide">Líquido</span>
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro líquido</span>
               <DollarSign className="h-4 w-4 text-primary" />
             </div>
-            <p className={`text-2xl font-bold mt-2 ${net >= 0 ? "text-gradient" : "text-destructive"}`}>
+            <p className={`text-lg md:text-xl font-bold mt-1 ${net >= 0 ? "text-gradient" : "text-destructive"}`}>
               {formatBRL(net)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="glass border-border/60">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                <Wine className="h-3 w-3" /> Margem bar
+              </span>
+              <Percent className="h-4 w-4 text-primary" />
+            </div>
+            <p className={`text-lg md:text-xl font-bold mt-1 ${barMargin.percent >= 0 ? "text-success" : "text-destructive"}`}>
+              {formatPercent(barMargin.percent)}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {formatBRL(barMargin.profit)}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Form financeiro */}
+      {/* Form faturamento */}
       <Card className="glass border-border/60">
         <CardHeader>
-          <CardTitle>Financeiro do evento</CardTitle>
+          <CardTitle>Faturamento do evento</CardTitle>
         </CardHeader>
         <CardContent>
           <form
@@ -245,8 +285,14 @@ function EventDetailPage() {
             className="grid sm:grid-cols-2 gap-4"
           >
             <div className="space-y-1.5">
-              <Label htmlFor="f-drinks">Bar (R$)</Label>
+              <Label htmlFor="f-drinks">Bar — faturamento (R$)</Label>
               <Input id="f-drinks" type="number" step="0.01" value={drinks} onChange={(e) => setDrinks(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="f-cmv" className="flex items-center gap-1">
+                <Wine className="h-3.5 w-3.5" /> CMV bar — custo das bebidas (R$)
+              </Label>
+              <Input id="f-cmv" type="number" step="0.01" value={barCMV} onChange={(e) => setBarCMV(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="f-door">Portaria (R$)</Label>
@@ -261,20 +307,29 @@ function EventDetailPage() {
               <Input id="f-share" type="number" step="1" min="0" max="100" value={hookahShare} onChange={(e) => setHookahShare(e.target.value)} />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="f-exp">Despesas (R$)</Label>
-              <Input id="f-exp" type="number" step="0.01" value={expenses} onChange={(e) => setExpenses(e.target.value)} />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="f-notes">Observações</Label>
-              <Textarea id="f-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Textarea id="f-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
             <div className="sm:col-span-2 flex justify-end">
               <Button type="submit" disabled={saveFinMut.isPending} className="bg-gradient-primary text-primary-foreground glow-primary">
                 <Save className="h-4 w-4 mr-1.5" />
-                {saveFinMut.isPending ? "Salvando..." : "Salvar financeiro"}
+                {saveFinMut.isPending ? "Salvando..." : "Salvar faturamento"}
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Custos detalhados */}
+      <Card className="glass border-border/60">
+        <CardHeader>
+          <CardTitle>Custos do evento</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Lance custos por categoria (segurança, DJ, banda, som, mídia, lanche…). Crie novas categorias quando precisar.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <EventCostsManager eventId={eventId} />
         </CardContent>
       </Card>
     </div>
