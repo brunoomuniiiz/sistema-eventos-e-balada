@@ -14,8 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      cost_categories: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      event_costs: {
+        Row: {
+          amount: number
+          category_id: string | null
+          category_name: string
+          created_at: string
+          description: string | null
+          event_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          category_name: string
+          created_at?: string
+          description?: string | null
+          event_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          category_name?: string
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_costs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "cost_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_costs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_financials: {
         Row: {
+          bar_cmv: number
           created_at: string
           event_id: string
           expenses: number
@@ -29,6 +111,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bar_cmv?: number
           created_at?: string
           event_id: string
           expenses?: number
@@ -42,6 +125,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bar_cmv?: number
           created_at?: string
           event_id?: string
           expenses?: number
@@ -174,7 +258,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      seed_default_cost_categories: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
