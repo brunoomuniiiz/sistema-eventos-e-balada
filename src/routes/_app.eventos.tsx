@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Calendar, MapPin, ImagePlus } from "lucide-react";
@@ -112,8 +112,11 @@ function EventosPage() {
                   )}
                 </div>
                 <div className="flex gap-2 mt-4">
-                  <Button size="sm" variant="secondary" className="flex-1" onClick={() => { setEditing(event); setOpen(true); }}>
-                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
+                  <Button asChild size="sm" className="flex-1 bg-gradient-primary text-primary-foreground">
+                    <Link to="/eventos/$eventId" params={{ eventId: event.id }}>Ver detalhes</Link>
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => { setEditing(event); setOpen(true); }}>
+                    <Pencil className="h-3.5 w-3.5" />
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => {
                     if (confirm(`Remover "${event.name}"?`)) deleteMut.mutate(event.id);
