@@ -1,0 +1,97 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, type FormEvent } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Sparkles, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/reset-password")({
+  component: ResetPasswordPage,
+});
+
+function ResetPasswordPage() {
+  const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setReady(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      toast.success("Senha atualizada! Redirecionando...");
+      setTimeout(() => navigate({ to: "/" }), 800);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar senha");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen grid place-items-center px-4 py-10">
+      <div className="w-full max-w-md">
+        <div className="flex items-center gap-2 justify-center mb-8">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-primary grid place-items-center glow-primary">
+            <Sparkles className="h-6 w-6 text-primary-foreground" />
+          </div>
+        </div>
+        <div className="glass rounded-2xl p-7 md:p-9">
+          <h1 className="text-3xl font-bold text-gradient text-center">Nova senha</h1>
+          <p className="text-sm text-muted-foreground text-center mt-1.5">
+            {ready ? "Defina uma nova senha para sua conta" : "Validando link de recuperação..."}
+          </p>
+
+          <form onSubmit={onSubmit} className="mt-7 space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="password">Nova senha</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="pr-10"
+                  disabled={!ready}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <Button
+              type="submit"
+              disabled={submitting || !ready}
+              className="w-full bg-gradient-primary text-primary-foreground hover:scale-[1.02] transition-transform glow-primary"
+            >
+              {submitting ? "Aguarde..." : "Atualizar senha"}
+            </Button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
