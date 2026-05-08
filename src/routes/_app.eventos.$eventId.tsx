@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { formatBRL, formatPercent, calcEventGross, calcEventNet, calcBarMargin } from "@/lib/format";
 import { EventCostsManager } from "@/components/EventCostsManager";
+import { EventPromotersManager } from "@/components/EventPromotersManager";
 
 export const Route = createFileRoute("/_app/eventos/$eventId")({
   component: EventDetailPage,
