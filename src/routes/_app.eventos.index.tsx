@@ -20,7 +20,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Event = Database["public"]["Tables"]["events"]["Row"];
 
-export const Route = createFileRoute("/_app/eventos")({
+export const Route = createFileRoute("/_app/eventos/")({
   component: EventosPage,
 });
 

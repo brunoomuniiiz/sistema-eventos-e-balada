@@ -16,8 +16,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppPromotersRouteImport } from './routes/_app.promoters'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
 import { Route as AppFinanceiroRouteImport } from './routes/_app.financeiro'
-import { Route as AppEventosRouteImport } from './routes/_app.eventos'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppEventosIndexRouteImport } from './routes/_app.eventos.index'
 import { Route as AppEventosEventIdRouteImport } from './routes/_app.eventos.$eventId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -54,20 +54,20 @@ const AppFinanceiroRoute = AppFinanceiroRouteImport.update({
   path: '/financeiro',
   getParentRoute: () => AppRoute,
 } as any)
-const AppEventosRoute = AppEventosRouteImport.update({
-  id: '/eventos',
-  path: '/eventos',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEventosIndexRoute = AppEventosIndexRouteImport.update({
+  id: '/eventos/',
+  path: '/eventos/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEventosEventIdRoute = AppEventosEventIdRouteImport.update({
-  id: '/$eventId',
-  path: '/$eventId',
-  getParentRoute: () => AppEventosRoute,
+  id: '/eventos/$eventId',
+  path: '/eventos/$eventId',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -75,22 +75,22 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AppDashboardRoute
-  '/eventos': typeof AppEventosRouteWithChildren
   '/financeiro': typeof AppFinanceiroRoute
   '/mensal': typeof AppMensalRoute
   '/promoters': typeof AppPromotersRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
+  '/eventos/': typeof AppEventosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AppDashboardRoute
-  '/eventos': typeof AppEventosRouteWithChildren
   '/financeiro': typeof AppFinanceiroRoute
   '/mensal': typeof AppMensalRoute
   '/promoters': typeof AppPromotersRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
+  '/eventos': typeof AppEventosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -99,11 +99,11 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/eventos': typeof AppEventosRouteWithChildren
   '/_app/financeiro': typeof AppFinanceiroRoute
   '/_app/mensal': typeof AppMensalRoute
   '/_app/promoters': typeof AppPromotersRoute
   '/_app/eventos/$eventId': typeof AppEventosEventIdRoute
+  '/_app/eventos/': typeof AppEventosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -112,22 +112,22 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/dashboard'
-    | '/eventos'
     | '/financeiro'
     | '/mensal'
     | '/promoters'
     | '/eventos/$eventId'
+    | '/eventos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/reset-password'
     | '/dashboard'
-    | '/eventos'
     | '/financeiro'
     | '/mensal'
     | '/promoters'
     | '/eventos/$eventId'
+    | '/eventos'
   id:
     | '__root__'
     | '/'
@@ -135,11 +135,11 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_app/dashboard'
-    | '/_app/eventos'
     | '/_app/financeiro'
     | '/_app/mensal'
     | '/_app/promoters'
     | '/_app/eventos/$eventId'
+    | '/_app/eventos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -200,13 +200,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFinanceiroRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/eventos': {
-      id: '/_app/eventos'
-      path: '/eventos'
-      fullPath: '/eventos'
-      preLoaderRoute: typeof AppEventosRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -214,42 +207,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/eventos/': {
+      id: '/_app/eventos/'
+      path: '/eventos'
+      fullPath: '/eventos/'
+      preLoaderRoute: typeof AppEventosIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/eventos/$eventId': {
       id: '/_app/eventos/$eventId'
-      path: '/$eventId'
+      path: '/eventos/$eventId'
       fullPath: '/eventos/$eventId'
       preLoaderRoute: typeof AppEventosEventIdRouteImport
-      parentRoute: typeof AppEventosRoute
+      parentRoute: typeof AppRoute
     }
   }
 }
 
-interface AppEventosRouteChildren {
-  AppEventosEventIdRoute: typeof AppEventosEventIdRoute
-}
-
-const AppEventosRouteChildren: AppEventosRouteChildren = {
-  AppEventosEventIdRoute: AppEventosEventIdRoute,
-}
-
-const AppEventosRouteWithChildren = AppEventosRoute._addFileChildren(
-  AppEventosRouteChildren,
-)
-
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
-  AppEventosRoute: typeof AppEventosRouteWithChildren
   AppFinanceiroRoute: typeof AppFinanceiroRoute
   AppMensalRoute: typeof AppMensalRoute
   AppPromotersRoute: typeof AppPromotersRoute
+  AppEventosEventIdRoute: typeof AppEventosEventIdRoute
+  AppEventosIndexRoute: typeof AppEventosIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
-  AppEventosRoute: AppEventosRouteWithChildren,
   AppFinanceiroRoute: AppFinanceiroRoute,
   AppMensalRoute: AppMensalRoute,
   AppPromotersRoute: AppPromotersRoute,
+  AppEventosEventIdRoute: AppEventosEventIdRoute,
+  AppEventosIndexRoute: AppEventosIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -263,3 +253,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
