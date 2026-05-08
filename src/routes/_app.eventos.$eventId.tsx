@@ -324,6 +324,19 @@ function EventDetailPage() {
       {/* Custos detalhados */}
       <Card className="glass border-border/60">
         <CardHeader>
+          <CardTitle>Promoters & listas</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Vincule promoters e compartilhe o link único de cada um. Faça check-in na portaria para ranquear quem trouxe mais gente.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <EventPromotersManager eventId={eventId} />
+        </CardContent>
+      </Card>
+
+      {/* Custos detalhados */}
+      <Card className="glass border-border/60">
+        <CardHeader>
           <CardTitle>Custos do evento</CardTitle>
           <p className="text-sm text-muted-foreground">
             Lance custos por categoria (segurança, DJ, banda, som, mídia, lanche…). Crie novas categorias quando precisar.
