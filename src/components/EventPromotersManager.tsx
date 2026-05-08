@@ -204,7 +204,7 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
                       <Trophy className="h-4 w-4 text-yellow-500" />
                     )}
                     <span className="font-semibold truncate">
-                      {s.ep.promoters?.name ?? "—"}
+                      {promoters.find(p => p.id === s.ep.promoter_id)?.name ?? "—"}
                     </span>
                     <Badge variant="secondary" className="text-[10px]">
                       #{idx + 1}
@@ -309,7 +309,7 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
         <DialogContent className="glass max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Lista de {viewing?.ep.promoters?.name ?? ""}
+              Lista de {promoters.find(p => p.id === viewing?.ep.promoter_id)?.name ?? ""}
             </DialogTitle>
           </DialogHeader>
           {viewing && (
