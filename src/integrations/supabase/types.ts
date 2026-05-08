@@ -148,6 +148,33 @@ export type Database = {
           },
         ]
       }
+      event_promoters: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          promoter_id: string
+          slug: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          promoter_id: string
+          slug: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          promoter_id?: string
+          slug?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string
@@ -186,6 +213,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      guest_list_entries: {
+        Row: {
+          checked_in: boolean
+          checked_in_at: string | null
+          created_at: string
+          event_id: string
+          event_promoter_id: string
+          gender: string | null
+          id: string
+          name: string
+          phone: string | null
+          promoter_id: string
+          user_id: string
+        }
+        Insert: {
+          checked_in?: boolean
+          checked_in_at?: string | null
+          created_at?: string
+          event_id: string
+          event_promoter_id: string
+          gender?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          promoter_id: string
+          user_id: string
+        }
+        Update: {
+          checked_in?: boolean
+          checked_in_at?: string | null
+          created_at?: string
+          event_id?: string
+          event_promoter_id?: string
+          gender?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          promoter_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_list_entries_event_promoter_id_fkey"
+            columns: ["event_promoter_id"]
+            isOneToOne: false
+            referencedRelation: "event_promoters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -258,6 +335,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_guest_to_list: {
+        Args: { _gender: string; _name: string; _phone: string; _slug: string }
+        Returns: string
+      }
+      get_guest_list_info: {
+        Args: { _slug: string }
+        Returns: {
+          event_date: string
+          event_name: string
+          event_promoter_id: string
+          event_status: string
+          promoter_name: string
+          total_entries: number
+        }[]
+      }
       seed_default_cost_categories: {
         Args: { _user_id: string }
         Returns: undefined
