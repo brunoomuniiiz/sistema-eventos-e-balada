@@ -17,16 +17,19 @@ function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [ready, setReady] = useState(false);
+  const [checkedLink, setCheckedLink] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN" || event === "USER_UPDATED") setReady(true);
     });
 
     (async () => {
       try {
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
+        let linkError: string | null = null;
+
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (!error) {
@@ -35,12 +38,24 @@ function ResetPasswordPage() {
             window.history.replaceState({}, "", url.pathname + url.search + url.hash);
             return;
           }
+          linkError = error.message;
         }
 
         const hash = window.location.hash.startsWith("#")
           ? window.location.hash.slice(1)
           : "";
         const params = new URLSearchParams(hash);
+        const tokenHash = url.searchParams.get("token_hash") || params.get("token_hash");
+        if (tokenHash) {
+          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+          if (!error) {
+            setReady(true);
+            window.history.replaceState({}, "", window.location.pathname);
+            return;
+          }
+          linkError = error.message;
+        }
+
         const access_token = params.get("access_token");
         const refresh_token = params.get("refresh_token");
         if (access_token && refresh_token) {
@@ -50,12 +65,16 @@ function ResetPasswordPage() {
             window.history.replaceState({}, "", window.location.pathname);
             return;
           }
+          linkError = error.message;
         }
 
         const { data } = await supabase.auth.getSession();
         if (data.session) setReady(true);
+        else if (linkError) toast.error("Link inválido ou expirado. Peça um novo link de recuperação.");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Link inválido ou expirado");
+      } finally {
+        setCheckedLink(true);
       }
     })();
 
@@ -66,6 +85,9 @@ function ResetPasswordPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) throw new Error("Abra esta página pelo link de recuperação enviado no email.");
+
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       toast.success("Senha atualizada! Redirecionando...");
@@ -88,7 +110,11 @@ function ResetPasswordPage() {
         <div className="glass rounded-2xl p-7 md:p-9">
           <h1 className="text-3xl font-bold text-gradient text-center">Nova senha</h1>
           <p className="text-sm text-muted-foreground text-center mt-1.5">
-            {ready ? "Defina uma nova senha para sua conta" : "Validando link de recuperação..."}
+            {ready
+              ? "Defina uma nova senha para sua conta"
+              : checkedLink
+              ? "Digite a senha e confirme usando o link recebido no email"
+              : "Validando link de recuperação..."}
           </p>
 
           <form onSubmit={onSubmit} className="mt-7 space-y-4">
@@ -104,7 +130,6 @@ function ResetPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
                   className="pr-10"
-                  disabled={!ready}
                 />
                 <button
                   type="button"
@@ -118,7 +143,7 @@ function ResetPasswordPage() {
             </div>
             <Button
               type="submit"
-              disabled={submitting || !ready}
+              disabled={submitting || password.length < 6}
               className="w-full bg-gradient-primary text-primary-foreground hover:scale-[1.02] transition-transform glow-primary"
             >
               {submitting ? "Aguarde..." : "Atualizar senha"}
