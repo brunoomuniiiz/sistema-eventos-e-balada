@@ -22,9 +22,43 @@ function ResetPasswordPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get("code");
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error) {
+            setReady(true);
+            url.searchParams.delete("code");
+            window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+            return;
+          }
+        }
+
+        const hash = window.location.hash.startsWith("#")
+          ? window.location.hash.slice(1)
+          : "";
+        const params = new URLSearchParams(hash);
+        const access_token = params.get("access_token");
+        const refresh_token = params.get("refresh_token");
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (!error) {
+            setReady(true);
+            window.history.replaceState({}, "", window.location.pathname);
+            return;
+          }
+        }
+
+        const { data } = await supabase.auth.getSession();
+        if (data.session) setReady(true);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Link inválido ou expirado");
+      }
+    })();
+
     return () => subscription.unsubscribe();
   }, []);
 
