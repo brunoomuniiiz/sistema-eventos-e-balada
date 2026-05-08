@@ -13,6 +13,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ListaSlugRouteImport } from './routes/lista.$slug'
 import { Route as AppPromotersRouteImport } from './routes/_app.promoters'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
 import { Route as AppFinanceiroRouteImport } from './routes/_app.financeiro'
@@ -37,6 +38,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListaSlugRoute = ListaSlugRouteImport.update({
+  id: '/lista/$slug',
+  path: '/lista/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppPromotersRoute = AppPromotersRouteImport.update({
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof AppFinanceiroRoute
   '/mensal': typeof AppMensalRoute
   '/promoters': typeof AppPromotersRoute
+  '/lista/$slug': typeof ListaSlugRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/eventos/': typeof AppEventosIndexRoute
 }
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AppFinanceiroRoute
   '/mensal': typeof AppMensalRoute
   '/promoters': typeof AppPromotersRoute
+  '/lista/$slug': typeof ListaSlugRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/eventos': typeof AppEventosIndexRoute
 }
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/_app/financeiro': typeof AppFinanceiroRoute
   '/_app/mensal': typeof AppMensalRoute
   '/_app/promoters': typeof AppPromotersRoute
+  '/lista/$slug': typeof ListaSlugRoute
   '/_app/eventos/$eventId': typeof AppEventosEventIdRoute
   '/_app/eventos/': typeof AppEventosIndexRoute
 }
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/mensal'
     | '/promoters'
+    | '/lista/$slug'
     | '/eventos/$eventId'
     | '/eventos/'
   fileRoutesByTo: FileRoutesByTo
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/mensal'
     | '/promoters'
+    | '/lista/$slug'
     | '/eventos/$eventId'
     | '/eventos'
   id:
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/_app/financeiro'
     | '/_app/mensal'
     | '/_app/promoters'
+    | '/lista/$slug'
     | '/_app/eventos/$eventId'
     | '/_app/eventos/'
   fileRoutesById: FileRoutesById
@@ -147,6 +159,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ListaSlugRoute: typeof ListaSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -177,6 +190,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lista/$slug': {
+      id: '/lista/$slug'
+      path: '/lista/$slug'
+      fullPath: '/lista/$slug'
+      preLoaderRoute: typeof ListaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/promoters': {
@@ -249,7 +269,17 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ListaSlugRoute: ListaSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
