@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { formatBRL, formatPercent, calcEventGross, calcEventNet, calcBarMargin } from "@/lib/format";
 import { EventCostsManager } from "@/components/EventCostsManager";
+import { EventPromotersManager } from "@/components/EventPromotersManager";
 
 export const Route = createFileRoute("/_app/eventos/$eventId")({
   component: EventDetailPage,
@@ -317,6 +318,19 @@ function EventDetailPage() {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Custos detalhados */}
+      <Card className="glass border-border/60">
+        <CardHeader>
+          <CardTitle>Promoters & listas</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Vincule promoters e compartilhe o link único de cada um. Faça check-in na portaria para ranquear quem trouxe mais gente.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <EventPromotersManager eventId={eventId} />
         </CardContent>
       </Card>
 
