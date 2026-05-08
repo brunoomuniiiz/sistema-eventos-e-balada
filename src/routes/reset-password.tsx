@@ -20,8 +20,11 @@ function ResetPasswordPage() {
   const [checkedLink, setCheckedLink] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN" || event === "USER_UPDATED") setReady(true);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN" || event === "USER_UPDATED")
+        setReady(true);
     });
 
     (async () => {
@@ -41,13 +44,14 @@ function ResetPasswordPage() {
           linkError = error.message;
         }
 
-        const hash = window.location.hash.startsWith("#")
-          ? window.location.hash.slice(1)
-          : "";
+        const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
         const params = new URLSearchParams(hash);
         const tokenHash = url.searchParams.get("token_hash") || params.get("token_hash");
         if (tokenHash) {
-          const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: "recovery",
+          });
           if (!error) {
             setReady(true);
             window.history.replaceState({}, "", window.location.pathname);
@@ -70,7 +74,8 @@ function ResetPasswordPage() {
 
         const { data } = await supabase.auth.getSession();
         if (data.session) setReady(true);
-        else if (linkError) toast.error("Link inválido ou expirado. Peça um novo link de recuperação.");
+        else if (linkError)
+          toast.error("Link inválido ou expirado. Peça um novo link de recuperação.");
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Link inválido ou expirado");
       } finally {
@@ -86,7 +91,8 @@ function ResetPasswordPage() {
     setSubmitting(true);
     try {
       const { data } = await supabase.auth.getSession();
-      if (!data.session) throw new Error("Abra esta página pelo link de recuperação enviado no email.");
+      if (!data.session)
+        throw new Error("Abra esta página pelo link de recuperação enviado no email.");
 
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
@@ -113,8 +119,8 @@ function ResetPasswordPage() {
             {ready
               ? "Defina uma nova senha para sua conta"
               : checkedLink
-              ? "Digite a senha e confirme usando o link recebido no email"
-              : "Validando link de recuperação..."}
+                ? "Digite a senha e confirme usando o link recebido no email"
+                : "Validando link de recuperação..."}
           </p>
 
           <form onSubmit={onSubmit} className="mt-7 space-y-4">
