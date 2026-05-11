@@ -75,6 +75,19 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
     },
   });
 
+  const { data: event } = useQuery({
+    queryKey: ["event", eventId],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("name, date, location, flyer_url")
+        .eq("id", eventId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
   const addMut = useMutation({
     mutationFn: async () => {
       if (!user || !selectedPromoter) throw new Error("Selecione um promoter");
