@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ListaSlugRouteImport } from './routes/lista.$slug'
+import { Route as AppVendasRouteImport } from './routes/_app.vendas'
 import { Route as AppPromotersRouteImport } from './routes/_app.promoters'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
 import { Route as AppFinanceiroRouteImport } from './routes/_app.financeiro'
@@ -44,6 +45,11 @@ const ListaSlugRoute = ListaSlugRouteImport.update({
   id: '/lista/$slug',
   path: '/lista/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppVendasRoute = AppVendasRouteImport.update({
+  id: '/vendas',
+  path: '/vendas',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppPromotersRoute = AppPromotersRouteImport.update({
   id: '/promoters',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof AppFinanceiroRoute
   '/mensal': typeof AppMensalRoute
   '/promoters': typeof AppPromotersRoute
+  '/vendas': typeof AppVendasRoute
   '/lista/$slug': typeof ListaSlugRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/eventos/': typeof AppEventosIndexRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AppFinanceiroRoute
   '/mensal': typeof AppMensalRoute
   '/promoters': typeof AppPromotersRoute
+  '/vendas': typeof AppVendasRoute
   '/lista/$slug': typeof ListaSlugRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/eventos': typeof AppEventosIndexRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/_app/financeiro': typeof AppFinanceiroRoute
   '/_app/mensal': typeof AppMensalRoute
   '/_app/promoters': typeof AppPromotersRoute
+  '/_app/vendas': typeof AppVendasRoute
   '/lista/$slug': typeof ListaSlugRoute
   '/_app/eventos/$eventId': typeof AppEventosEventIdRoute
   '/_app/eventos/': typeof AppEventosIndexRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/mensal'
     | '/promoters'
+    | '/vendas'
     | '/lista/$slug'
     | '/eventos/$eventId'
     | '/eventos/'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/mensal'
     | '/promoters'
+    | '/vendas'
     | '/lista/$slug'
     | '/eventos/$eventId'
     | '/eventos'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/_app/financeiro'
     | '/_app/mensal'
     | '/_app/promoters'
+    | '/_app/vendas'
     | '/lista/$slug'
     | '/_app/eventos/$eventId'
     | '/_app/eventos/'
@@ -198,6 +210,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/lista/$slug'
       preLoaderRoute: typeof ListaSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/vendas': {
+      id: '/_app/vendas'
+      path: '/vendas'
+      fullPath: '/vendas'
+      preLoaderRoute: typeof AppVendasRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/promoters': {
       id: '/_app/promoters'
@@ -249,6 +268,7 @@ interface AppRouteChildren {
   AppFinanceiroRoute: typeof AppFinanceiroRoute
   AppMensalRoute: typeof AppMensalRoute
   AppPromotersRoute: typeof AppPromotersRoute
+  AppVendasRoute: typeof AppVendasRoute
   AppEventosEventIdRoute: typeof AppEventosEventIdRoute
   AppEventosIndexRoute: typeof AppEventosIndexRoute
 }
@@ -258,6 +278,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFinanceiroRoute: AppFinanceiroRoute,
   AppMensalRoute: AppMensalRoute,
   AppPromotersRoute: AppPromotersRoute,
+  AppVendasRoute: AppVendasRoute,
   AppEventosEventIdRoute: AppEventosEventIdRoute,
   AppEventosIndexRoute: AppEventosIndexRoute,
 }

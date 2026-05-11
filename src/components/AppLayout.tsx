@@ -1,14 +1,15 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Calendar, Users, DollarSign, BarChart3, LogOut, Sparkles } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, DollarSign, BarChart3, LogOut, Sparkles, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/eventos", label: "Eventos", icon: Calendar },
-  { to: "/mensal", label: "Mensal", icon: BarChart3 },
+  { to: "/vendas", label: "Vendas", icon: ShoppingCart },
   { to: "/promoters", label: "Promoters", icon: Users },
   { to: "/financeiro", label: "Financeiro", icon: DollarSign },
+  { to: "/mensal", label: "Mensal", icon: BarChart3 },
 ] as const;
 
 export function AppLayout() {
@@ -85,7 +86,7 @@ export function AppLayout() {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-border">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {navItems.map((item) => {
             const active = location.pathname === item.to;
             return (
