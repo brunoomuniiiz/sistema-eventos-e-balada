@@ -120,12 +120,32 @@ function GuestListPage() {
                 A lista deste evento está fechada.
               </div>
             ) : done ? (
-              <div className="mt-6 p-6 rounded-md bg-success/10 border border-success/30 text-center">
-                <Check className="h-10 w-10 mx-auto text-success mb-2" />
-                <p className="font-semibold">Tudo certo!</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Você está na lista de {data.promoter_name}. Te esperamos no
-                  evento!
+              <div className="mt-6 space-y-3">
+                <div className="p-6 rounded-md bg-success/10 border border-success/30 text-center">
+                  <Check className="h-10 w-10 mx-auto text-success mb-2" />
+                  <p className="font-semibold">Tudo certo!</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Você está na lista de {data.promoter_name}.
+                  </p>
+                </div>
+                <a
+                  href={waLink(phone, buildConfirmationMessage({
+                    guestName: name,
+                    eventName: data.event_name,
+                    eventDate: data.event_date,
+                    promoterName: data.promoter_name,
+                    location: data.event_location,
+                    flyerUrl: data.event_flyer_url,
+                  }))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full h-11 rounded-md bg-[#25D366] text-white font-medium hover:opacity-90 transition"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Receber confirmação no WhatsApp
+                </a>
+                <p className="text-xs text-muted-foreground text-center">
+                  Abre o WhatsApp com sua confirmação, o flyer e a promo da caipirinha 🍹
                 </p>
               </div>
             ) : (
