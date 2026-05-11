@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Calendar, Users, DollarSign, BarChart3, LogOut, Sparkles } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, DollarSign, BarChart3, LogOut, Sparkles, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
