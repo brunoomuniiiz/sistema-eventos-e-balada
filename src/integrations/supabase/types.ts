@@ -343,10 +343,13 @@ export type Database = {
         Args: { _slug: string }
         Returns: {
           event_date: string
+          event_flyer_url: string
+          event_location: string
           event_name: string
           event_promoter_id: string
           event_status: string
           promoter_name: string
+          promoter_phone: string
           total_entries: number
         }[]
       }
