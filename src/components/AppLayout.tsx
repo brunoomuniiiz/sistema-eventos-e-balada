@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/eventos", label: "Eventos", icon: Calendar },
-  { to: "/mensal", label: "Mensal", icon: BarChart3 },
+  { to: "/vendas", label: "Vendas", icon: ShoppingCart },
   { to: "/promoters", label: "Promoters", icon: Users },
   { to: "/financeiro", label: "Financeiro", icon: DollarSign },
+  { to: "/mensal", label: "Mensal", icon: BarChart3 },
 ] as const;
 
 export function AppLayout() {
