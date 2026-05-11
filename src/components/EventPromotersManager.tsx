@@ -382,6 +382,40 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
                           {e.phone && <span>{e.phone}</span>}
                         </div>
                       </div>
+                      {e.phone && event && (
+                        <>
+                          <a
+                            href={waLink(e.phone, buildConfirmationMessage({
+                              guestName: e.name,
+                              eventName: event.name,
+                              eventDate: event.date,
+                              promoterName: promoters.find(p => p.id === viewing?.ep.promoter_id)?.name ?? "",
+                              location: event.location,
+                              flyerUrl: event.flyer_url,
+                            }))}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Enviar confirmação no WhatsApp"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-[#25D366] hover:bg-[#25D366]/10 transition"
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                          </a>
+                          <a
+                            href={waLink(e.phone, buildReminderMessage({
+                              guestName: e.name,
+                              eventName: event.name,
+                              eventDate: event.date,
+                              location: event.location,
+                            }))}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Enviar lembrete do evento"
+                            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-primary hover:bg-primary/10 transition"
+                          >
+                            <Bell className="h-3.5 w-3.5" />
+                          </a>
+                        </>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
