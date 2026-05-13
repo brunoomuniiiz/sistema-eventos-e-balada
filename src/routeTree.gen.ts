@@ -17,6 +17,7 @@ import { Route as ListaSlugRouteImport } from './routes/lista.$slug'
 import { Route as AppVendasRouteImport } from './routes/_app.vendas'
 import { Route as AppPromotersRouteImport } from './routes/_app.promoters'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
+import { Route as AppFuncionariosRouteImport } from './routes/_app.funcionarios'
 import { Route as AppFinanceiroRouteImport } from './routes/_app.financeiro'
 import { Route as AppEstoqueRouteImport } from './routes/_app.estoque'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -62,6 +63,11 @@ const AppMensalRoute = AppMensalRouteImport.update({
   path: '/mensal',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFuncionariosRoute = AppFuncionariosRouteImport.update({
+  id: '/funcionarios',
+  path: '/funcionarios',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFinanceiroRoute = AppFinanceiroRouteImport.update({
   id: '/financeiro',
   path: '/financeiro',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/estoque': typeof AppEstoqueRoute
   '/financeiro': typeof AppFinanceiroRoute
+  '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/estoque': typeof AppEstoqueRoute
   '/financeiro': typeof AppFinanceiroRoute
+  '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/estoque': typeof AppEstoqueRoute
   '/_app/financeiro': typeof AppFinanceiroRoute
+  '/_app/funcionarios': typeof AppFuncionariosRoute
   '/_app/mensal': typeof AppMensalRoute
   '/_app/promoters': typeof AppPromotersRoute
   '/_app/vendas': typeof AppVendasRoute
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/estoque'
     | '/financeiro'
+    | '/funcionarios'
     | '/mensal'
     | '/promoters'
     | '/vendas'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/estoque'
     | '/financeiro'
+    | '/funcionarios'
     | '/mensal'
     | '/promoters'
     | '/vendas'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/estoque'
     | '/_app/financeiro'
+    | '/_app/funcionarios'
     | '/_app/mensal'
     | '/_app/promoters'
     | '/_app/vendas'
@@ -244,6 +256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMensalRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/funcionarios': {
+      id: '/_app/funcionarios'
+      path: '/funcionarios'
+      fullPath: '/funcionarios'
+      preLoaderRoute: typeof AppFuncionariosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/financeiro': {
       id: '/_app/financeiro'
       path: '/financeiro'
@@ -286,6 +305,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppEstoqueRoute: typeof AppEstoqueRoute
   AppFinanceiroRoute: typeof AppFinanceiroRoute
+  AppFuncionariosRoute: typeof AppFuncionariosRoute
   AppMensalRoute: typeof AppMensalRoute
   AppPromotersRoute: typeof AppPromotersRoute
   AppVendasRoute: typeof AppVendasRoute
@@ -297,6 +317,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppEstoqueRoute: AppEstoqueRoute,
   AppFinanceiroRoute: AppFinanceiroRoute,
+  AppFuncionariosRoute: AppFuncionariosRoute,
   AppMensalRoute: AppMensalRoute,
   AppPromotersRoute: AppPromotersRoute,
   AppVendasRoute: AppVendasRoute,

@@ -100,7 +100,7 @@ function EstoquePage() {
       <PageHeader
         title="Estoque"
         subtitle="Cadastre e ajuste produtos"
-        action={
+        actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button onClick={openNew}><Plus className="h-4 w-4" /> Novo produto</Button>
