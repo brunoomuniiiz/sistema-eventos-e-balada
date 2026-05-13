@@ -482,6 +482,42 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          owner_id: string
+          permissions: string[]
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          owner_id: string
+          permissions?: string[]
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          owner_id?: string
+          permissions?: string[]
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -505,13 +541,22 @@ export type Database = {
           total_entries: number
         }[]
       }
+      get_owner_id: { Args: { _user_id: string }; Returns: string }
+      has_permission: {
+        Args: { _owner_id: string; _permission: string; _user_id: string }
+        Returns: boolean
+      }
+      is_owner_of: {
+        Args: { _owner_id: string; _user_id: string }
+        Returns: boolean
+      }
       seed_default_cost_categories: {
         Args: { _user_id: string }
         Returns: undefined
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -638,6 +683,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "staff"],
+    },
   },
 } as const

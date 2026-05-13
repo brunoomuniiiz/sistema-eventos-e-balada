@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ type CartItem = {
 
 function VendasPage() {
   const { user } = useAuth();
+  const { ownerId, can, loading } = usePermissions();
   const qc = useQueryClient();
 
   const [employeeId, setEmployeeId] = useState<string>("");
@@ -109,7 +111,7 @@ function VendasPage() {
     setCart((prev) => prev.filter((i) => i.product_id !== id));
 
   const finalize = async () => {
-    if (!user) return;
+    if (!user || !ownerId) return;
     if (cart.length === 0) return toast.error("Adicione pelo menos um produto");
     if (!employeeId) return toast.error("Selecione um funcionário");
     if (!paymentMethod) return toast.error("Selecione a forma de pagamento");
@@ -120,7 +122,7 @@ function VendasPage() {
       const { data: sale, error: saleErr } = await supabase
         .from("sales")
         .insert({
-          user_id: user.id,
+          user_id: ownerId,
           employee_id: employeeId,
           employee_name: employee?.name ?? null,
           payment_method: paymentMethod,
@@ -131,7 +133,7 @@ function VendasPage() {
       if (saleErr) throw saleErr;
 
       const items = cart.map((i) => ({
-        user_id: user.id,
+        user_id: ownerId,
         sale_id: sale.id,
         product_id: i.product_id,
         product_name: i.product_name,
@@ -155,6 +157,11 @@ function VendasPage() {
       setSubmitting(false);
     }
   };
+
+  if (loading) return null;
+  if (!can("vendas")) {
+    return <PageHeader title="Vendas" subtitle="Você não tem permissão para acessar esta página" />;
+  }
 
   return (
     <div>
