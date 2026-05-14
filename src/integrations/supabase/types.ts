@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      cash_closings: {
+        Row: {
+          closed_by: string
+          closed_by_name: string | null
+          created_at: string
+          declared_credito: number
+          declared_debito: number
+          declared_dinheiro: number
+          declared_pix: number
+          expected_credito: number
+          expected_debito: number
+          expected_dinheiro: number
+          expected_pix: number
+          id: string
+          notes: string | null
+          sales_count: number
+          user_id: string
+        }
+        Insert: {
+          closed_by: string
+          closed_by_name?: string | null
+          created_at?: string
+          declared_credito?: number
+          declared_debito?: number
+          declared_dinheiro?: number
+          declared_pix?: number
+          expected_credito?: number
+          expected_debito?: number
+          expected_dinheiro?: number
+          expected_pix?: number
+          id?: string
+          notes?: string | null
+          sales_count?: number
+          user_id: string
+        }
+        Update: {
+          closed_by?: string
+          closed_by_name?: string | null
+          created_at?: string
+          declared_credito?: number
+          declared_debito?: number
+          declared_dinheiro?: number
+          declared_pix?: number
+          expected_credito?: number
+          expected_debito?: number
+          expected_dinheiro?: number
+          expected_pix?: number
+          id?: string
+          notes?: string | null
+          sales_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       combo_items: {
         Row: {
           combo_product_id: string
@@ -491,6 +545,7 @@ export type Database = {
       }
       sales: {
         Row: {
+          closing_id: string | null
           created_at: string
           employee_id: string | null
           employee_name: string | null
@@ -502,6 +557,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          closing_id?: string | null
           created_at?: string
           employee_id?: string | null
           employee_name?: string | null
@@ -513,6 +569,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          closing_id?: string | null
           created_at?: string
           employee_id?: string | null
           employee_name?: string | null
@@ -576,6 +633,16 @@ export type Database = {
     Functions: {
       add_guest_to_list: {
         Args: { _gender: string; _name: string; _phone: string; _slug: string }
+        Returns: string
+      }
+      close_cash_blind: {
+        Args: {
+          _declared_credito: number
+          _declared_debito: number
+          _declared_dinheiro: number
+          _declared_pix: number
+          _notes?: string
+        }
         Returns: string
       }
       get_guest_list_info: {
