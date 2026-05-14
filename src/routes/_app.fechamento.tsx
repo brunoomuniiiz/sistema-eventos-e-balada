@@ -77,7 +77,7 @@ function FechamentoPage() {
         _declared_debito: parse(values.debito),
         _declared_credito: parse(values.credito),
         _declared_pix: parse(values.pix),
-        _notes: notes.trim() || null,
+        _notes: notes.trim() || undefined,
       });
       if (error) throw error;
       const id = data as unknown as string;
