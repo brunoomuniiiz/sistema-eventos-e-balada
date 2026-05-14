@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      combo_items: {
+        Row: {
+          combo_product_id: string
+          component_product_id: string
+          created_at: string
+          id: string
+          quantity: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          combo_product_id: string
+          component_product_id: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          combo_product_id?: string
+          component_product_id?: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combo_items_combo_product_id_fkey"
+            columns: ["combo_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "combo_items_component_product_id_fkey"
+            columns: ["component_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_categories: {
         Row: {
           created_at: string
@@ -297,7 +342,9 @@ export type Database = {
           id: string
           name: string
           price: number
+          product_type: string
           stock_quantity: number
+          track_stock: boolean
           updated_at: string
           user_id: string
         }
@@ -306,7 +353,9 @@ export type Database = {
           id?: string
           name: string
           price?: number
+          product_type?: string
           stock_quantity?: number
+          track_stock?: boolean
           updated_at?: string
           user_id: string
         }
@@ -315,7 +364,9 @@ export type Database = {
           id?: string
           name?: string
           price?: number
+          product_type?: string
           stock_quantity?: number
+          track_stock?: boolean
           updated_at?: string
           user_id?: string
         }
