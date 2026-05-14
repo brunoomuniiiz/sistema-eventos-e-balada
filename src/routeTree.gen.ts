@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ListaSlugRouteImport } from './routes/lista.$slug'
 import { Route as AppVendasRouteImport } from './routes/_app.vendas'
 import { Route as AppPromotersRouteImport } from './routes/_app.promoters'
+import { Route as AppPdvRouteImport } from './routes/_app.pdv'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
 import { Route as AppFuncionariosRouteImport } from './routes/_app.funcionarios'
 import { Route as AppFinanceiroRouteImport } from './routes/_app.financeiro'
@@ -56,6 +57,11 @@ const AppVendasRoute = AppVendasRouteImport.update({
 const AppPromotersRoute = AppPromotersRouteImport.update({
   id: '/promoters',
   path: '/promoters',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPdvRoute = AppPdvRouteImport.update({
+  id: '/pdv',
+  path: '/pdv',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMensalRoute = AppMensalRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof AppFinanceiroRoute
   '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
+  '/pdv': typeof AppPdvRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
   '/lista/$slug': typeof ListaSlugRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AppFinanceiroRoute
   '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
+  '/pdv': typeof AppPdvRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
   '/lista/$slug': typeof ListaSlugRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/_app/financeiro': typeof AppFinanceiroRoute
   '/_app/funcionarios': typeof AppFuncionariosRoute
   '/_app/mensal': typeof AppMensalRoute
+  '/_app/pdv': typeof AppPdvRoute
   '/_app/promoters': typeof AppPromotersRoute
   '/_app/vendas': typeof AppVendasRoute
   '/lista/$slug': typeof ListaSlugRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/funcionarios'
     | '/mensal'
+    | '/pdv'
     | '/promoters'
     | '/vendas'
     | '/lista/$slug'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/funcionarios'
     | '/mensal'
+    | '/pdv'
     | '/promoters'
     | '/vendas'
     | '/lista/$slug'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/_app/financeiro'
     | '/_app/funcionarios'
     | '/_app/mensal'
+    | '/_app/pdv'
     | '/_app/promoters'
     | '/_app/vendas'
     | '/lista/$slug'
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPromotersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/pdv': {
+      id: '/_app/pdv'
+      path: '/pdv'
+      fullPath: '/pdv'
+      preLoaderRoute: typeof AppPdvRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/mensal': {
       id: '/_app/mensal'
       path: '/mensal'
@@ -307,6 +326,7 @@ interface AppRouteChildren {
   AppFinanceiroRoute: typeof AppFinanceiroRoute
   AppFuncionariosRoute: typeof AppFuncionariosRoute
   AppMensalRoute: typeof AppMensalRoute
+  AppPdvRoute: typeof AppPdvRoute
   AppPromotersRoute: typeof AppPromotersRoute
   AppVendasRoute: typeof AppVendasRoute
   AppEventosEventIdRoute: typeof AppEventosEventIdRoute
@@ -319,6 +339,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFinanceiroRoute: AppFinanceiroRoute,
   AppFuncionariosRoute: AppFuncionariosRoute,
   AppMensalRoute: AppMensalRoute,
+  AppPdvRoute: AppPdvRoute,
   AppPromotersRoute: AppPromotersRoute,
   AppVendasRoute: AppVendasRoute,
   AppEventosEventIdRoute: AppEventosEventIdRoute,
@@ -337,3 +358,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
