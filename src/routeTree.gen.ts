@@ -20,6 +20,7 @@ import { Route as AppPdvRouteImport } from './routes/_app.pdv'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
 import { Route as AppFuncionariosRouteImport } from './routes/_app.funcionarios'
 import { Route as AppFinanceiroRouteImport } from './routes/_app.financeiro'
+import { Route as AppFechamentoRouteImport } from './routes/_app.fechamento'
 import { Route as AppEstoqueRouteImport } from './routes/_app.estoque'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppEventosIndexRouteImport } from './routes/_app.eventos.index'
@@ -79,6 +80,11 @@ const AppFinanceiroRoute = AppFinanceiroRouteImport.update({
   path: '/financeiro',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFechamentoRoute = AppFechamentoRouteImport.update({
+  id: '/fechamento',
+  path: '/fechamento',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEstoqueRoute = AppEstoqueRouteImport.update({
   id: '/estoque',
   path: '/estoque',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AppDashboardRoute
   '/estoque': typeof AppEstoqueRoute
+  '/fechamento': typeof AppFechamentoRoute
   '/financeiro': typeof AppFinanceiroRoute
   '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AppDashboardRoute
   '/estoque': typeof AppEstoqueRoute
+  '/fechamento': typeof AppFechamentoRoute
   '/financeiro': typeof AppFinanceiroRoute
   '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/estoque': typeof AppEstoqueRoute
+  '/_app/fechamento': typeof AppFechamentoRoute
   '/_app/financeiro': typeof AppFinanceiroRoute
   '/_app/funcionarios': typeof AppFuncionariosRoute
   '/_app/mensal': typeof AppMensalRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/estoque'
+    | '/fechamento'
     | '/financeiro'
     | '/funcionarios'
     | '/mensal'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/estoque'
+    | '/fechamento'
     | '/financeiro'
     | '/funcionarios'
     | '/mensal'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_app/dashboard'
     | '/_app/estoque'
+    | '/_app/fechamento'
     | '/_app/financeiro'
     | '/_app/funcionarios'
     | '/_app/mensal'
@@ -289,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFinanceiroRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/fechamento': {
+      id: '/_app/fechamento'
+      path: '/fechamento'
+      fullPath: '/fechamento'
+      preLoaderRoute: typeof AppFechamentoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/estoque': {
       id: '/_app/estoque'
       path: '/estoque'
@@ -323,6 +342,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppEstoqueRoute: typeof AppEstoqueRoute
+  AppFechamentoRoute: typeof AppFechamentoRoute
   AppFinanceiroRoute: typeof AppFinanceiroRoute
   AppFuncionariosRoute: typeof AppFuncionariosRoute
   AppMensalRoute: typeof AppMensalRoute
@@ -336,6 +356,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppEstoqueRoute: AppEstoqueRoute,
+  AppFechamentoRoute: AppFechamentoRoute,
   AppFinanceiroRoute: AppFinanceiroRoute,
   AppFuncionariosRoute: AppFuncionariosRoute,
   AppMensalRoute: AppMensalRoute,
@@ -358,3 +379,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
