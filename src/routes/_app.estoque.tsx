@@ -304,7 +304,7 @@ function TransferirTab({
     if (!q || q <= 0) return toast.error("Quantidade inválida");
     const { error } = await supabase.rpc("transfer_stock", {
       _product_id: productId, _from_location: fromLoc, _to_location: toLoc,
-      _quantity: q, _notes: notes.trim() || null,
+      _quantity: q, _notes: notes.trim() || undefined,
     });
     if (error) return toast.error(error.message);
     toast.success("Transferência realizada");
