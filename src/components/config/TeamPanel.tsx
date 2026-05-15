@@ -89,7 +89,7 @@ export function TeamPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize")
+        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
@@ -110,6 +110,7 @@ export function TeamPanel() {
       email: m.email ?? "",
       password: "",
       display_name: m.display_name ?? "",
+      role_preset: m.role_preset ?? "custom",
       permissions: m.permissions ?? [],
       can_discount: !!m.can_discount,
       max_discount_percent: Number(m.max_discount_percent ?? 0),
@@ -117,6 +118,20 @@ export function TeamPanel() {
       can_authorize: !!m.can_authorize,
     });
     setOpen(true);
+  };
+
+  const applyPreset = (key: string) => {
+    const p = PRESETS.find((x) => x.key === key);
+    if (!p) return;
+    setForm((f) => ({
+      ...f,
+      role_preset: key,
+      permissions: key === "custom" ? f.permissions : p.permissions,
+      can_authorize: key === "custom" ? f.can_authorize : p.can_authorize,
+      can_discount: key === "custom" ? f.can_discount : p.can_discount,
+      max_discount_percent: key === "custom" ? f.max_discount_percent : p.max_discount_percent,
+      can_sell_cash: key === "custom" ? f.can_sell_cash : p.can_sell_cash,
+    }));
   };
 
   const togglePerm = (p: Permission) => {
@@ -134,6 +149,7 @@ export function TeamPanel() {
           .from("user_roles")
           .update({
             display_name: form.display_name,
+            role_preset: form.role_preset,
             permissions: form.permissions,
             can_discount: form.can_discount,
             max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
@@ -150,6 +166,7 @@ export function TeamPanel() {
             email: form.email,
             password: form.password,
             display_name: form.display_name || form.email.split("@")[0],
+            role_preset: form.role_preset,
             permissions: form.permissions,
             can_discount: form.can_discount,
             max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
