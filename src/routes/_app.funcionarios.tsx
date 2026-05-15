@@ -202,7 +202,7 @@ function FuncionariosPage() {
                   )}
                   <div>
                     <Label className="mb-2 block">Permissões</Label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                       {ALL_PERMISSIONS.map((p) => (
                         <label key={p.key} className="flex items-center gap-2 p-2 rounded-md border cursor-pointer hover:bg-accent/40">
                           <Checkbox checked={form.permissions.includes(p.key)} onCheckedChange={() => togglePerm(p.key)} />
@@ -210,6 +210,37 @@ function FuncionariosPage() {
                         </label>
                       ))}
                     </div>
+                  </div>
+
+                  <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Caixa</div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.can_sell_cash}
+                        onCheckedChange={(v) => setForm({ ...form, can_sell_cash: !!v })}
+                      />
+                      <span className="text-sm">Pode receber em dinheiro</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.can_discount}
+                        onCheckedChange={(v) => setForm({ ...form, can_discount: !!v })}
+                      />
+                      <span className="text-sm">Pode aplicar desconto</span>
+                    </label>
+                    {form.can_discount && (
+                      <div>
+                        <Label className="text-xs">Desconto máximo por venda (%)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.5"
+                          value={form.max_discount_percent}
+                          onChange={(e) => setForm({ ...form, max_discount_percent: Number(e.target.value) })}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
                 <DialogFooter>
