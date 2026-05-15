@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Trash2, UserCog, Crown, Pencil, ShieldCheck } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type TeamMember = {
   id: string;
@@ -19,6 +20,7 @@ type TeamMember = {
   display_name: string | null;
   email: string | null;
   role: "owner" | "staff";
+  role_preset: string | null;
   permissions: Permission[];
   can_discount: boolean;
   max_discount_percent: number;
@@ -30,6 +32,7 @@ type FormState = {
   email: string;
   password: string;
   display_name: string;
+  role_preset: string;
   permissions: Permission[];
   can_discount: boolean;
   max_discount_percent: number;
@@ -37,11 +40,35 @@ type FormState = {
   can_authorize: boolean;
 };
 
+type Preset = {
+  key: string;
+  label: string;
+  description: string;
+  permissions: Permission[];
+  can_authorize: boolean;
+  can_discount: boolean;
+  max_discount_percent: number;
+  can_sell_cash: boolean;
+};
+
+const PRESETS: Preset[] = [
+  { key: "caixa_bar", label: "Caixa do Bar", description: "Vende no PDV; sangria/desconto extra precisa de autorização",
+    permissions: ["vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+  { key: "caixa_portaria", label: "Caixa da Portaria", description: "Só acessa a aba Portaria (check-in e cobrança de entrada)",
+    permissions: ["portaria"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+  { key: "gerente", label: "Gerente", description: "Acesso amplo + pode autorizar sangria, desconto e fechamento",
+    permissions: ["vendas", "estoque", "eventos", "promoters", "financeiro", "portaria", "funcionarios"],
+    can_authorize: true, can_discount: true, max_discount_percent: 100, can_sell_cash: true },
+  { key: "custom", label: "Personalizado", description: "Marque manualmente as permissões abaixo",
+    permissions: [], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+];
+
 const emptyForm = (): FormState => ({
   email: "",
   password: "",
   display_name: "",
-  permissions: [],
+  role_preset: "caixa_bar",
+  permissions: ["vendas"],
   can_discount: false,
   max_discount_percent: 0,
   can_sell_cash: true,
