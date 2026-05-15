@@ -1,65 +1,99 @@
-## 1. Cargos pré-definidos (presets de permissões)
+## Objetivo
 
-Criar 4 presets aplicados ao convidar funcionário em **Configuração → Funcionários**:
+Adicionar **lançamentos de custos do bar** (não vinculados a evento) na aba Financeiro:
 
-| Cargo | Permissões padrão | Extras |
-|---|---|---|
-| Caixa Bar | `vendas` | pode abrir caixa, sangria precisa autorização |
-| Caixa Portaria | `portaria` | só vê aba Portaria |
-| Gerente | `vendas, estoque, eventos, promoters, financeiro, portaria, funcionarios` | `can_authorize=true`, `can_discount=true` |
-| Custom | nenhum | usuário marca manualmente |
+1. **Custos fixos** — recorrentes mensais (aluguel, água, luz, internet, +personalizáveis).
+2. **Custos variáveis** — compras/pagamentos avulsos (bebidas com fornecedor + forma de pagamento, +personalizáveis).
 
-- Adiciona `<Select>` "Cargo" no formulário de convite — ao trocar, pré-marca os checkboxes (mas continuam editáveis).
-- Coluna `role_preset text` em `user_roles` para mostrar o cargo na lista.
-- AppLayout já filtra menu por `can(...)`, então o Caixa Portaria automaticamente verá só Portaria.
+---
 
-## 2. Vínculo de evento ao abrir caixa
+## 1. Banco
 
-- `cash_sessions` ganha coluna `event_id uuid`.
-- `OpenCashDialog` busca evento(s) com `date::date = today` e status ≠ encerrado:
-  - se houver 1 → pré-seleciona, operador confirma data
-  - se houver vários → mostra select
-  - se nenhum → operador segue sem evento (modo "bar normal")
-- `open_cash_session` aceita `_event_id` opcional.
-- Vendas feitas durante a sessão herdam `event_id` automaticamente (preencher no insert do PDV a partir da sessão aberta).
+**Nova tabela `bar_expense_categories`** (categorias gerenciáveis pelo dono)
+- `name`, `kind` (`fixed` | `variable`), `is_default bool`, `sort_order`, `icon`
+- Seed por dono (no `handle_new_user` + backfill):
+  - **Fixos**: Aluguel, Água, Luz, Internet
+  - **Variáveis**: Bebidas, Insumos, Manutenção
+- RLS: dono e quem tem permissão `financeiro` lê/edita.
 
-## 3. Auto-aviso de evento na hora do start
+**Nova tabela `bar_expenses`** (lançamentos)
+- `category_id`, `category_name` (snapshot), `kind` (`fixed`|`variable`)
+- `amount numeric`, `description text`, `expense_date date`
+- `payment_method text` (`dinheiro|debito|credito|pix|boleto|transferencia`)
+- `supplier_id uuid` (nullable, opcional)
+- `due_date date` (nullable, p/ fixos com vencimento)
+- `paid bool default true`, `paid_at timestamptz`
+- `recurrence text` (`once|monthly`) — para fixos marcados como recorrentes
+- `notes text`
+- RLS: dono + permissão `financeiro` (CRUD).
 
-- Sem cron / sem mudança automática de status.
-- Hook global `useEventStartReminder` no `_app` layout:
-  - a cada minuto, se há evento com `date <= now()` e `status='upcoming'`, dispara um toast persistente "Evento X começou — abrir agora?" com botão que chama RPC `start_event(_id)` (atualiza status para `live`).
-- Adicionar status `'live'` ao filtro de eventos do dia no item 2.
+**Nova tabela `suppliers`** (fornecedores)
+- `name`, `phone`, `notes`
+- Cadastro rápido inline ao lançar custo variável.
+- RLS: dono + permissão `financeiro` ou `estoque`.
 
-## 4. Bug do combo "sem estoque"
+---
 
-**Causa provável:** o combo é cadastrado com `track_stock=true` (default), mas combos não recebem `product_stock`. Algum ponto do PDV/UI bloqueia a venda como se o **combo** estivesse zerado, ignorando o estoque dos componentes.
+## 2. UI — aba Financeiro
 
-**Correções:**
-1. Ao salvar produto tipo `combo`, forçar `track_stock = false` (combo nunca tem estoque próprio — quem tem é o componente).
-2. Calcular **estoque virtual** do combo no PDV: `min(stock_componente_i / qty_no_combo)` na localização atual. Mostrar isso no card do combo e bloquear se = 0.
-3. Garantir que o trigger `decrement_product_stock` decremente os componentes na localização da venda. Se `sales.location_id` vier nulo, cair no `stock_locations.is_default`. Adicionar índice/log para diagnosticar.
-4. No editor de combos (`Produtos → Combos`), reforçar que o campo "Quantidade" é por unidade de combo vendida (label + helper text). Já existe; só ficar mais explícito.
+Adicionar **2 novas tabs** no `_app.financeiro.tsx` (já tem Tabs):
 
-## 5. Migrations necessárias
+### Tab "Custos fixos"
+- Cards mostrando total do mês corrente por categoria (Aluguel, Água, Luz, Internet…).
+- Botão "+ Lançamento" → modal:
+  - categoria (select com "+ Nova categoria" inline → cria em `bar_expense_categories`)
+  - valor, data de competência, vencimento, forma de pagamento
+  - toggle "Recorrente mensal" → ao ligar, gera próximos lançamentos automaticamente no mês seguinte (job simples no client ou função SQL `generate_next_month_fixed`)
+  - status: pago / a pagar
+- Lista do mês com filtros: pago/pendente, categoria.
+- Total fixo do mês destacado.
 
-```sql
-ALTER TABLE user_roles ADD COLUMN role_preset text;
-ALTER TABLE cash_sessions ADD COLUMN event_id uuid;
--- forçar track_stock=false em combos existentes
-UPDATE products SET track_stock=false WHERE product_type='combo';
--- nova RPC start_event(_id)
--- atualizar open_cash_session(_opening, _notes, _event_id)
--- atualizar fluxo de inserção de venda no PDV para herdar event_id da sessão
-```
+### Tab "Custos variáveis"
+- Botão "+ Lançamento" → modal:
+  - categoria (Bebidas, Insumos, Manutenção, +nova)
+  - valor, data, forma de pagamento
+  - **fornecedor** (select com busca + "+ Novo fornecedor" inline)
+  - descrição
+- Lista agrupada por mês, com totais por categoria e por fornecedor.
+- Filtros: período (mês), categoria, fornecedor, forma de pagamento.
 
-## 6. Arquivos afetados
+### Aba "Categorias" (sub-aba dentro de Custos fixos/variáveis ou um botão "Gerenciar categorias")
+- CRUD simples de `bar_expense_categories` separado por tipo.
+- Não permite excluir categoria em uso; oferece reatribuir.
 
-- `src/components/config/TeamPanel.tsx` — select de cargo + presets
-- `supabase/functions/invite-staff/index.ts` — aceitar `role_preset`
-- `src/components/vendas/OpenCashDialog.tsx` — seletor de evento do dia
-- `src/routes/_app.pdv.tsx` — calcular estoque virtual de combo, herdar `event_id` da sessão
-- `src/routes/_app.produtos.tsx` — forçar `track_stock=false` em combos
-- `src/routes/_app.tsx` (layout) — montar `useEventStartReminder`
-- nova migration
+---
 
-Posso seguir com essa implementação?
+## 3. Integração com indicadores existentes
+
+- O **Resumo financeiro** (cards do topo da `_app.financeiro.tsx`) ganha:
+  - "Custos fixos do mês" e "Custos variáveis do mês"
+  - "Lucro líquido real" = (lucro de eventos no mês) − fixos − variáveis do mês
+- A view **Mensal** (`_app.mensal.tsx`) também passa a deduzir esses custos do líquido mensal.
+
+---
+
+## 4. Arquivos afetados
+
+- Nova migration:
+  - tabelas `bar_expense_categories`, `bar_expenses`, `suppliers`
+  - RLS para todas
+  - seed em `handle_new_user` + backfill para donos existentes
+  - função `generate_next_month_fixed(_user_id uuid)` (opcional, p/ recorrência)
+- `src/routes/_app.financeiro.tsx` — adiciona 2 tabs + cálculos no resumo
+- `src/routes/_app.mensal.tsx` — desconta custos no líquido
+- Novos componentes:
+  - `src/components/financeiro/FixedExpensesTab.tsx`
+  - `src/components/financeiro/VariableExpensesTab.tsx`
+  - `src/components/financeiro/ExpenseCategoriesManager.tsx`
+  - `src/components/financeiro/ExpenseFormDialog.tsx`
+  - `src/components/financeiro/SupplierPicker.tsx`
+
+---
+
+## Fora de escopo
+
+- Sem fluxo de aprovação / contas a pagar avançado.
+- Sem anexos de comprovantes (pode vir depois).
+- Sem integração bancária.
+
+Posso seguir?
