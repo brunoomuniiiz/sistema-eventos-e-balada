@@ -12,6 +12,7 @@ const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?
   { to: "/produtos", label: "Produtos", icon: Boxes, perm: "estoque" },
   { to: "/estoque", label: "Estoque", icon: Package, perm: "estoque" },
   { to: "/fechamento", label: "Caixa", icon: Lock, perm: "vendas" },
+  { to: "/portaria", label: "Portaria", icon: DoorOpen, perm: "portaria" },
   { to: "/promoters", label: "Promoters", icon: Users, perm: "promoters" },
   { to: "/financeiro", label: "Financeiro", icon: DollarSign, perm: "financeiro" },
   { to: "/mensal", label: "Mensal", icon: BarChart3, perm: "financeiro" },
