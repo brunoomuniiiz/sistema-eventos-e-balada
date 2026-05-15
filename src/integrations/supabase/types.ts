@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      auth_grants: {
+        Row: {
+          authorized_by: string
+          authorized_by_name: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          scope: string
+          token: string
+          used: boolean
+          user_id: string
+        }
+        Insert: {
+          authorized_by: string
+          authorized_by_name?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          scope: string
+          token: string
+          used?: boolean
+          user_id: string
+        }
+        Update: {
+          authorized_by?: string
+          authorized_by_name?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          scope?: string
+          token?: string
+          used?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       bar_settings: {
         Row: {
           accent_color: string | null
@@ -49,6 +85,8 @@ export type Database = {
       }
       cash_closings: {
         Row: {
+          authorized_by: string | null
+          authorized_by_name: string | null
           closed_by: string
           closed_by_name: string | null
           created_at: string
@@ -62,10 +100,15 @@ export type Database = {
           expected_pix: number
           id: string
           notes: string | null
+          opening_amount: number
           sales_count: number
+          session_id: string | null
           user_id: string
+          withdrawals_total: number
         }
         Insert: {
+          authorized_by?: string | null
+          authorized_by_name?: string | null
           closed_by: string
           closed_by_name?: string | null
           created_at?: string
@@ -79,10 +122,15 @@ export type Database = {
           expected_pix?: number
           id?: string
           notes?: string | null
+          opening_amount?: number
           sales_count?: number
+          session_id?: string | null
           user_id: string
+          withdrawals_total?: number
         }
         Update: {
+          authorized_by?: string | null
+          authorized_by_name?: string | null
           closed_by?: string
           closed_by_name?: string | null
           created_at?: string
@@ -96,10 +144,105 @@ export type Database = {
           expected_pix?: number
           id?: string
           notes?: string | null
+          opening_amount?: number
           sales_count?: number
+          session_id?: string | null
+          user_id?: string
+          withdrawals_total?: number
+        }
+        Relationships: []
+      }
+      cash_sessions: {
+        Row: {
+          closed_at: string | null
+          closing_id: string | null
+          created_at: string
+          id: string
+          opened_at: string
+          opened_by: string
+          opened_by_name: string | null
+          opening_amount: number
+          opening_notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closing_id?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string
+          opened_by: string
+          opened_by_name?: string | null
+          opening_amount?: number
+          opening_notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          closing_id?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string
+          opened_by_name?: string | null
+          opening_amount?: number
+          opening_notes?: string | null
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      cash_withdrawals: {
+        Row: {
+          amount: number
+          authorized_by: string
+          authorized_by_name: string | null
+          created_at: string
+          created_by: string
+          created_by_name: string | null
+          id: string
+          reason: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          authorized_by: string
+          authorized_by_name?: string | null
+          created_at?: string
+          created_by: string
+          created_by_name?: string | null
+          id?: string
+          reason?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          authorized_by?: string
+          authorized_by_name?: string | null
+          created_at?: string
+          created_by?: string
+          created_by_name?: string | null
+          id?: string
+          reason?: string | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_withdrawals_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       combo_items: {
         Row: {
@@ -724,6 +867,7 @@ export type Database = {
           location_id: string | null
           notes: string | null
           payment_method: string
+          session_id: string | null
           total: number
           updated_at: string
           user_id: string
@@ -743,6 +887,7 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           payment_method: string
+          session_id?: string | null
           total?: number
           updated_at?: string
           user_id: string
@@ -762,6 +907,7 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           payment_method?: string
+          session_id?: string | null
           total?: number
           updated_at?: string
           user_id?: string
@@ -990,6 +1136,7 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          can_authorize: boolean
           can_discount: boolean
           can_sell_cash: boolean
           created_at: string
@@ -1004,6 +1151,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_authorize?: boolean
           can_discount?: boolean
           can_sell_cash?: boolean
           created_at?: string
@@ -1018,6 +1166,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_authorize?: boolean
           can_discount?: boolean
           can_sell_cash?: boolean
           created_at?: string
@@ -1073,6 +1222,7 @@ export type Database = {
           _declared_debito: number
           _declared_dinheiro: number
           _declared_pix: number
+          _grant_token: string
           _notes?: string
         }
         Returns: string
@@ -1081,6 +1231,7 @@ export type Database = {
         Args: { _adjust_stock?: boolean; _inventory_id: string }
         Returns: undefined
       }
+      consume_grant: { Args: { _scope: string; _token: string }; Returns: Json }
       get_event_landing: { Args: { _slug: string }; Returns: Json }
       get_guest_list_info: {
         Args: { _slug: string }
@@ -1096,6 +1247,7 @@ export type Database = {
           total_entries: number
         }[]
       }
+      get_my_open_session: { Args: never; Returns: Json }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
       get_portaria_summary: { Args: { _event_id: string }; Returns: Json }
       has_permission: {
@@ -1105,6 +1257,14 @@ export type Database = {
       is_owner_of: {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
+      }
+      open_cash_session: {
+        Args: { _notes?: string; _opening: number }
+        Returns: string
+      }
+      register_withdrawal: {
+        Args: { _amount: number; _grant_token: string; _reason: string }
+        Returns: string
       }
       seed_default_cost_categories: {
         Args: { _user_id: string }
