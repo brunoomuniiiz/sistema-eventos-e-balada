@@ -71,13 +71,22 @@ export function PdvView() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_my_open_session");
       if (error) throw error;
-      return data as null | { id: string; opening_amount: number; opened_at: string; opening_notes: string | null; withdrawals_total: number; sales_total: number };
+      return data as null | {
+        id: string; opening_amount: number; opened_at: string;
+        opening_notes: string | null; withdrawals_total: number; sales_total: number;
+        event_id: string | null; event_name: string | null;
+      };
     },
   });
 
   useEffect(() => {
     if (session === null && can("vendas") && !openCash) setOpenCash(true);
   }, [session, can, openCash]);
+
+  // Vincula automaticamente o evento da sessão ao PDV
+  useEffect(() => {
+    if (session?.event_id) setEventId(session.event_id);
+  }, [session?.event_id]);
 
   const { data: locations = [] } = useQuery({
     queryKey: ["pdv-locations", ownerId],
@@ -141,6 +150,40 @@ export function PdvView() {
     },
     enabled: !!locationId,
   });
+
+  // Componentes de todos os combos para calcular estoque virtual
+  const { data: comboItems = [] } = useQuery({
+    queryKey: ["pdv-combo-items", ownerId],
+    enabled: !!ownerId && can("vendas"),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("combo_items")
+        .select("combo_product_id, component_product_id, quantity");
+      if (error) throw error;
+      return data as { combo_product_id: string; component_product_id: string; quantity: number }[];
+    },
+  });
+
+  // stock virtual: combo => min(stock_componente / qty)
+  const comboStockMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    const grouped = new Map<string, { component_product_id: string; quantity: number }[]>();
+    comboItems.forEach((ci) => {
+      const list = grouped.get(ci.combo_product_id) ?? [];
+      list.push({ component_product_id: ci.component_product_id, quantity: Number(ci.quantity) });
+      grouped.set(ci.combo_product_id, list);
+    });
+    grouped.forEach((items, comboId) => {
+      let min = Infinity;
+      for (const it of items) {
+        const stock = stockMap[it.component_product_id] ?? 0;
+        const qty = it.quantity > 0 ? it.quantity : 1;
+        min = Math.min(min, Math.floor(stock / qty));
+      }
+      map[comboId] = Number.isFinite(min) ? min : 0;
+    });
+    return map;
+  }, [comboItems, stockMap]);
 
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.unit_price * i.quantity, 0), [cart]);
   const totalItems = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
@@ -311,8 +354,11 @@ export function PdvView() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {products.map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
-            const stockHere = stockMap[p.id] ?? 0;
-            const outOfStock = p.product_type === "simple" && p.track_stock && stockHere <= 0;
+            const isCombo = p.product_type === "combo";
+            const stockHere = isCombo ? (comboStockMap[p.id] ?? 0) : (stockMap[p.id] ?? 0);
+            const trackedSimple = !isCombo && p.track_stock;
+            const trackedCombo = isCombo; // combos sempre limitados pelos componentes
+            const outOfStock = (trackedSimple || trackedCombo) && stockHere <= 0;
             return (
               <button
                 key={p.id}
@@ -324,7 +370,7 @@ export function PdvView() {
                     : "bg-card border-border hover:border-primary/50"
                 } ${outOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
               >
-                {p.product_type === "combo" && (
+                {isCombo && (
                   <Badge variant="secondary" className="absolute top-2 right-2 gap-1 text-[10px]">
                     <Layers className="h-3 w-3" /> Combo
                   </Badge>
@@ -336,9 +382,9 @@ export function PdvView() {
                 )}
                 <div className="font-semibold leading-tight mt-6 line-clamp-2 min-h-[2.5rem]">{p.name}</div>
                 <div className="text-lg font-bold text-gradient mt-1">{formatBRL(Number(p.price))}</div>
-                {p.product_type === "simple" && p.track_stock && (
+                {(trackedSimple || trackedCombo) && (
                   <div className={`text-[11px] mt-0.5 ${stockHere <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
-                    {outOfStock ? "Sem estoque" : `${stockHere} un. aqui`}
+                    {outOfStock ? "Sem estoque" : `${stockHere} ${isCombo ? "combo(s) possíveis" : "un. aqui"}`}
                   </div>
                 )}
               </button>

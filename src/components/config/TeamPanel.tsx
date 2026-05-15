@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Trash2, UserCog, Crown, Pencil, ShieldCheck } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type TeamMember = {
   id: string;
@@ -19,6 +20,7 @@ type TeamMember = {
   display_name: string | null;
   email: string | null;
   role: "owner" | "staff";
+  role_preset: string | null;
   permissions: Permission[];
   can_discount: boolean;
   max_discount_percent: number;
@@ -30,6 +32,7 @@ type FormState = {
   email: string;
   password: string;
   display_name: string;
+  role_preset: string;
   permissions: Permission[];
   can_discount: boolean;
   max_discount_percent: number;
@@ -37,11 +40,35 @@ type FormState = {
   can_authorize: boolean;
 };
 
+type Preset = {
+  key: string;
+  label: string;
+  description: string;
+  permissions: Permission[];
+  can_authorize: boolean;
+  can_discount: boolean;
+  max_discount_percent: number;
+  can_sell_cash: boolean;
+};
+
+const PRESETS: Preset[] = [
+  { key: "caixa_bar", label: "Caixa do Bar", description: "Vende no PDV; sangria/desconto extra precisa de autorização",
+    permissions: ["vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+  { key: "caixa_portaria", label: "Caixa da Portaria", description: "Só acessa a aba Portaria (check-in e cobrança de entrada)",
+    permissions: ["portaria"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+  { key: "gerente", label: "Gerente", description: "Acesso amplo + pode autorizar sangria, desconto e fechamento",
+    permissions: ["vendas", "estoque", "eventos", "promoters", "financeiro", "portaria", "funcionarios"],
+    can_authorize: true, can_discount: true, max_discount_percent: 100, can_sell_cash: true },
+  { key: "custom", label: "Personalizado", description: "Marque manualmente as permissões abaixo",
+    permissions: [], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+];
+
 const emptyForm = (): FormState => ({
   email: "",
   password: "",
   display_name: "",
-  permissions: [],
+  role_preset: "caixa_bar",
+  permissions: ["vendas"],
   can_discount: false,
   max_discount_percent: 0,
   can_sell_cash: true,
@@ -62,7 +89,7 @@ export function TeamPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize")
+        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
@@ -83,6 +110,7 @@ export function TeamPanel() {
       email: m.email ?? "",
       password: "",
       display_name: m.display_name ?? "",
+      role_preset: m.role_preset ?? "custom",
       permissions: m.permissions ?? [],
       can_discount: !!m.can_discount,
       max_discount_percent: Number(m.max_discount_percent ?? 0),
@@ -90,6 +118,20 @@ export function TeamPanel() {
       can_authorize: !!m.can_authorize,
     });
     setOpen(true);
+  };
+
+  const applyPreset = (key: string) => {
+    const p = PRESETS.find((x) => x.key === key);
+    if (!p) return;
+    setForm((f) => ({
+      ...f,
+      role_preset: key,
+      permissions: key === "custom" ? f.permissions : p.permissions,
+      can_authorize: key === "custom" ? f.can_authorize : p.can_authorize,
+      can_discount: key === "custom" ? f.can_discount : p.can_discount,
+      max_discount_percent: key === "custom" ? f.max_discount_percent : p.max_discount_percent,
+      can_sell_cash: key === "custom" ? f.can_sell_cash : p.can_sell_cash,
+    }));
   };
 
   const togglePerm = (p: Permission) => {
@@ -107,6 +149,7 @@ export function TeamPanel() {
           .from("user_roles")
           .update({
             display_name: form.display_name,
+            role_preset: form.role_preset,
             permissions: form.permissions,
             can_discount: form.can_discount,
             max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
@@ -123,6 +166,7 @@ export function TeamPanel() {
             email: form.email,
             password: form.password,
             display_name: form.display_name || form.email.split("@")[0],
+            role_preset: form.role_preset,
             permissions: form.permissions,
             can_discount: form.can_discount,
             max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
@@ -195,7 +239,21 @@ export function TeamPanel() {
                   </>
                 )}
                 <div>
-                  <Label className="mb-2 block">Permissões</Label>
+                  <Label className="mb-1 block">Cargo</Label>
+                  <Select value={form.role_preset} onValueChange={applyPreset}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PRESETS.map((p) => (
+                        <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {PRESETS.find((p) => p.key === form.role_preset)?.description}
+                  </p>
+                </div>
+                <div>
+                  <Label className="mb-2 block">Permissões (editáveis)</Label>
                   <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                     {ALL_PERMISSIONS.map((p) => (
                       <label key={p.key} className="flex items-center gap-2 p-2 rounded-md border cursor-pointer hover:bg-accent/40">
@@ -258,6 +316,11 @@ export function TeamPanel() {
                   <div className="flex items-center gap-2 font-medium">
                     {m.role === "owner" && <Crown className="h-4 w-4 text-primary" />}
                     {m.display_name ?? m.email}
+                    {m.role !== "owner" && m.role_preset && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {PRESETS.find((p) => p.key === m.role_preset)?.label ?? m.role_preset}
+                      </Badge>
+                    )}
                     {m.can_authorize && m.role !== "owner" && (
                       <Badge variant="default" className="gap-1"><ShieldCheck className="h-3 w-3" /> Autoriza</Badge>
                     )}

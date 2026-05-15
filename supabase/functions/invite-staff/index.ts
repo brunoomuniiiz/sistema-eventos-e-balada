@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
     if (!ownerRole) return json({ error: "Apenas o dono pode convidar" }, 403);
 
     const body = await req.json();
-    const { email, password, display_name, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize } = body as {
-      email: string; password: string; display_name?: string; permissions: string[];
+    const { email, password, display_name, role_preset, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize } = body as {
+      email: string; password: string; display_name?: string; role_preset?: string; permissions: string[];
       can_discount?: boolean; max_discount_percent?: number; can_sell_cash?: boolean; can_authorize?: boolean;
     };
     if (!email || !password) return json({ error: "Email e senha obrigatórios" }, 400);
@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
       user_id: created.user.id,
       owner_id: ownerId,
       role: "staff",
+      role_preset: role_preset ?? null,
       permissions: permissions ?? [],
       display_name: display_name ?? email.split("@")[0],
       email,

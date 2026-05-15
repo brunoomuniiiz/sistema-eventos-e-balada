@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
+import { useEventStartReminder } from "@/hooks/useEventStartReminder";
 
 export const Route = createFileRoute("/_app")({
   component: AppGuard,
@@ -25,5 +26,10 @@ function AppGuard() {
     );
   }
 
+  return <AppShell />;
+}
+
+function AppShell() {
+  useEventStartReminder();
   return <AppLayout />;
 }
