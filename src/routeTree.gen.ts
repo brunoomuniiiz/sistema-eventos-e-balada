@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ListaSlugRouteImport } from './routes/lista.$slug'
+import { Route as ESlugRouteImport } from './routes/e.$slug'
 import { Route as AppVendasRouteImport } from './routes/_app.vendas'
 import { Route as AppPromotersRouteImport } from './routes/_app.promoters'
 import { Route as AppPdvRouteImport } from './routes/_app.pdv'
@@ -23,6 +24,7 @@ import { Route as AppFinanceiroRouteImport } from './routes/_app.financeiro'
 import { Route as AppFechamentoRouteImport } from './routes/_app.fechamento'
 import { Route as AppEstoqueRouteImport } from './routes/_app.estoque'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppBarSettingsRouteImport } from './routes/_app.bar-settings'
 import { Route as AppEventosIndexRouteImport } from './routes/_app.eventos.index'
 import { Route as AppEventosEventIdRouteImport } from './routes/_app.eventos.$eventId'
 
@@ -48,6 +50,11 @@ const IndexRoute = IndexRouteImport.update({
 const ListaSlugRoute = ListaSlugRouteImport.update({
   id: '/lista/$slug',
   path: '/lista/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ESlugRoute = ESlugRouteImport.update({
+  id: '/e/$slug',
+  path: '/e/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppVendasRoute = AppVendasRouteImport.update({
@@ -95,6 +102,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBarSettingsRoute = AppBarSettingsRouteImport.update({
+  id: '/bar-settings',
+  path: '/bar-settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEventosIndexRoute = AppEventosIndexRouteImport.update({
   id: '/eventos/',
   path: '/eventos/',
@@ -110,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/bar-settings': typeof AppBarSettingsRoute
   '/dashboard': typeof AppDashboardRoute
   '/estoque': typeof AppEstoqueRoute
   '/fechamento': typeof AppFechamentoRoute
@@ -119,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/pdv': typeof AppPdvRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
+  '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/eventos/': typeof AppEventosIndexRoute
@@ -127,6 +141,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/bar-settings': typeof AppBarSettingsRoute
   '/dashboard': typeof AppDashboardRoute
   '/estoque': typeof AppEstoqueRoute
   '/fechamento': typeof AppFechamentoRoute
@@ -136,6 +151,7 @@ export interface FileRoutesByTo {
   '/pdv': typeof AppPdvRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
+  '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/eventos': typeof AppEventosIndexRoute
@@ -146,6 +162,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_app/bar-settings': typeof AppBarSettingsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/estoque': typeof AppEstoqueRoute
   '/_app/fechamento': typeof AppFechamentoRoute
@@ -155,6 +172,7 @@ export interface FileRoutesById {
   '/_app/pdv': typeof AppPdvRoute
   '/_app/promoters': typeof AppPromotersRoute
   '/_app/vendas': typeof AppVendasRoute
+  '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
   '/_app/eventos/$eventId': typeof AppEventosEventIdRoute
   '/_app/eventos/': typeof AppEventosIndexRoute
@@ -165,6 +183,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/bar-settings'
     | '/dashboard'
     | '/estoque'
     | '/fechamento'
@@ -174,6 +193,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/promoters'
     | '/vendas'
+    | '/e/$slug'
     | '/lista/$slug'
     | '/eventos/$eventId'
     | '/eventos/'
@@ -182,6 +202,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/bar-settings'
     | '/dashboard'
     | '/estoque'
     | '/fechamento'
@@ -191,6 +212,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/promoters'
     | '/vendas'
+    | '/e/$slug'
     | '/lista/$slug'
     | '/eventos/$eventId'
     | '/eventos'
@@ -200,6 +222,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/auth'
     | '/reset-password'
+    | '/_app/bar-settings'
     | '/_app/dashboard'
     | '/_app/estoque'
     | '/_app/fechamento'
@@ -209,6 +232,7 @@ export interface FileRouteTypes {
     | '/_app/pdv'
     | '/_app/promoters'
     | '/_app/vendas'
+    | '/e/$slug'
     | '/lista/$slug'
     | '/_app/eventos/$eventId'
     | '/_app/eventos/'
@@ -219,6 +243,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ESlugRoute: typeof ESlugRoute
   ListaSlugRoute: typeof ListaSlugRoute
 }
 
@@ -257,6 +282,13 @@ declare module '@tanstack/react-router' {
       path: '/lista/$slug'
       fullPath: '/lista/$slug'
       preLoaderRoute: typeof ListaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/e/$slug': {
+      id: '/e/$slug'
+      path: '/e/$slug'
+      fullPath: '/e/$slug'
+      preLoaderRoute: typeof ESlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/vendas': {
@@ -322,6 +354,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/bar-settings': {
+      id: '/_app/bar-settings'
+      path: '/bar-settings'
+      fullPath: '/bar-settings'
+      preLoaderRoute: typeof AppBarSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/eventos/': {
       id: '/_app/eventos/'
       path: '/eventos'
@@ -340,6 +379,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppBarSettingsRoute: typeof AppBarSettingsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEstoqueRoute: typeof AppEstoqueRoute
   AppFechamentoRoute: typeof AppFechamentoRoute
@@ -354,6 +394,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppBarSettingsRoute: AppBarSettingsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEstoqueRoute: AppEstoqueRoute,
   AppFechamentoRoute: AppFechamentoRoute,
@@ -374,17 +415,9 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ESlugRoute: ESlugRoute,
   ListaSlugRoute: ListaSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
