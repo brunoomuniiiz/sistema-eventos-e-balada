@@ -51,7 +51,7 @@ const PAYMENTS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] =
   { key: "pix", label: "Pix", icon: Smartphone },
 ];
 
-function PdvPage() {
+export function PdvView() {
   const { user } = useAuth();
   const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, loading } = usePermissions();
   const qc = useQueryClient();
