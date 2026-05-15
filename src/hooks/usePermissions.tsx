@@ -27,7 +27,7 @@ export function usePermissions() {
       if (!user) return null;
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, permissions, owner_id")
+        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash")
         .eq("user_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -42,5 +42,18 @@ export function usePermissions() {
 
   const can = (p: Permission) => isOwner || permissions.includes(p);
 
-  return { isOwner, ownerId, permissions, can, loading: isLoading };
+  const canDiscount = isOwner || !!data?.can_discount;
+  const maxDiscountPercent = isOwner ? 100 : Number(data?.max_discount_percent ?? 0);
+  const canSellCash = isOwner || data?.can_sell_cash !== false;
+
+  return {
+    isOwner,
+    ownerId,
+    permissions,
+    can,
+    canDiscount,
+    maxDiscountPercent,
+    canSellCash,
+    loading: isLoading,
+  };
 }
