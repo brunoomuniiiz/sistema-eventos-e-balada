@@ -26,7 +26,30 @@ type TeamMember = {
   email: string | null;
   role: "owner" | "staff";
   permissions: Permission[];
+  can_discount: boolean;
+  max_discount_percent: number;
+  can_sell_cash: boolean;
 };
+
+type FormState = {
+  email: string;
+  password: string;
+  display_name: string;
+  permissions: Permission[];
+  can_discount: boolean;
+  max_discount_percent: number;
+  can_sell_cash: boolean;
+};
+
+const emptyForm = (): FormState => ({
+  email: "",
+  password: "",
+  display_name: "",
+  permissions: [],
+  can_discount: false,
+  max_discount_percent: 0,
+  can_sell_cash: true,
+});
 
 function FuncionariosPage() {
   const { user } = useAuth();
@@ -34,7 +57,7 @@ function FuncionariosPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TeamMember | null>(null);
-  const [form, setForm] = useState({ email: "", password: "", display_name: "", permissions: [] as Permission[] });
+  const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
 
   const { data: team = [] } = useQuery({
@@ -42,7 +65,7 @@ function FuncionariosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, permissions")
+        .select("id, user_id, display_name, email, role, permissions, can_discount, max_discount_percent, can_sell_cash")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
