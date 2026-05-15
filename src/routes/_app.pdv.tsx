@@ -71,13 +71,22 @@ export function PdvView() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_my_open_session");
       if (error) throw error;
-      return data as null | { id: string; opening_amount: number; opened_at: string; opening_notes: string | null; withdrawals_total: number; sales_total: number };
+      return data as null | {
+        id: string; opening_amount: number; opened_at: string;
+        opening_notes: string | null; withdrawals_total: number; sales_total: number;
+        event_id: string | null; event_name: string | null;
+      };
     },
   });
 
   useEffect(() => {
     if (session === null && can("vendas") && !openCash) setOpenCash(true);
   }, [session, can, openCash]);
+
+  // Vincula automaticamente o evento da sessão ao PDV
+  useEffect(() => {
+    if (session?.event_id) setEventId(session.event_id);
+  }, [session?.event_id]);
 
   const { data: locations = [] } = useQuery({
     queryKey: ["pdv-locations", ownerId],
