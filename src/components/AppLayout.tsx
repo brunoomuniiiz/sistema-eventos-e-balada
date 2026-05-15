@@ -1,19 +1,17 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Calendar, Users, DollarSign, LogOut, Sparkles, ShoppingCart, UserCog, Settings, Boxes, DoorOpen } from "lucide-react";
+import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, Settings, Boxes, DoorOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 
-const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?: Permission; ownerOnly?: boolean }[] = [
+const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?: Permission; ownerOnly?: boolean; anyPerm?: Permission[] }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/eventos", label: "Eventos", icon: Calendar, perm: "eventos" },
   { to: "/vendas", label: "Vendas", icon: ShoppingCart, perm: "vendas" },
   { to: "/produtos", label: "Produtos", icon: Boxes, perm: "estoque" },
   { to: "/portaria", label: "Portaria", icon: DoorOpen, perm: "portaria" },
-  { to: "/promoters", label: "Promoters", icon: Users, perm: "promoters" },
   { to: "/financeiro", label: "Financeiro", icon: DollarSign, perm: "financeiro" },
-  { to: "/funcionarios", label: "Equipe", icon: UserCog, perm: "funcionarios" },
-  { to: "/bar-settings", label: "Configuração", icon: Settings, ownerOnly: true },
+  { to: "/configuracao", label: "Configuração", icon: Settings, anyPerm: ["funcionarios", "promoters"] },
 ];
 
 export function AppLayout() {
@@ -24,6 +22,7 @@ export function AppLayout() {
 
   const visibleItems = navItems.filter((i) => {
     if (i.ownerOnly) return isOwner;
+    if (i.anyPerm) return isOwner || i.anyPerm.some((p) => can(p));
     if (!i.perm) return true;
     return can(i.perm);
   });

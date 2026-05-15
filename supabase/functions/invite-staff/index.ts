@@ -38,9 +38,9 @@ Deno.serve(async (req) => {
     if (!ownerRole) return json({ error: "Apenas o dono pode convidar" }, 403);
 
     const body = await req.json();
-    const { email, password, display_name, permissions, can_discount, max_discount_percent, can_sell_cash } = body as {
+    const { email, password, display_name, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize } = body as {
       email: string; password: string; display_name?: string; permissions: string[];
-      can_discount?: boolean; max_discount_percent?: number; can_sell_cash?: boolean;
+      can_discount?: boolean; max_discount_percent?: number; can_sell_cash?: boolean; can_authorize?: boolean;
     };
     if (!email || !password) return json({ error: "Email e senha obrigatórios" }, 400);
     if (password.length < 6) return json({ error: "Senha mínima de 6 caracteres" }, 400);
@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
       can_discount: !!can_discount,
       max_discount_percent: Math.max(0, Math.min(100, Number(max_discount_percent ?? 0))),
       can_sell_cash: can_sell_cash !== false,
+      can_authorize: !!can_authorize,
     });
     if (roleErr) {
       // rollback do usuário
