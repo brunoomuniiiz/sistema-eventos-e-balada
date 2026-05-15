@@ -188,6 +188,7 @@ export function PdvView() {
     if (cart.length === 0) return toast.error("Adicione pelo menos um produto");
     if (!payment) return toast.error("Selecione a forma de pagamento");
     if (!locationId) return toast.error("Selecione um local");
+    if (!session) return toast.error("Abra o caixa antes de vender");
     if (payment === "dinheiro" && !canSellCash) return toast.error("Você não tem permissão para vender em dinheiro");
 
     setSubmitting(true);
@@ -206,6 +207,7 @@ export function PdvView() {
           discount_percent: discountPercent,
           discount_value: discountValue,
           discount_by: discountPercent > 0 ? user.id : null,
+          session_id: session.id,
         })
         .select()
         .single();
