@@ -250,6 +250,31 @@ export function PdvView() {
     <div className="pb-32">
       <PageHeader title="Venda Rápida" subtitle="Toque para adicionar ao carrinho" />
 
+      <OpenCashDialog open={openCash} onOpenChange={setOpenCash} onOpened={() => refetchSession()} />
+      <WithdrawalDialog open={openWithdraw} onOpenChange={setOpenWithdraw} onDone={() => refetchSession()} />
+
+      {session && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 p-3 rounded-xl border bg-card/60">
+          <Wallet className="h-4 w-4 text-primary" />
+          <div className="text-xs">
+            <div className="font-medium">Caixa aberto</div>
+            <div className="text-muted-foreground">
+              Inicial {formatBRL(Number(session.opening_amount))} · Vendas {formatBRL(Number(session.sales_total))} · Sangrias {formatBRL(Number(session.withdrawals_total))}
+            </div>
+          </div>
+          <Button size="sm" variant="outline" className="ml-auto" onClick={() => setOpenWithdraw(true)}>
+            Sangria
+          </Button>
+        </div>
+      )}
+      {!session && (
+        <div className="mb-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-sm flex items-center gap-2">
+          <Lock className="h-4 w-4 text-amber-500" />
+          <span className="flex-1">Caixa fechado. Abra para começar a vender.</span>
+          <Button size="sm" onClick={() => setOpenCash(true)}>Abrir caixa</Button>
+        </div>
+      )}
+
       {/* Contexto: local + evento */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div>
