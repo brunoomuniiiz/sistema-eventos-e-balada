@@ -386,7 +386,6 @@ export function PdvView() {
                   <div className={`text-[11px] mt-0.5 ${stockHere <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
                     {outOfStock ? "Sem estoque" : `${stockHere} ${isCombo ? "combo(s) possíveis" : "un. aqui"}`}
                   </div>
-                  </div>
                 )}
               </button>
             );
