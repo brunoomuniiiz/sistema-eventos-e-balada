@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -7,376 +7,688 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Package, Minus, Layers, X } from "lucide-react";
+import {
+  Plus, Minus, Package, ArrowRightLeft, ClipboardList, MapPin,
+  CheckCircle2, AlertTriangle, ChevronRight, Save,
+} from "lucide-react";
 import { formatBRL } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/estoque")({
   component: EstoquePage,
 });
 
-type Product = {
-  id: string;
-  name: string;
-  price: number;
-  stock_quantity: number;
-  product_type: "simple" | "combo";
-  track_stock: boolean;
+type Location = { id: string; name: string; is_default: boolean };
+type Product = { id: string; name: string; cost_price: number; product_type: string; track_stock: boolean };
+type Stock = { product_id: string; location_id: string; quantity: number };
+type Inventory = {
+  id: string; location_id: string; status: string; opened_at: string; closed_at: string | null;
+  net_value: number; total_surplus_value: number; total_shortage_value: number; opened_by_name: string | null;
 };
-
-type ComboItem = {
-  id: string;
-  combo_product_id: string;
-  component_product_id: string;
-  quantity: number;
-  component?: { name: string };
+type InventoryItem = {
+  id: string; product_id: string; product_name: string;
+  system_qty: number; counted_qty: number | null; cost_price: number; diff_value: number;
 };
-
-type DraftComponent = { component_product_id: string; quantity: number };
 
 function EstoquePage() {
   const { ownerId, can, loading } = usePermissions();
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    price: "",
-    stock_quantity: "",
-    product_type: "simple" as "simple" | "combo",
-    track_stock: true,
+
+  const { data: locations = [], refetch: refetchLocs } = useQuery({
+    queryKey: ["stock_locations", ownerId],
+    enabled: !!ownerId && can("estoque"),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("stock_locations")
+        .select("id, name, is_default").order("is_default", { ascending: false }).order("name");
+      if (error) throw error;
+      return data as Location[];
+    },
   });
-  const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
-  const [pickComponentId, setPickComponentId] = useState("");
 
   const { data: products = [] } = useQuery({
-    queryKey: ["products", ownerId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("id, name, price, stock_quantity, product_type, track_stock")
-        .order("name");
-      if (error) throw error;
-      return data as Product[];
-    },
+    queryKey: ["products-stock", ownerId],
     enabled: !!ownerId && can("estoque"),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("products")
+        .select("id, name, cost_price, product_type, track_stock").order("name");
+      if (error) throw error;
+      return (data as Product[]).filter((p) => p.product_type === "simple" || p.track_stock);
+    },
   });
 
-  const { data: comboItems = [] } = useQuery({
-    queryKey: ["combo_items", ownerId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("combo_items")
-        .select("id, combo_product_id, component_product_id, quantity, component:products!combo_items_component_product_id_fkey(name)");
-      if (error) throw error;
-      return data as unknown as ComboItem[];
-    },
+  const { data: stock = [], refetch: refetchStock } = useQuery({
+    queryKey: ["product_stock", ownerId],
     enabled: !!ownerId && can("estoque"),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("product_stock")
+        .select("product_id, location_id, quantity");
+      if (error) throw error;
+      return data as Stock[];
+    },
   });
+
+  // Auto-create default location if none exists
+  useEffect(() => {
+    if (!ownerId || !can("estoque") || loading) return;
+    if (locations.length === 0) {
+      supabase.from("stock_locations").insert({
+        user_id: ownerId, name: "Estoque principal", is_default: true,
+      }).then(({ error }) => { if (!error) refetchLocs(); });
+    }
+  }, [ownerId, can, loading, locations.length, refetchLocs]);
 
   if (loading) return null;
-  if (!can("estoque")) {
-    return <PageHeader title="Estoque" subtitle="Você não tem permissão para acessar esta página" />;
-  }
+  if (!can("estoque")) return <PageHeader title="Estoque" subtitle="Você não tem permissão" />;
 
-  const simpleProducts = products.filter((p) => p.product_type === "simple");
-
-  const openNew = () => {
-    setEditing(null);
-    setForm({ name: "", price: "", stock_quantity: "", product_type: "simple", track_stock: true });
-    setDraftComponents([]);
-    setPickComponentId("");
-    setOpen(true);
-  };
-
-  const openEdit = (p: Product) => {
-    setEditing(p);
-    setForm({
-      name: p.name,
-      price: String(p.price),
-      stock_quantity: String(p.stock_quantity),
-      product_type: p.product_type,
-      track_stock: p.track_stock,
-    });
-    if (p.product_type === "combo") {
-      const items = comboItems.filter((c) => c.combo_product_id === p.id);
-      setDraftComponents(items.map((i) => ({
-        component_product_id: i.component_product_id,
-        quantity: Number(i.quantity),
-      })));
-    } else {
-      setDraftComponents([]);
-    }
-    setPickComponentId("");
-    setOpen(true);
-  };
-
-  const addDraftComponent = () => {
-    if (!pickComponentId) return;
-    if (draftComponents.some((d) => d.component_product_id === pickComponentId)) {
-      return toast.error("Componente já adicionado");
-    }
-    setDraftComponents((prev) => [...prev, { component_product_id: pickComponentId, quantity: 1 }]);
-    setPickComponentId("");
-  };
-
-  const updateDraftQty = (id: string, qty: number) =>
-    setDraftComponents((prev) => prev.map((d) =>
-      d.component_product_id === id ? { ...d, quantity: Math.max(0.01, qty) } : d));
-
-  const removeDraft = (id: string) =>
-    setDraftComponents((prev) => prev.filter((d) => d.component_product_id !== id));
-
-  const save = async () => {
-    if (!ownerId) return;
-    if (!form.name.trim()) return toast.error("Informe o nome");
-    const price = parseFloat(form.price.replace(",", ".")) || 0;
-    const isCombo = form.product_type === "combo";
-    const stock = isCombo && !form.track_stock ? 0 : parseInt(form.stock_quantity) || 0;
-
-    if (isCombo && draftComponents.length === 0) {
-      return toast.error("Adicione ao menos um item ao combo");
-    }
-
-    let productId = editing?.id;
-
-    if (editing) {
-      const { error } = await supabase
-        .from("products")
-        .update({
-          name: form.name.trim(),
-          price,
-          stock_quantity: stock,
-          product_type: form.product_type,
-          track_stock: isCombo ? form.track_stock : true,
-        })
-        .eq("id", editing.id);
-      if (error) return toast.error(error.message);
-    } else {
-      const { data, error } = await supabase
-        .from("products")
-        .insert({
-          user_id: ownerId,
-          name: form.name.trim(),
-          price,
-          stock_quantity: stock,
-          product_type: form.product_type,
-          track_stock: isCombo ? form.track_stock : true,
-        })
-        .select("id")
-        .single();
-      if (error) return toast.error(error.message);
-      productId = data.id;
-    }
-
-    if (isCombo && productId) {
-      // Replace combo items
-      const { error: delErr } = await supabase.from("combo_items").delete().eq("combo_product_id", productId);
-      if (delErr) return toast.error(delErr.message);
-      const rows = draftComponents.map((d) => ({
-        user_id: ownerId,
-        combo_product_id: productId!,
-        component_product_id: d.component_product_id,
-        quantity: d.quantity,
-      }));
-      const { error: insErr } = await supabase.from("combo_items").insert(rows);
-      if (insErr) return toast.error(insErr.message);
-    }
-
-    toast.success(editing ? "Produto atualizado" : "Produto cadastrado");
-    setOpen(false);
-    qc.invalidateQueries({ queryKey: ["products"] });
-    qc.invalidateQueries({ queryKey: ["combo_items"] });
-  };
-
-  const adjust = async (p: Product, delta: number) => {
-    const newStock = Math.max(0, p.stock_quantity + delta);
-    const { error } = await supabase.from("products").update({ stock_quantity: newStock }).eq("id", p.id);
-    if (error) return toast.error(error.message);
-    qc.invalidateQueries({ queryKey: ["products"] });
-  };
-
-  const remove = async (p: Product) => {
-    if (!confirm(`Excluir ${p.name}?`)) return;
-    const { error } = await supabase.from("products").delete().eq("id", p.id);
-    if (error) return toast.error(error.message);
-    toast.success("Produto removido");
-    qc.invalidateQueries({ queryKey: ["products"] });
-    qc.invalidateQueries({ queryKey: ["combo_items"] });
-  };
+  const getQty = (pid: string, lid: string) =>
+    stock.find((s) => s.product_id === pid && s.location_id === lid)?.quantity ?? 0;
 
   return (
     <div>
-      <PageHeader
-        title="Estoque"
-        subtitle="Produtos e combos"
-        actions={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openNew}><Plus className="h-4 w-4" /> Novo</Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editing ? "Editar" : "Novo"} {form.product_type === "combo" ? "combo" : "produto"}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label>Tipo</Label>
-                  <Select
-                    value={form.product_type}
-                    onValueChange={(v) => setForm({ ...form, product_type: v as "simple" | "combo", track_stock: v === "combo" ? false : true })}
-                    disabled={!!editing}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="simple">Produto avulso</SelectItem>
-                      <SelectItem value="combo">Combo (composto por outros itens)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Nome</Label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Preço de venda (R$)</Label>
-                    <Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-                  </div>
-                  {form.product_type === "simple" ? (
-                    <div>
-                      <Label>Quantidade em estoque</Label>
-                      <Input type="number" value={form.stock_quantity} onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })} />
-                    </div>
-                  ) : (
-                    <div>
-                      <Label>Estoque próprio?</Label>
-                      <Select value={form.track_stock ? "yes" : "no"} onValueChange={(v) => setForm({ ...form, track_stock: v === "yes" })}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="no">Não — descontar só componentes</SelectItem>
-                          <SelectItem value="yes">Sim — controlar também</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+      <PageHeader title="Estoque" subtitle="Quantidades por local, transferências e inventários" />
+      <Tabs defaultValue="locais">
+        <TabsList>
+          <TabsTrigger value="locais"><MapPin className="h-4 w-4" /> Locais</TabsTrigger>
+          <TabsTrigger value="transferir"><ArrowRightLeft className="h-4 w-4" /> Transferir</TabsTrigger>
+          <TabsTrigger value="inventario"><ClipboardList className="h-4 w-4" /> Inventário</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="locais" className="space-y-4 mt-4">
+          <LocaisTab
+            ownerId={ownerId!} locations={locations} products={products} getQty={getQty}
+            onAdjust={() => { refetchStock(); qc.invalidateQueries({ queryKey: ["products-full"] }); }}
+            onLocChange={refetchLocs}
+          />
+        </TabsContent>
+
+        <TabsContent value="transferir" className="space-y-4 mt-4">
+          <TransferirTab
+            locations={locations} products={products} getQty={getQty}
+            onDone={() => { refetchStock(); qc.invalidateQueries({ queryKey: ["products-full"] }); }}
+          />
+        </TabsContent>
+
+        <TabsContent value="inventario" className="space-y-4 mt-4">
+          <InventarioTab
+            ownerId={ownerId!} locations={locations} products={products} stock={stock}
+            onClosed={() => { refetchStock(); qc.invalidateQueries({ queryKey: ["products-full"] }); }}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ============ LOCAIS ============
+function LocaisTab({
+  ownerId, locations, products, getQty, onAdjust, onLocChange,
+}: {
+  ownerId: string; locations: Location[]; products: Product[];
+  getQty: (pid: string, lid: string) => number; onAdjust: () => void; onLocChange: () => void;
+}) {
+  const [newLoc, setNewLoc] = useState("");
+  const [openLocs, setOpenLocs] = useState(false);
+  const defaultLoc = locations.find((l) => l.is_default) ?? locations[0];
+  const [selectedLoc, setSelectedLoc] = useState<string>("");
+
+  useEffect(() => {
+    if (!selectedLoc && defaultLoc) setSelectedLoc(defaultLoc.id);
+  }, [defaultLoc, selectedLoc]);
+
+  const addLoc = async () => {
+    if (!newLoc.trim()) return;
+    const { error } = await supabase.from("stock_locations").insert({
+      user_id: ownerId, name: newLoc.trim(), is_default: locations.length === 0,
+    });
+    if (error) return toast.error(error.message);
+    setNewLoc("");
+    onLocChange();
+    toast.success("Local criado");
+  };
+
+  const removeLoc = async (id: string) => {
+    if (!confirm("Excluir este local?")) return;
+    const { error } = await supabase.from("stock_locations").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    onLocChange();
+  };
+
+  const adjust = async (pid: string, lid: string, delta: number) => {
+    const current = getQty(pid, lid);
+    const newQty = Math.max(0, current + delta);
+    const existing = await supabase.from("product_stock")
+      .select("id").eq("product_id", pid).eq("location_id", lid).maybeSingle();
+    if (existing.data) {
+      const { error } = await supabase.from("product_stock")
+        .update({ quantity: newQty }).eq("id", existing.data.id);
+      if (error) return toast.error(error.message);
+    } else {
+      const { error } = await supabase.from("product_stock").insert({
+        user_id: ownerId, product_id: pid, location_id: lid, quantity: newQty,
+      });
+      if (error) return toast.error(error.message);
+    }
+    onAdjust();
+  };
+
+  const setQty = async (pid: string, lid: string, qty: number) => {
+    const newQty = Math.max(0, qty);
+    const existing = await supabase.from("product_stock")
+      .select("id").eq("product_id", pid).eq("location_id", lid).maybeSingle();
+    if (existing.data) {
+      await supabase.from("product_stock").update({ quantity: newQty }).eq("id", existing.data.id);
+    } else {
+      await supabase.from("product_stock").insert({
+        user_id: ownerId, product_id: pid, location_id: lid, quantity: newQty,
+      });
+    }
+    onAdjust();
+  };
+
+  return (
+    <>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Select value={selectedLoc} onValueChange={setSelectedLoc}>
+          <SelectTrigger className="w-60"><SelectValue placeholder="Selecione um local" /></SelectTrigger>
+          <SelectContent>
+            {locations.map((l) => (
+              <SelectItem key={l.id} value={l.id}>
+                {l.name} {l.is_default && "(padrão)"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Dialog open={openLocs} onOpenChange={setOpenLocs}>
+          <DialogTrigger asChild>
+            <Button variant="outline"><MapPin className="h-4 w-4" /> Gerenciar locais</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Locais de estoque</DialogTitle></DialogHeader>
+            <div className="space-y-2">
+              {locations.map((l) => (
+                <div key={l.id} className="flex items-center gap-2 p-2 rounded border">
+                  <span className="flex-1">{l.name}</span>
+                  {l.is_default && <Badge variant="secondary">padrão</Badge>}
+                  {!l.is_default && (
+                    <Button variant="ghost" size="icon" onClick={() => removeLoc(l.id)}>
+                      <Minus className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
-
-                {form.product_type === "combo" && (
-                  <div className="space-y-2 pt-2 border-t">
-                    <Label>Itens do combo</Label>
-                    <div className="flex gap-2">
-                      <Select value={pickComponentId} onValueChange={setPickComponentId}>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder={simpleProducts.length ? "Selecione um item" : "Cadastre produtos avulsos primeiro"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {simpleProducts
-                            .filter((p) => !draftComponents.some((d) => d.component_product_id === p.id))
-                            .map((p) => (
-                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" onClick={addDraftComponent} disabled={!pickComponentId}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {draftComponents.length === 0 ? (
-                      <div className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded">
-                        Nenhum item adicionado
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {draftComponents.map((d) => {
-                          const p = products.find((x) => x.id === d.component_product_id);
-                          return (
-                            <div key={d.component_product_id} className="flex items-center gap-2 p-2 rounded border bg-card">
-                              <span className="flex-1 text-sm truncate">{p?.name ?? "?"}</span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min={0.01}
-                                value={d.quantity}
-                                onChange={(e) => updateDraftQty(d.component_product_id, parseFloat(e.target.value) || 1)}
-                                className="w-20"
-                              />
-                              <Button type="button" variant="ghost" size="icon" onClick={() => removeDraft(d.component_product_id)}>
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
+              ))}
+              <div className="flex gap-2 pt-2 border-t">
+                <Input placeholder="Ex: Bar 1, Depósito" value={newLoc} onChange={(e) => setNewLoc(e.target.value)} />
+                <Button onClick={addLoc}><Plus className="h-4 w-4" /></Button>
               </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button onClick={save}>{editing ? "Salvar" : "Cadastrar"}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        }
-      />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      {products.length === 0 ? (
+      {!selectedLoc ? null : products.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
           <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
-          Nenhum produto cadastrado
+          Cadastre produtos primeiro
         </CardContent></Card>
       ) : (
-        <div className="grid gap-3">
-          {products.map((p) => {
-            const isCombo = p.product_type === "combo";
-            const items = comboItems.filter((c) => c.combo_product_id === p.id);
-            return (
-              <Card key={p.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium truncate">{p.name}</span>
-                        {isCombo && <Badge variant="secondary" className="gap-1"><Layers className="h-3 w-3" /> Combo</Badge>}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{formatBRL(Number(p.price))}</div>
-                    </div>
-                    {!isCombo || p.track_stock ? (
-                      <div className="flex items-center gap-1">
-                        <Button variant="outline" size="icon" onClick={() => adjust(p, -1)}><Minus className="h-3 w-3" /></Button>
-                        <span className={`w-12 text-center font-semibold ${p.stock_quantity <= 5 ? "text-destructive" : ""}`}>{p.stock_quantity}</span>
-                        <Button variant="outline" size="icon" onClick={() => adjust(p, 1)}><Plus className="h-3 w-3" /></Button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground italic">via componentes</span>
-                    )}
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
+        <Card><CardContent className="p-0">
+          <div className="divide-y">
+            {products.map((p) => {
+              const qty = getQty(p.id, selectedLoc);
+              return (
+                <div key={p.id} className="flex items-center gap-2 p-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground">Custo {formatBRL(Number(p.cost_price))}</div>
                   </div>
-                  {isCombo && items.length > 0 && (
-                    <div className="mt-3 pt-3 border-t flex flex-wrap gap-1.5">
-                      {items.map((i) => (
-                        <Badge key={i.id} variant="outline" className="text-xs">
-                          {i.quantity}× {i.component?.name ?? "?"}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  <Button variant="outline" size="icon" onClick={() => adjust(p.id, selectedLoc, -1)}>
+                    <Minus className="h-3 w-3" />
+                  </Button>
+                  <Input
+                    type="number" value={qty}
+                    onChange={(e) => setQty(p.id, selectedLoc, parseInt(e.target.value) || 0)}
+                    className={`w-20 text-center font-semibold ${qty <= 5 ? "text-destructive" : ""}`}
+                  />
+                  <Button variant="outline" size="icon" onClick={() => adjust(p.id, selectedLoc, 1)}>
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent></Card>
       )}
-    </div>
+    </>
+  );
+}
+
+// ============ TRANSFERIR ============
+function TransferirTab({
+  locations, products, getQty, onDone,
+}: {
+  locations: Location[]; products: Product[];
+  getQty: (pid: string, lid: string) => number; onDone: () => void;
+}) {
+  const [productId, setProductId] = useState("");
+  const [fromLoc, setFromLoc] = useState("");
+  const [toLoc, setToLoc] = useState("");
+  const [qty, setQty] = useState("1");
+  const [notes, setNotes] = useState("");
+
+  const { data: transfers = [], refetch } = useQuery({
+    queryKey: ["stock_transfers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("stock_transfers")
+        .select("id, quantity, notes, created_at, created_by_name, product:products(name), from:stock_locations!stock_transfers_from_location_id_fkey(name), to:stock_locations!stock_transfers_to_location_id_fkey(name)")
+        .order("created_at", { ascending: false }).limit(20);
+      if (error) return [];
+      return data as unknown as Array<{
+        id: string; quantity: number; notes: string | null; created_at: string;
+        created_by_name: string | null;
+        product: { name: string } | null;
+        from: { name: string } | null;
+        to: { name: string } | null;
+      }>;
+    },
+  });
+
+  const submit = async () => {
+    if (!productId || !fromLoc || !toLoc) return toast.error("Preencha todos os campos");
+    const q = parseInt(qty);
+    if (!q || q <= 0) return toast.error("Quantidade inválida");
+    const { error } = await supabase.rpc("transfer_stock", {
+      _product_id: productId, _from_location: fromLoc, _to_location: toLoc,
+      _quantity: q, _notes: notes.trim() || undefined,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Transferência realizada");
+    setProductId(""); setQty("1"); setNotes("");
+    onDone(); refetch();
+  };
+
+  const fromQty = productId && fromLoc ? getQty(productId, fromLoc) : 0;
+
+  return (
+    <>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Nova transferência</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label>Produto</Label>
+            <Select value={productId} onValueChange={setProductId}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>De</Label>
+              <Select value={fromLoc} onValueChange={setFromLoc}>
+                <SelectTrigger><SelectValue placeholder="Origem" /></SelectTrigger>
+                <SelectContent>
+                  {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {productId && fromLoc && (
+                <div className="text-xs text-muted-foreground mt-1">Disponível: {fromQty}</div>
+              )}
+            </div>
+            <div>
+              <Label>Para</Label>
+              <Select value={toLoc} onValueChange={setToLoc}>
+                <SelectTrigger><SelectValue placeholder="Destino" /></SelectTrigger>
+                <SelectContent>
+                  {locations.filter((l) => l.id !== fromLoc).map((l) => (
+                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Quantidade</Label>
+            <Input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} />
+          </div>
+          <div>
+            <Label>Observação (opcional)</Label>
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+          <Button onClick={submit} className="w-full">
+            <ArrowRightLeft className="h-4 w-4" /> Transferir
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Histórico recente</CardTitle></CardHeader>
+        <CardContent>
+          {transfers.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-6">Nenhuma transferência ainda</div>
+          ) : (
+            <div className="space-y-2">
+              {transfers.map((t) => (
+                <div key={t.id} className="flex items-center gap-2 text-sm p-2 rounded border">
+                  <span className="font-medium flex-1">{t.product?.name ?? "?"}</span>
+                  <Badge variant="outline">{t.quantity}</Badge>
+                  <span className="text-muted-foreground text-xs">{t.from?.name}</span>
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground text-xs">{t.to?.name}</span>
+                  <span className="text-muted-foreground text-xs ml-2">
+                    {new Date(t.created_at).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+// ============ INVENTÁRIO ============
+function InventarioTab({
+  ownerId, locations, products, stock, onClosed,
+}: {
+  ownerId: string; locations: Location[]; products: Product[]; stock: Stock[]; onClosed: () => void;
+}) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const { data: inventories = [], refetch: refetchInv } = useQuery({
+    queryKey: ["stock_inventories"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("stock_inventories")
+        .select("id, location_id, status, opened_at, closed_at, net_value, total_surplus_value, total_shortage_value, opened_by_name")
+        .order("opened_at", { ascending: false }).limit(20);
+      if (error) throw error;
+      return data as Inventory[];
+    },
+  });
+
+  const openInv = inventories.find((i) => i.status === "open");
+
+  useEffect(() => {
+    if (!activeId && openInv) setActiveId(openInv.id);
+  }, [openInv, activeId]);
+
+  const start = async (locId: string) => {
+    const { data: existing } = await supabase.from("stock_inventories")
+      .select("id").eq("status", "open").eq("location_id", locId).maybeSingle();
+    if (existing) {
+      setActiveId(existing.id);
+      return toast.info("Já existe inventário aberto neste local");
+    }
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: name } = await supabase.from("user_roles")
+      .select("display_name, email").eq("user_id", user!.id).maybeSingle();
+    const { data: inv, error } = await supabase.from("stock_inventories").insert({
+      user_id: ownerId, location_id: locId,
+      opened_by: user!.id, opened_by_name: name?.display_name ?? name?.email ?? null,
+    }).select("id").single();
+    if (error) return toast.error(error.message);
+
+    // Snapshot system qty
+    const items = products.map((p) => {
+      const qty = stock.find((s) => s.product_id === p.id && s.location_id === locId)?.quantity ?? 0;
+      return {
+        user_id: ownerId, inventory_id: inv.id, product_id: p.id, product_name: p.name,
+        system_qty: qty, cost_price: Number(p.cost_price ?? 0),
+      };
+    });
+    if (items.length > 0) {
+      const { error: itErr } = await supabase.from("stock_inventory_items").insert(items);
+      if (itErr) return toast.error(itErr.message);
+    }
+    setActiveId(inv.id);
+    refetchInv();
+    toast.success("Inventário iniciado");
+  };
+
+  if (activeId) {
+    const inv = inventories.find((i) => i.id === activeId);
+    return (
+      <InventoryWizard
+        inventoryId={activeId}
+        location={locations.find((l) => l.id === inv?.location_id)}
+        readOnly={inv?.status === "closed"}
+        onBack={() => setActiveId(null)}
+        onClosed={() => { refetchInv(); onClosed(); setActiveId(null); }}
+      />
+    );
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Iniciar inventário</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="text-sm text-muted-foreground">Selecione o local para abrir uma contagem</div>
+          {locations.map((l) => (
+            <Button key={l.id} variant="outline" className="w-full justify-between" onClick={() => start(l.id)}>
+              <span>{l.name}</span>
+              <ClipboardList className="h-4 w-4" />
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Histórico</CardTitle></CardHeader>
+        <CardContent>
+          {inventories.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-6">Nenhum inventário ainda</div>
+          ) : (
+            <div className="space-y-2">
+              {inventories.map((i) => {
+                const loc = locations.find((l) => l.id === i.location_id);
+                return (
+                  <button
+                    key={i.id} onClick={() => setActiveId(i.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded border text-left hover:bg-card/60"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">{loc?.name ?? "?"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(i.opened_at).toLocaleString("pt-BR")} · {i.opened_by_name ?? "—"}
+                      </div>
+                    </div>
+                    <Badge variant={i.status === "open" ? "default" : "secondary"}>
+                      {i.status === "open" ? "aberto" : "fechado"}
+                    </Badge>
+                    {i.status === "closed" && (
+                      <span className={`text-sm font-semibold ${i.net_value < 0 ? "text-destructive" : "text-emerald-400"}`}>
+                        {formatBRL(Number(i.net_value))}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function InventoryWizard({
+  inventoryId, location, readOnly, onBack, onClosed,
+}: {
+  inventoryId: string; location: Location | undefined; readOnly: boolean;
+  onBack: () => void; onClosed: () => void;
+}) {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [adjust, setAdjust] = useState(true);
+
+  const { data: items = [], refetch } = useQuery({
+    queryKey: ["stock_inventory_items", inventoryId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("stock_inventory_items")
+        .select("id, product_id, product_name, system_qty, counted_qty, cost_price, diff_value")
+        .eq("inventory_id", inventoryId).order("product_name");
+      if (error) throw error;
+      return data as InventoryItem[];
+    },
+  });
+
+  const updateCount = async (id: string, val: number | null) => {
+    const it = items.find((x) => x.id === id);
+    if (!it) return;
+    const counted = val;
+    const diff = counted === null ? 0 : (counted - it.system_qty) * Number(it.cost_price);
+    await supabase.from("stock_inventory_items")
+      .update({ counted_qty: counted, diff_value: diff }).eq("id", id);
+    refetch();
+  };
+
+  const totals = useMemo(() => {
+    let surplus = 0, shortage = 0, missing = 0;
+    items.forEach((i) => {
+      if (i.counted_qty === null || i.counted_qty === undefined) { missing++; return; }
+      const diff = (i.counted_qty - i.system_qty) * Number(i.cost_price);
+      if (diff > 0) surplus += diff; else shortage += -diff;
+    });
+    return { surplus, shortage, net: surplus - shortage, missing };
+  }, [items]);
+
+  const closeInv = async () => {
+    if (totals.missing > 0 && !confirm(`${totals.missing} item(s) sem contagem serão ignorados. Continuar?`)) return;
+    const { error } = await supabase.rpc("close_inventory", {
+      _inventory_id: inventoryId, _adjust_stock: adjust,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Inventário fechado");
+    onClosed();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-base">Inventário · {location?.name ?? ""}</CardTitle>
+            <div className="text-xs text-muted-foreground mt-1">
+              {readOnly ? "Visualização (fechado)" : `Etapa ${step} de 3`}
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onBack}>Voltar</Button>
+        </div>
+        {!readOnly && (
+          <div className="flex gap-1 mt-2">
+            {[1, 2, 3].map((n) => (
+              <button key={n} onClick={() => setStep(n as 1 | 2 | 3)}
+                className={`flex-1 h-1.5 rounded ${step >= n ? "bg-primary" : "bg-secondary"}`} />
+            ))}
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {(readOnly || step === 1) && (
+          <div>
+            <div className="text-sm font-medium mb-2">1. Quantidade contada</div>
+            <div className="space-y-1.5">
+              {items.map((i) => (
+                <div key={i.id} className="flex items-center gap-2 p-2 rounded border">
+                  <span className="flex-1 truncate">{i.product_name}</span>
+                  <Input
+                    type="number" placeholder="—"
+                    value={i.counted_qty ?? ""} disabled={readOnly}
+                    onChange={(e) => updateCount(i.id, e.target.value === "" ? null : parseInt(e.target.value))}
+                    className="w-24"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(readOnly || step === 2) && (
+          <div>
+            <div className="text-sm font-medium mb-2">2. Sistema vs Contagem</div>
+            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 gap-y-1 text-sm">
+              <div className="font-medium text-xs uppercase text-muted-foreground">Produto</div>
+              <div className="font-medium text-xs uppercase text-muted-foreground text-right">Sistema</div>
+              <div className="font-medium text-xs uppercase text-muted-foreground text-right">Contado</div>
+              <div className="font-medium text-xs uppercase text-muted-foreground text-right">Diferença</div>
+              {items.map((i) => {
+                const counted = i.counted_qty;
+                const diff = counted === null ? null : counted - i.system_qty;
+                return (
+                  <div key={i.id} className="contents">
+                    <div className="truncate py-1">{i.product_name}</div>
+                    <div className="text-right py-1">{i.system_qty}</div>
+                    <div className="text-right py-1">{counted ?? "—"}</div>
+                    <div className={`text-right py-1 font-medium ${diff === null ? "text-muted-foreground" : diff > 0 ? "text-emerald-400" : diff < 0 ? "text-destructive" : ""}`}>
+                      {diff === null ? "—" : diff > 0 ? `+${diff}` : diff}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {(readOnly || step === 3) && (
+          <div className="space-y-3">
+            <div className="text-sm font-medium">3. Resultado financeiro</div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-lg border p-3 text-center">
+                <div className="text-xs text-muted-foreground">Sobra</div>
+                <div className="text-lg font-bold text-emerald-400">{formatBRL(totals.surplus)}</div>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <div className="text-xs text-muted-foreground">Falta</div>
+                <div className="text-lg font-bold text-destructive">{formatBRL(totals.shortage)}</div>
+              </div>
+              <div className="rounded-lg border p-3 text-center bg-card/60">
+                <div className="text-xs text-muted-foreground">Resultado</div>
+                <div className={`text-lg font-bold ${totals.net < 0 ? "text-destructive" : "text-emerald-400"}`}>
+                  {formatBRL(totals.net)}
+                </div>
+              </div>
+            </div>
+
+            {!readOnly && (
+              <>
+                {totals.missing > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-amber-400 p-2 rounded border border-amber-400/30 bg-amber-400/5">
+                    <AlertTriangle className="h-4 w-4" />
+                    {totals.missing} item(s) sem contagem
+                  </div>
+                )}
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={adjust} onChange={(e) => setAdjust(e.target.checked)} />
+                  Ajustar estoque do sistema com a contagem ao fechar
+                </label>
+                <Button onClick={closeInv} className="w-full">
+                  <CheckCircle2 className="h-4 w-4" /> Fechar inventário
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
+        {!readOnly && (
+          <div className="flex gap-2 pt-2 border-t">
+            <Button variant="outline" disabled={step === 1} onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)} className="flex-1">
+              Anterior
+            </Button>
+            <Button variant="outline" disabled={step === 3} onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)} className="flex-1">
+              Próxima
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
