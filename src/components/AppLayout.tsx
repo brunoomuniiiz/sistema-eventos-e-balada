@@ -1,10 +1,10 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Calendar, Users, DollarSign, BarChart3, LogOut, Sparkles, ShoppingCart, Package, UserCog, Zap, Lock } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, DollarSign, BarChart3, LogOut, Sparkles, ShoppingCart, Package, UserCog, Zap, Lock, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 
-const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?: Permission }[] = [
+const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?: Permission; ownerOnly?: boolean }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/eventos", label: "Eventos", icon: Calendar, perm: "eventos" },
   { to: "/pdv", label: "PDV", icon: Zap, perm: "vendas" },
@@ -15,15 +15,20 @@ const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?
   { to: "/financeiro", label: "Financeiro", icon: DollarSign, perm: "financeiro" },
   { to: "/mensal", label: "Mensal", icon: BarChart3, perm: "financeiro" },
   { to: "/funcionarios", label: "Equipe", icon: UserCog, perm: "funcionarios" },
+  { to: "/bar-settings", label: "Bar", icon: Settings, ownerOnly: true },
 ];
 
 export function AppLayout() {
   const { user, signOut } = useAuth();
-  const { can } = usePermissions();
+  const { can, isOwner } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const visibleItems = navItems.filter((i) => !i.perm || can(i.perm));
+  const visibleItems = navItems.filter((i) => {
+    if (i.ownerOnly) return isOwner;
+    if (!i.perm) return true;
+    return can(i.perm);
+  });
 
   const handleSignOut = async () => {
     await signOut();
