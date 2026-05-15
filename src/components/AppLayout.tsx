@@ -7,17 +7,13 @@ import { Button } from "@/components/ui/button";
 const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?: Permission; ownerOnly?: boolean }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/eventos", label: "Eventos", icon: Calendar, perm: "eventos" },
-  { to: "/pdv", label: "PDV", icon: Zap, perm: "vendas" },
   { to: "/vendas", label: "Vendas", icon: ShoppingCart, perm: "vendas" },
   { to: "/produtos", label: "Produtos", icon: Boxes, perm: "estoque" },
-  { to: "/estoque", label: "Estoque", icon: Package, perm: "estoque" },
-  { to: "/fechamento", label: "Caixa", icon: Lock, perm: "vendas" },
   { to: "/portaria", label: "Portaria", icon: DoorOpen, perm: "portaria" },
   { to: "/promoters", label: "Promoters", icon: Users, perm: "promoters" },
   { to: "/financeiro", label: "Financeiro", icon: DollarSign, perm: "financeiro" },
-  { to: "/mensal", label: "Mensal", icon: BarChart3, perm: "financeiro" },
   { to: "/funcionarios", label: "Equipe", icon: UserCog, perm: "funcionarios" },
-  { to: "/bar-settings", label: "Bar", icon: Settings, ownerOnly: true },
+  { to: "/bar-settings", label: "Configuração", icon: Settings, ownerOnly: true },
 ];
 
 export function AppLayout() {
