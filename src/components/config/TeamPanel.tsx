@@ -239,7 +239,21 @@ export function TeamPanel() {
                   </>
                 )}
                 <div>
-                  <Label className="mb-2 block">Permissões</Label>
+                  <Label className="mb-1 block">Cargo</Label>
+                  <Select value={form.role_preset} onValueChange={applyPreset}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PRESETS.map((p) => (
+                        <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {PRESETS.find((p) => p.key === form.role_preset)?.description}
+                  </p>
+                </div>
+                <div>
+                  <Label className="mb-2 block">Permissões (editáveis)</Label>
                   <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                     {ALL_PERMISSIONS.map((p) => (
                       <label key={p.key} className="flex items-center gap-2 p-2 rounded-md border cursor-pointer hover:bg-accent/40">
