@@ -254,6 +254,45 @@ export type Database = {
           },
         ]
       }
+      event_entries: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          event_id: string
+          gender: string | null
+          id: string
+          notes: string | null
+          ticket_type_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_paid?: number
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          event_id: string
+          gender?: string | null
+          id?: string
+          notes?: string | null
+          ticket_type_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          event_id?: string
+          gender?: string | null
+          id?: string
+          notes?: string | null
+          ticket_type_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_financials: {
         Row: {
           bar_cmv: number
@@ -1024,6 +1063,10 @@ export type Database = {
         }
         Returns: Json
       }
+      checkin_guest: {
+        Args: { _checked: boolean; _entry_id: string }
+        Returns: undefined
+      }
       close_cash_blind: {
         Args: {
           _declared_credito: number
@@ -1054,6 +1097,7 @@ export type Database = {
         }[]
       }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
+      get_portaria_summary: { Args: { _event_id: string }; Returns: Json }
       has_permission: {
         Args: { _owner_id: string; _permission: string; _user_id: string }
         Returns: boolean
