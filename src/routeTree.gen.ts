@@ -25,6 +25,7 @@ import { Route as AppFuncionariosRouteImport } from './routes/_app.funcionarios'
 import { Route as AppFinanceiroRouteImport } from './routes/_app.financeiro'
 import { Route as AppEstoqueRouteImport } from './routes/_app.estoque'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppConfiguracaoRouteImport } from './routes/_app.configuracao'
 import { Route as AppBarSettingsRouteImport } from './routes/_app.bar-settings'
 import { Route as AppEventosIndexRouteImport } from './routes/_app.eventos.index'
 import { Route as AppEventosEventIdRouteImport } from './routes/_app.eventos.$eventId'
@@ -108,6 +109,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracaoRoute = AppConfiguracaoRouteImport.update({
+  id: '/configuracao',
+  path: '/configuracao',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppBarSettingsRoute = AppBarSettingsRouteImport.update({
   id: '/bar-settings',
   path: '/bar-settings',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/bar-settings': typeof AppBarSettingsRoute
+  '/configuracao': typeof AppConfiguracaoRoute
   '/dashboard': typeof AppDashboardRoute
   '/estoque': typeof AppEstoqueRoute
   '/financeiro': typeof AppFinanceiroRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/bar-settings': typeof AppBarSettingsRoute
+  '/configuracao': typeof AppConfiguracaoRoute
   '/dashboard': typeof AppDashboardRoute
   '/estoque': typeof AppEstoqueRoute
   '/financeiro': typeof AppFinanceiroRoute
@@ -171,6 +179,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_app/bar-settings': typeof AppBarSettingsRoute
+  '/_app/configuracao': typeof AppConfiguracaoRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/estoque': typeof AppEstoqueRoute
   '/_app/financeiro': typeof AppFinanceiroRoute
@@ -193,6 +202,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/bar-settings'
+    | '/configuracao'
     | '/dashboard'
     | '/estoque'
     | '/financeiro'
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/bar-settings'
+    | '/configuracao'
     | '/dashboard'
     | '/estoque'
     | '/financeiro'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_app/bar-settings'
+    | '/_app/configuracao'
     | '/_app/dashboard'
     | '/_app/estoque'
     | '/_app/financeiro'
@@ -373,6 +385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/configuracao': {
+      id: '/_app/configuracao'
+      path: '/configuracao'
+      fullPath: '/configuracao'
+      preLoaderRoute: typeof AppConfiguracaoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/bar-settings': {
       id: '/_app/bar-settings'
       path: '/bar-settings'
@@ -399,6 +418,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppBarSettingsRoute: typeof AppBarSettingsRoute
+  AppConfiguracaoRoute: typeof AppConfiguracaoRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEstoqueRoute: typeof AppEstoqueRoute
   AppFinanceiroRoute: typeof AppFinanceiroRoute
@@ -415,6 +435,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppBarSettingsRoute: AppBarSettingsRoute,
+  AppConfiguracaoRoute: AppConfiguracaoRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEstoqueRoute: AppEstoqueRoute,
   AppFinanceiroRoute: AppFinanceiroRoute,
