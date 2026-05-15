@@ -62,6 +62,22 @@ export function PdvView() {
   const [locationId, setLocationId] = useState<string | null>(null);
   const [eventId, setEventId] = useState<string>("none");
   const [discountInput, setDiscountInput] = useState<string>("");
+  const [openCash, setOpenCash] = useState(false);
+  const [openWithdraw, setOpenWithdraw] = useState(false);
+
+  const { data: session, refetch: refetchSession } = useQueryRQ({
+    queryKey: ["my-cash-session", user?.id],
+    enabled: !!user && can("vendas"),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_my_open_session");
+      if (error) throw error;
+      return data as null | { id: string; opening_amount: number; opened_at: string; opening_notes: string | null; withdrawals_total: number; sales_total: number };
+    },
+  });
+
+  useEffect(() => {
+    if (session === null && can("vendas") && !openCash) setOpenCash(true);
+  }, [session, can, openCash]);
 
   const { data: locations = [] } = useQuery({
     queryKey: ["pdv-locations", ownerId],
