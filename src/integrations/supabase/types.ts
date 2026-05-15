@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      bar_settings: {
+        Row: {
+          accent_color: string | null
+          bar_name: string | null
+          created_at: string
+          id: string
+          instagram_handle: string | null
+          logo_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          bar_name?: string | null
+          created_at?: string
+          id?: string
+          instagram_handle?: string | null
+          logo_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          bar_name?: string | null
+          created_at?: string
+          id?: string
+          instagram_handle?: string | null
+          logo_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cash_closings: {
         Row: {
           closed_by: string
@@ -306,37 +339,49 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          display_boost: number
           flyer_url: string | null
           id: string
+          landing_published: boolean
           location: string | null
           name: string
+          public_slug: string | null
           status: string
           updated_at: string
           user_id: string
+          whatsapp_group_url: string | null
         }
         Insert: {
           created_at?: string
           date: string
           description?: string | null
+          display_boost?: number
           flyer_url?: string | null
           id?: string
+          landing_published?: boolean
           location?: string | null
           name: string
+          public_slug?: string | null
           status?: string
           updated_at?: string
           user_id: string
+          whatsapp_group_url?: string | null
         }
         Update: {
           created_at?: string
           date?: string
           description?: string | null
+          display_boost?: number
           flyer_url?: string | null
           id?: string
+          landing_published?: boolean
           location?: string | null
           name?: string
+          public_slug?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+          whatsapp_group_url?: string | null
         }
         Relationships: []
       }
@@ -390,37 +435,115 @@ export type Database = {
           },
         ]
       }
-      products: {
+      monthly_plans: {
         Row: {
           created_at: string
           id: string
-          name: string
-          price: number
-          product_type: string
-          stock_quantity: number
-          track_stock: boolean
+          month: number
+          plan: Json
+          target_margin: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: number
+          plan?: Json
+          target_margin?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: number
+          plan?: Json
+          target_margin?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      product_stock: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string
+          product_id: string
+          quantity: number
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          name: string
-          price?: number
-          product_type?: string
-          stock_quantity?: number
-          track_stock?: boolean
+          location_id: string
+          product_id: string
+          quantity?: number
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          name?: string
+          location_id?: string
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          cost_price: number
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          photo_url: string | null
+          pickup_description: string | null
+          price: number
+          product_type: string
+          stock_quantity: number
+          track_stock: boolean
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          photo_url?: string | null
+          pickup_description?: string | null
           price?: number
           product_type?: string
           stock_quantity?: number
           track_stock?: boolean
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          photo_url?: string | null
+          pickup_description?: string | null
+          price?: number
+          product_type?: string
+          stock_quantity?: number
+          track_stock?: boolean
+          unit?: string
           updated_at?: string
           user_id?: string
         }
@@ -494,6 +617,7 @@ export type Database = {
       }
       sale_items: {
         Row: {
+          cost_price_snapshot: number
           created_at: string
           id: string
           product_id: string | null
@@ -505,6 +629,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cost_price_snapshot?: number
           created_at?: string
           id?: string
           product_id?: string | null
@@ -516,6 +641,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cost_price_snapshot?: number
           created_at?: string
           id?: string
           product_id?: string | null
@@ -545,11 +671,18 @@ export type Database = {
       }
       sales: {
         Row: {
+          category: string
           closing_id: string | null
           created_at: string
+          discount_by: string | null
+          discount_percent: number
+          discount_value: number
           employee_id: string | null
           employee_name: string | null
+          event_id: string | null
+          gender: string | null
           id: string
+          location_id: string | null
           notes: string | null
           payment_method: string
           total: number
@@ -557,11 +690,18 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string
           closing_id?: string | null
           created_at?: string
+          discount_by?: string | null
+          discount_percent?: number
+          discount_value?: number
           employee_id?: string | null
           employee_name?: string | null
+          event_id?: string | null
+          gender?: string | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           payment_method: string
           total?: number
@@ -569,11 +709,18 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string
           closing_id?: string | null
           created_at?: string
+          discount_by?: string | null
+          discount_percent?: number
+          discount_value?: number
           employee_id?: string | null
           employee_name?: string | null
+          event_id?: string | null
+          gender?: string | null
           id?: string
+          location_id?: string | null
           notes?: string | null
           payment_method?: string
           total?: number
@@ -590,12 +737,227 @@ export type Database = {
           },
         ]
       }
+      stock_inventories: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          id: string
+          location_id: string
+          net_value: number
+          notes: string | null
+          opened_at: string
+          opened_by: string | null
+          opened_by_name: string | null
+          status: string
+          total_shortage_value: number
+          total_surplus_value: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          location_id: string
+          net_value?: number
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opened_by_name?: string | null
+          status?: string
+          total_shortage_value?: number
+          total_surplus_value?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          location_id?: string
+          net_value?: number
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          opened_by_name?: string | null
+          status?: string
+          total_shortage_value?: number
+          total_surplus_value?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stock_inventory_items: {
+        Row: {
+          cost_price: number
+          counted_qty: number | null
+          created_at: string
+          diff_value: number
+          id: string
+          inventory_id: string
+          product_id: string
+          product_name: string
+          system_qty: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cost_price?: number
+          counted_qty?: number | null
+          created_at?: string
+          diff_value?: number
+          id?: string
+          inventory_id: string
+          product_id: string
+          product_name: string
+          system_qty?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cost_price?: number
+          counted_qty?: number | null
+          created_at?: string
+          diff_value?: number
+          id?: string
+          inventory_id?: string
+          product_id?: string
+          product_name?: string
+          system_qty?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_inventory_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "stock_inventories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_locations: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      stock_transfers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          from_location_id: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          to_location_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          from_location_id: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity: number
+          to_location_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          from_location_id?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          to_location_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ticket_types: {
+        Row: {
+          created_at: string
+          event_id: string
+          gender_target: string | null
+          id: string
+          is_active: boolean
+          name: string
+          price_early: number
+          price_late: number
+          sort_order: number
+          switch_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          gender_target?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price_early?: number
+          price_late?: number
+          sort_order?: number
+          switch_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          gender_target?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_early?: number
+          price_late?: number
+          sort_order?: number
+          switch_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
+          can_discount: boolean
+          can_sell_cash: boolean
           created_at: string
           display_name: string | null
           email: string | null
           id: string
+          max_discount_percent: number
           owner_id: string
           permissions: string[]
           role: Database["public"]["Enums"]["app_role"]
@@ -603,10 +965,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_discount?: boolean
+          can_sell_cash?: boolean
           created_at?: string
           display_name?: string | null
           email?: string | null
           id?: string
+          max_discount_percent?: number
           owner_id: string
           permissions?: string[]
           role?: Database["public"]["Enums"]["app_role"]
@@ -614,10 +979,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_discount?: boolean
+          can_sell_cash?: boolean
           created_at?: string
           display_name?: string | null
           email?: string | null
           id?: string
+          max_discount_percent?: number
           owner_id?: string
           permissions?: string[]
           role?: Database["public"]["Enums"]["app_role"]
@@ -631,9 +999,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_guest_to_event: {
+        Args: {
+          _companions?: Json
+          _event_slug: string
+          _gender: string
+          _name: string
+          _phone: string
+          _promoter_slug?: string
+        }
+        Returns: Json
+      }
       add_guest_to_list: {
         Args: { _gender: string; _name: string; _phone: string; _slug: string }
         Returns: string
+      }
+      add_guest_to_list_v2: {
+        Args: {
+          _companions?: Json
+          _gender: string
+          _name: string
+          _phone: string
+          _slug: string
+        }
+        Returns: Json
       }
       close_cash_blind: {
         Args: {
@@ -645,6 +1034,11 @@ export type Database = {
         }
         Returns: string
       }
+      close_inventory: {
+        Args: { _adjust_stock?: boolean; _inventory_id: string }
+        Returns: undefined
+      }
+      get_event_landing: { Args: { _slug: string }; Returns: Json }
       get_guest_list_info: {
         Args: { _slug: string }
         Returns: {
@@ -671,6 +1065,16 @@ export type Database = {
       seed_default_cost_categories: {
         Args: { _user_id: string }
         Returns: undefined
+      }
+      transfer_stock: {
+        Args: {
+          _from_location: string
+          _notes?: string
+          _product_id: string
+          _quantity: number
+          _to_location: string
+        }
+        Returns: string
       }
     }
     Enums: {
