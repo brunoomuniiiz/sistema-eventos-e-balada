@@ -17,9 +17,12 @@ import {
   Wallet, Layers, Check, MapPin, CalendarDays, Percent, Lock,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
+import { WithdrawalDialog } from "@/components/vendas/WithdrawalDialog";
+import { useQuery as useQueryRQ } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_app/pdv")({
-  component: PdvPage,
+  component: PdvView,
 });
 
 type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix";
