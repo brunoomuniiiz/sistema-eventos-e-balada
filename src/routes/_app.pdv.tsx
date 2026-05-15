@@ -151,6 +151,40 @@ export function PdvView() {
     enabled: !!locationId,
   });
 
+  // Componentes de todos os combos para calcular estoque virtual
+  const { data: comboItems = [] } = useQuery({
+    queryKey: ["pdv-combo-items", ownerId],
+    enabled: !!ownerId && can("vendas"),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("combo_items")
+        .select("combo_product_id, component_product_id, quantity");
+      if (error) throw error;
+      return data as { combo_product_id: string; component_product_id: string; quantity: number }[];
+    },
+  });
+
+  // stock virtual: combo => min(stock_componente / qty)
+  const comboStockMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    const grouped = new Map<string, { component_product_id: string; quantity: number }[]>();
+    comboItems.forEach((ci) => {
+      const list = grouped.get(ci.combo_product_id) ?? [];
+      list.push({ component_product_id: ci.component_product_id, quantity: Number(ci.quantity) });
+      grouped.set(ci.combo_product_id, list);
+    });
+    grouped.forEach((items, comboId) => {
+      let min = Infinity;
+      for (const it of items) {
+        const stock = stockMap[it.component_product_id] ?? 0;
+        const qty = it.quantity > 0 ? it.quantity : 1;
+        min = Math.min(min, Math.floor(stock / qty));
+      }
+      map[comboId] = Number.isFinite(min) ? min : 0;
+    });
+    return map;
+  }, [comboItems, stockMap]);
+
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.unit_price * i.quantity, 0), [cart]);
   const totalItems = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
 
