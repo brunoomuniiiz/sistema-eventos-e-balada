@@ -3,8 +3,9 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   DollarSign, TrendingUp, TrendingDown, ArrowRight,
-  Wine, DoorOpen, ShoppingBag, Sparkles,
+  Wine, DoorOpen, ShoppingBag, Sparkles, Receipt, Repeat,
 } from "lucide-react";
+import { ExpensesTab } from "@/components/financeiro/ExpensesTab";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,6 +73,29 @@ function FinanceiroPage() {
         costs: (costsRes.data ?? []) as CostRow[],
         financials: (finRes.data ?? []) as FinancialRow[],
       };
+    },
+  });
+
+  // Custos do mês corrente (fixos + variáveis) para o resumo do topo
+  const { data: monthExpenses } = useQuery({
+    queryKey: ["bar-expenses-month-summary", ownerId],
+    enabled: !!ownerId && can("financeiro"),
+    queryFn: async () => {
+      const d = new Date();
+      const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("bar_expenses")
+        .select("kind, amount")
+        .gte("expense_date", start)
+        .lte("expense_date", end);
+      if (error) throw error;
+      let fixed = 0, variable = 0;
+      for (const r of data ?? []) {
+        if (r.kind === "fixed") fixed += Number(r.amount);
+        else variable += Number(r.amount);
+      }
+      return { fixed, variable };
     },
   });
 
@@ -171,12 +195,21 @@ function FinanceiroPage() {
         <MiniStat icon={Wine} label="Bar (eventos)" value={formatBRL(totals.bar)} />
         <MiniStat icon={DoorOpen} label="Portaria" value={formatBRL(totals.door)} />
         <MiniStat icon={ShoppingBag} label="Eventos com lançamento" value={String(rows.length)} />
+        <MiniStat icon={Repeat} label="Custos fixos (mês)" value={formatBRL(monthExpenses?.fixed ?? 0)} />
+        <MiniStat icon={Receipt} label="Custos variáveis (mês)" value={formatBRL(monthExpenses?.variable ?? 0)} />
+        <MiniStat
+          icon={TrendingUp}
+          label="Líquido real (mês)"
+          value={formatBRL(totals.net - (monthExpenses?.fixed ?? 0) - (monthExpenses?.variable ?? 0))}
+        />
       </div>
 
       <Tabs defaultValue="eventos">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="eventos">Por evento</TabsTrigger>
           <TabsTrigger value="bar">Bar avulso</TabsTrigger>
+          <TabsTrigger value="fixos">Custos fixos</TabsTrigger>
+          <TabsTrigger value="variaveis">Custos variáveis</TabsTrigger>
           <TabsTrigger value="mensal">Mensal</TabsTrigger>
         </TabsList>
 
@@ -254,6 +287,14 @@ function FinanceiroPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="fixos" className="mt-4">
+          <ExpensesTab kind="fixed" />
+        </TabsContent>
+
+        <TabsContent value="variaveis" className="mt-4">
+          <ExpensesTab kind="variable" />
         </TabsContent>
 
         <TabsContent value="mensal" className="mt-4">

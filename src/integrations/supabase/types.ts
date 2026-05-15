@@ -50,6 +50,111 @@ export type Database = {
         }
         Relationships: []
       }
+      bar_expense_categories: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          is_default: boolean
+          kind: string
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_default?: boolean
+          kind: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_default?: boolean
+          kind?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bar_expenses: {
+        Row: {
+          amount: number
+          category_id: string | null
+          category_name: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          expense_date: string
+          id: string
+          kind: string
+          notes: string | null
+          paid: boolean
+          paid_at: string | null
+          payment_method: string | null
+          recurrence: string
+          recurrence_parent_id: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          category_name: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          expense_date?: string
+          id?: string
+          kind: string
+          notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          payment_method?: string | null
+          recurrence?: string
+          recurrence_parent_id?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          category_name?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          expense_date?: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          payment_method?: string | null
+          recurrence?: string
+          recurrence_parent_id?: string | null
+          supplier_id?: string | null
+          supplier_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bar_settings: {
         Row: {
           accent_color: string | null
@@ -1092,6 +1197,36 @@ export type Database = {
         }
         Relationships: []
       }
+      suppliers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ticket_types: {
         Row: {
           created_at: string
@@ -1273,6 +1408,10 @@ export type Database = {
       register_withdrawal: {
         Args: { _amount: number; _grant_token: string; _reason: string }
         Returns: string
+      }
+      seed_default_bar_expense_categories: {
+        Args: { _user_id: string }
+        Returns: undefined
       }
       seed_default_cost_categories: {
         Args: { _user_id: string }
