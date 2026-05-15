@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { formatBRL, formatPercent, calcEventGross, calcEventNet, calcBarMargin } from "@/lib/format";
 import { EventCostsManager } from "@/components/EventCostsManager";
 import { EventPromotersManager } from "@/components/EventPromotersManager";
+import { EventLandingManager } from "@/components/EventLandingManager";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export const Route = createFileRoute("/_app/eventos/$eventId")({
   component: EventDetailPage,
@@ -25,6 +27,7 @@ export const Route = createFileRoute("/_app/eventos/$eventId")({
 function EventDetailPage() {
   const { eventId } = Route.useParams();
   const { user } = useAuth();
+  const { ownerId } = usePermissions();
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -333,6 +336,9 @@ function EventDetailPage() {
           <EventPromotersManager eventId={eventId} />
         </CardContent>
       </Card>
+
+      {/* Página pública / landing */}
+      {ownerId && <EventLandingManager eventId={eventId} ownerId={ownerId} />}
 
       {/* Custos detalhados */}
       <Card className="glass border-border/60">
