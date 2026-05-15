@@ -316,6 +316,11 @@ export function TeamPanel() {
                   <div className="flex items-center gap-2 font-medium">
                     {m.role === "owner" && <Crown className="h-4 w-4 text-primary" />}
                     {m.display_name ?? m.email}
+                    {m.role !== "owner" && m.role_preset && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {PRESETS.find((p) => p.key === m.role_preset)?.label ?? m.role_preset}
+                      </Badge>
+                    )}
                     {m.can_authorize && m.role !== "owner" && (
                       <Badge variant="default" className="gap-1"><ShieldCheck className="h-3 w-3" /> Autoriza</Badge>
                     )}
