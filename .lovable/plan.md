@@ -1,81 +1,65 @@
+## 1. Cargos pré-definidos (presets de permissões)
 
-# Reorganização da navegação e fluxo de caixa
+Criar 4 presets aplicados ao convidar funcionário em **Configuração → Funcionários**:
 
-Vou reestruturar o app conforme pedido, consolidando rotas e endurecendo as regras de senha para ações sensíveis.
+| Cargo | Permissões padrão | Extras |
+|---|---|---|
+| Caixa Bar | `vendas` | pode abrir caixa, sangria precisa autorização |
+| Caixa Portaria | `portaria` | só vê aba Portaria |
+| Gerente | `vendas, estoque, eventos, promoters, financeiro, portaria, funcionarios` | `can_authorize=true`, `can_discount=true` |
+| Custom | nenhum | usuário marca manualmente |
 
-## 1. Consolidação de rotas (sidebar fica mais enxuto)
+- Adiciona `<Select>` "Cargo" no formulário de convite — ao trocar, pré-marca os checkboxes (mas continuam editáveis).
+- Coluna `role_preset text` em `user_roles` para mostrar o cargo na lista.
+- AppLayout já filtra menu por `can(...)`, então o Caixa Portaria automaticamente verá só Portaria.
 
-**Antes:** Vendas, PDV, Fechamento, Produtos, Estoque, Eventos, Promoters, Portaria, Financeiro, Mensal, Funcionários, Bar.
+## 2. Vínculo de evento ao abrir caixa
 
-**Depois:**
-- **Vendas** (com abas): `PDV` | `Histórico/Resumo` | `Fechamento`
-- **Produtos** (com abas): `Catálogo` | `Estoque (locais + transferências + inventário)`
-- **Eventos**
-- **Promoters**
-- **Portaria**
-- **Financeiro** (com abas): `Por evento` | `Bar avulso` | `Mensal`
-- **Funcionários** (passa a ser somente lista + edição de permissões existentes)
-- **Configuração** (renomeia "Bar"): logo, nome, Instagram, cor — **e** seção "Convites" (promoter e funcionário), com escolha de permissões na hora do convite
+- `cash_sessions` ganha coluna `event_id uuid`.
+- `OpenCashDialog` busca evento(s) com `date::date = today` e status ≠ encerrado:
+  - se houver 1 → pré-seleciona, operador confirma data
+  - se houver vários → mostra select
+  - se nenhum → operador segue sem evento (modo "bar normal")
+- `open_cash_session` aceita `_event_id` opcional.
+- Vendas feitas durante a sessão herdam `event_id` automaticamente (preencher no insert do PDV a partir da sessão aberta).
 
-Rotas removidas do menu: `/pdv`, `/estoque`, `/fechamento`, `/mensal`, `/bar-settings`. Os arquivos viram componentes internos das abas (sem perder código já feito).
+## 3. Auto-aviso de evento na hora do start
 
-## 2. Caixa por turno (substitui a página "Fechamento" isolada)
+- Sem cron / sem mudança automática de status.
+- Hook global `useEventStartReminder` no `_app` layout:
+  - a cada minuto, se há evento com `date <= now()` e `status='upcoming'`, dispara um toast persistente "Evento X começou — abrir agora?" com botão que chama RPC `start_event(_id)` (atualiza status para `live`).
+- Adicionar status `'live'` ao filtro de eventos do dia no item 2.
 
-Hoje o "Fechamento" é uma página avulsa e o caixa nunca é "aberto" — qualquer staff de vendas pode fechar.
+## 4. Bug do combo "sem estoque"
 
-Novo fluxo:
-- Quando um staff com permissão `vendas` abre o PDV e **não há caixa aberto dele**, aparece um modal **"Abrir caixa"** pedindo:
-  - Valor inicial (troco)
-  - Observação opcional
-- Durante o turno, dentro de Vendas existe botão **"Sangria"** que pede:
-  - Valor + observação
-  - **Senha do owner ou de alguém autorizado** (ver §3)
-- O total esperado em dinheiro passa a considerar: `inicial + vendas dinheiro − sangrias`.
-- O **fechamento cego** (já existente) só finaliza o caixa **mediante senha** (§3) e amarra: vendas do turno, sangrias e valor inicial àquele `cash_session`.
+**Causa provável:** o combo é cadastrado com `track_stock=true` (default), mas combos não recebem `product_stock`. Algum ponto do PDV/UI bloqueia a venda como se o **combo** estivesse zerado, ignorando o estoque dos componentes.
 
-Mudanças de schema (migration):
-- Nova tabela `cash_sessions` (id, owner user_id, opened_by, opened_by_name, opening_amount, opened_at, closed_at, status, notes).
-- Nova tabela `cash_withdrawals` (sangrias): id, session_id, amount, reason, created_by, authorized_by, created_at.
-- `sales.session_id` (uuid) — venda fica ligada à sessão aberta do operador.
-- `cash_closings.session_id` + `expected_dinheiro` passa a descontar sangrias e somar inicial.
-- RPCs: `open_cash_session(_opening, _notes)`, `register_withdrawal(_amount, _reason, _auth_password)`, `close_cash_blind(...)` ajustada para a sessão e exigir senha.
+**Correções:**
+1. Ao salvar produto tipo `combo`, forçar `track_stock = false` (combo nunca tem estoque próprio — quem tem é o componente).
+2. Calcular **estoque virtual** do combo no PDV: `min(stock_componente_i / qty_no_combo)` na localização atual. Mostrar isso no card do combo e bloquear se = 0.
+3. Garantir que o trigger `decrement_product_stock` decremente os componentes na localização da venda. Se `sales.location_id` vier nulo, cair no `stock_locations.is_default`. Adicionar índice/log para diagnosticar.
+4. No editor de combos (`Produtos → Combos`), reforçar que o campo "Quantidade" é por unidade de combo vendida (label + helper text). Já existe; só ficar mais explícito.
 
-## 3. Senha para ações sensíveis (sangria, desconto, fechamento)
+## 5. Migrations necessárias
 
-Hoje `user_roles` já tem `can_discount` e `max_discount_percent`. Vou adicionar:
-- `can_authorize` (bool) em `user_roles` — quem pode autorizar sangria/desconto/fechamento de outros (além do owner, que sempre pode).
-- Nova RPC `verify_authorizer_password(_email, _password)` (security definer) que confere via `auth` se aquele e-mail/senha pertence a um usuário do mesmo owner com `can_authorize = true` ou é o próprio owner. Retorna o `user_id` do autorizador.
-  - Implementação: como a `auth` schema não permite checagem direta de senha por SQL, a verificação é feita por **server function** TanStack que faz `signInWithPassword` com client admin, valida que o user é owner ou tem `can_authorize`, e devolve um token curto (jti) registrado em tabela `auth_grants` (10 min de validade) que as RPCs de sangria/desconto/fechamento aceitam.
-- UI: quando staff tenta sangria, desconto acima do permitido, ou fechar caixa, abre modal "Autorização do responsável" → e-mail + senha. Owner pode marcar a si próprio como autorizador padrão. Nada disso é validado via localStorage.
+```sql
+ALTER TABLE user_roles ADD COLUMN role_preset text;
+ALTER TABLE cash_sessions ADD COLUMN event_id uuid;
+-- forçar track_stock=false em combos existentes
+UPDATE products SET track_stock=false WHERE product_type='combo';
+-- nova RPC start_event(_id)
+-- atualizar open_cash_session(_opening, _notes, _event_id)
+-- atualizar fluxo de inserção de venda no PDV para herdar event_id da sessão
+```
 
-## 4. Configuração (ex-"Bar")
+## 6. Arquivos afetados
 
-Página única `/configuracao` com 3 cartões:
-1. **Identidade do bar** — nome, logo, Instagram, cor (já existe).
-2. **Convidar funcionário** — formulário com e-mail, nome, permissões (checkboxes incluindo `vendas/estoque/eventos/promoters/portaria/financeiro/funcionarios`), `can_discount` + `max_discount_percent`, `can_sell_cash`, `can_authorize`. Usa a edge function `invite-staff` já existente (estendida com `can_authorize`).
-3. **Convidar promoter** — gera link do promoter para evento (mantém o que existe em `EventPromotersManager`, replicado aqui como atalho geral).
+- `src/components/config/TeamPanel.tsx` — select de cargo + presets
+- `supabase/functions/invite-staff/index.ts` — aceitar `role_preset`
+- `src/components/vendas/OpenCashDialog.tsx` — seletor de evento do dia
+- `src/routes/_app.pdv.tsx` — calcular estoque virtual de combo, herdar `event_id` da sessão
+- `src/routes/_app.produtos.tsx` — forçar `track_stock=false` em combos
+- `src/routes/_app.tsx` (layout) — montar `useEventStartReminder`
+- nova migration
 
-Funcionários continuam editáveis em `/funcionarios` (lista + dialog de edição já existente). O **convite inicial** sai dali e vai para Configuração — quem já está cadastrado é editado em Funcionários, conforme pedido ("posso editar as permissões depois").
-
-## 5. Financeiro com aba Mensal
-
-`/financeiro` ganha `Tabs`: `Por evento`, `Bar avulso`, `Mensal` (conteúdo de `_app.mensal.tsx` movido para componente `MensalTab`). `/mensal` é removido do sidebar (rota fica como redirect para `/financeiro?tab=mensal` para não quebrar links).
-
-## Resumo técnico
-
-- **Migrations:** `cash_sessions`, `cash_withdrawals`, `auth_grants`; coluna `session_id` em `sales` e `cash_closings`; coluna `can_authorize` em `user_roles`; RPCs `open_cash_session`, `register_withdrawal`, ajustes em `close_cash_blind`.
-- **Server function** `verify-authorizer` (TanStack `createServerFn`) que valida e-mail+senha via `supabaseAdmin.auth.signInWithPassword`, confere papel/can_authorize, grava `auth_grants` e devolve `grant_token`.
-- **Edge function `invite-staff`** estendida com `can_authorize`.
-- **UI:**
-  - `_app.vendas.tsx` vira shell com `Tabs` (PDV / Histórico / Fechamento). Conteúdo atual de `_app.pdv.tsx`, `_app.fechamento.tsx` e `_app.vendas.tsx` viram componentes em `src/components/vendas/`.
-  - `_app.produtos.tsx` ganha `Tabs` (Catálogo / Estoque). Conteúdo de `_app.estoque.tsx` vira `EstoqueTab`.
-  - `_app.financeiro.tsx` ganha `Tabs` (Por evento / Bar avulso / Mensal).
-  - `_app.bar-settings.tsx` renomeia para `_app.configuracao.tsx` com seções de identidade + convites.
-  - `AppLayout.tsx` sidebar reduzido para 7 itens.
-  - Modais novos: `OpenCashDialog`, `WithdrawalDialog`, `AuthorizationDialog` (e-mail + senha do autorizador).
-
-## Confirmações antes de eu começar
-
-1. Em **Vendas**, faz sentido a aba "Histórico/Resumo" (vendas do dia + do turno aberto) ou prefere só **PDV + Fechamento**?
-2. Para a senha de autorização: ok validar via **e-mail + senha** do autorizador (owner ou funcionário com `can_authorize`)? Alternativa seria um **PIN numérico** definido pelo owner (mais rápido em mobile, menos seguro).
-3. O **valor inicial** do caixa é por sessão de cada operador (cada vendedor abre o seu) ou um único caixa do bar para todos os vendedores no mesmo turno?
+Posso seguir com essa implementação?

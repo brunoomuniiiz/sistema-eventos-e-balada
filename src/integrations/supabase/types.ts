@@ -157,6 +157,7 @@ export type Database = {
           closed_at: string | null
           closing_id: string | null
           created_at: string
+          event_id: string | null
           id: string
           opened_at: string
           opened_by: string
@@ -171,6 +172,7 @@ export type Database = {
           closed_at?: string | null
           closing_id?: string | null
           created_at?: string
+          event_id?: string | null
           id?: string
           opened_at?: string
           opened_by: string
@@ -185,6 +187,7 @@ export type Database = {
           closed_at?: string | null
           closing_id?: string | null
           created_at?: string
+          event_id?: string | null
           id?: string
           opened_at?: string
           opened_by?: string
@@ -1147,6 +1150,7 @@ export type Database = {
           owner_id: string
           permissions: string[]
           role: Database["public"]["Enums"]["app_role"]
+          role_preset: string | null
           updated_at: string
           user_id: string
         }
@@ -1162,6 +1166,7 @@ export type Database = {
           owner_id: string
           permissions?: string[]
           role?: Database["public"]["Enums"]["app_role"]
+          role_preset?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1177,6 +1182,7 @@ export type Database = {
           owner_id?: string
           permissions?: string[]
           role?: Database["public"]["Enums"]["app_role"]
+          role_preset?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1258,10 +1264,12 @@ export type Database = {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
       }
-      open_cash_session: {
-        Args: { _notes?: string; _opening: number }
-        Returns: string
-      }
+      open_cash_session:
+        | { Args: { _notes?: string; _opening: number }; Returns: string }
+        | {
+            Args: { _event_id?: string; _notes?: string; _opening: number }
+            Returns: string
+          }
       register_withdrawal: {
         Args: { _amount: number; _grant_token: string; _reason: string }
         Returns: string
@@ -1270,6 +1278,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      start_event: { Args: { _event_id: string }; Returns: undefined }
       transfer_stock: {
         Args: {
           _from_location: string
