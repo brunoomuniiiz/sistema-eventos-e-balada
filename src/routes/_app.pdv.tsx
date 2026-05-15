@@ -354,8 +354,11 @@ export function PdvView() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {products.map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
-            const stockHere = stockMap[p.id] ?? 0;
-            const outOfStock = p.product_type === "simple" && p.track_stock && stockHere <= 0;
+            const isCombo = p.product_type === "combo";
+            const stockHere = isCombo ? (comboStockMap[p.id] ?? 0) : (stockMap[p.id] ?? 0);
+            const trackedSimple = !isCombo && p.track_stock;
+            const trackedCombo = isCombo; // combos sempre limitados pelos componentes
+            const outOfStock = (trackedSimple || trackedCombo) && stockHere <= 0;
             return (
               <button
                 key={p.id}
@@ -367,7 +370,7 @@ export function PdvView() {
                     : "bg-card border-border hover:border-primary/50"
                 } ${outOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
               >
-                {p.product_type === "combo" && (
+                {isCombo && (
                   <Badge variant="secondary" className="absolute top-2 right-2 gap-1 text-[10px]">
                     <Layers className="h-3 w-3" /> Combo
                   </Badge>
@@ -379,9 +382,10 @@ export function PdvView() {
                 )}
                 <div className="font-semibold leading-tight mt-6 line-clamp-2 min-h-[2.5rem]">{p.name}</div>
                 <div className="text-lg font-bold text-gradient mt-1">{formatBRL(Number(p.price))}</div>
-                {p.product_type === "simple" && p.track_stock && (
+                {(trackedSimple || trackedCombo) && (
                   <div className={`text-[11px] mt-0.5 ${stockHere <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
-                    {outOfStock ? "Sem estoque" : `${stockHere} un. aqui`}
+                    {outOfStock ? "Sem estoque" : `${stockHere} ${isCombo ? "combo(s) possíveis" : "un. aqui"}`}
+                  </div>
                   </div>
                 )}
               </button>
