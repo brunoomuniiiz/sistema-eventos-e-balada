@@ -81,14 +81,22 @@ function FuncionariosPage() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ email: "", password: "", display_name: "", permissions: [] });
+    setForm(emptyForm());
     setOpen(true);
   };
 
   const openEdit = (m: TeamMember) => {
     if (m.role === "owner") return;
     setEditing(m);
-    setForm({ email: m.email ?? "", password: "", display_name: m.display_name ?? "", permissions: m.permissions ?? [] });
+    setForm({
+      email: m.email ?? "",
+      password: "",
+      display_name: m.display_name ?? "",
+      permissions: m.permissions ?? [],
+      can_discount: !!m.can_discount,
+      max_discount_percent: Number(m.max_discount_percent ?? 0),
+      can_sell_cash: m.can_sell_cash !== false,
+    });
     setOpen(true);
   };
 
@@ -105,7 +113,13 @@ function FuncionariosPage() {
       if (editing) {
         const { error } = await supabase
           .from("user_roles")
-          .update({ display_name: form.display_name, permissions: form.permissions })
+          .update({
+            display_name: form.display_name,
+            permissions: form.permissions,
+            can_discount: form.can_discount,
+            max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
+            can_sell_cash: form.can_sell_cash,
+          })
           .eq("id", editing.id);
         if (error) throw error;
         toast.success("Funcionário atualizado");
@@ -117,6 +131,9 @@ function FuncionariosPage() {
             password: form.password,
             display_name: form.display_name || form.email.split("@")[0],
             permissions: form.permissions,
+            can_discount: form.can_discount,
+            max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
+            can_sell_cash: form.can_sell_cash,
           },
         });
         if (error) throw error;
