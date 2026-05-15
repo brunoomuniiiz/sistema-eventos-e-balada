@@ -195,12 +195,21 @@ function FinanceiroPage() {
         <MiniStat icon={Wine} label="Bar (eventos)" value={formatBRL(totals.bar)} />
         <MiniStat icon={DoorOpen} label="Portaria" value={formatBRL(totals.door)} />
         <MiniStat icon={ShoppingBag} label="Eventos com lançamento" value={String(rows.length)} />
+        <MiniStat icon={Repeat} label="Custos fixos (mês)" value={formatBRL(monthExpenses?.fixed ?? 0)} />
+        <MiniStat icon={Receipt} label="Custos variáveis (mês)" value={formatBRL(monthExpenses?.variable ?? 0)} />
+        <MiniStat
+          icon={TrendingUp}
+          label="Líquido real (mês)"
+          value={formatBRL(totals.net - (monthExpenses?.fixed ?? 0) - (monthExpenses?.variable ?? 0))}
+        />
       </div>
 
       <Tabs defaultValue="eventos">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="eventos">Por evento</TabsTrigger>
           <TabsTrigger value="bar">Bar avulso</TabsTrigger>
+          <TabsTrigger value="fixos">Custos fixos</TabsTrigger>
+          <TabsTrigger value="variaveis">Custos variáveis</TabsTrigger>
           <TabsTrigger value="mensal">Mensal</TabsTrigger>
         </TabsList>
 
