@@ -76,6 +76,29 @@ function FinanceiroPage() {
     },
   });
 
+  // Custos do mês corrente (fixos + variáveis) para o resumo do topo
+  const { data: monthExpenses } = useQuery({
+    queryKey: ["bar-expenses-month-summary", ownerId],
+    enabled: !!ownerId && can("financeiro"),
+    queryFn: async () => {
+      const d = new Date();
+      const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("bar_expenses")
+        .select("kind, amount")
+        .gte("expense_date", start)
+        .lte("expense_date", end);
+      if (error) throw error;
+      let fixed = 0, variable = 0;
+      for (const r of data ?? []) {
+        if (r.kind === "fixed") fixed += Number(r.amount);
+        else variable += Number(r.amount);
+      }
+      return { fixed, variable };
+    },
+  });
+
   const computed = useMemo(() => {
     if (!data) return null;
     const { events, sales, items, entries, costs, financials } = data;
