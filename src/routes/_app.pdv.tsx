@@ -233,6 +233,7 @@ export function PdvView() {
       qc.invalidateQueries({ queryKey: ["pdv-stock"] });
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
+      refetchSession();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao registrar venda");
     } finally {
