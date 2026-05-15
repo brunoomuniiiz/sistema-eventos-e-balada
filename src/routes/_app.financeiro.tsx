@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  DollarSign, TrendingUp, TrendingDown, ArrowRight, BarChart3,
+  DollarSign, TrendingUp, TrendingDown, ArrowRight,
   Wine, DoorOpen, ShoppingBag, Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
