@@ -17,6 +17,7 @@ import { Route as ListaSlugRouteImport } from './routes/lista.$slug'
 import { Route as ESlugRouteImport } from './routes/e.$slug'
 import { Route as AppVendasRouteImport } from './routes/_app.vendas'
 import { Route as AppPromotersRouteImport } from './routes/_app.promoters'
+import { Route as AppProdutosRouteImport } from './routes/_app.produtos'
 import { Route as AppPdvRouteImport } from './routes/_app.pdv'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
 import { Route as AppFuncionariosRouteImport } from './routes/_app.funcionarios'
@@ -65,6 +66,11 @@ const AppVendasRoute = AppVendasRouteImport.update({
 const AppPromotersRoute = AppPromotersRouteImport.update({
   id: '/promoters',
   path: '/promoters',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProdutosRoute = AppProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPdvRoute = AppPdvRouteImport.update({
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
   '/pdv': typeof AppPdvRoute
+  '/produtos': typeof AppProdutosRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
   '/e/$slug': typeof ESlugRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
   '/pdv': typeof AppPdvRoute
+  '/produtos': typeof AppProdutosRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
   '/e/$slug': typeof ESlugRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/_app/funcionarios': typeof AppFuncionariosRoute
   '/_app/mensal': typeof AppMensalRoute
   '/_app/pdv': typeof AppPdvRoute
+  '/_app/produtos': typeof AppProdutosRoute
   '/_app/promoters': typeof AppPromotersRoute
   '/_app/vendas': typeof AppVendasRoute
   '/e/$slug': typeof ESlugRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/mensal'
     | '/pdv'
+    | '/produtos'
     | '/promoters'
     | '/vendas'
     | '/e/$slug'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/mensal'
     | '/pdv'
+    | '/produtos'
     | '/promoters'
     | '/vendas'
     | '/e/$slug'
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/_app/funcionarios'
     | '/_app/mensal'
     | '/_app/pdv'
+    | '/_app/produtos'
     | '/_app/promoters'
     | '/_app/vendas'
     | '/e/$slug'
@@ -303,6 +315,13 @@ declare module '@tanstack/react-router' {
       path: '/promoters'
       fullPath: '/promoters'
       preLoaderRoute: typeof AppPromotersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/produtos': {
+      id: '/_app/produtos'
+      path: '/produtos'
+      fullPath: '/produtos'
+      preLoaderRoute: typeof AppProdutosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pdv': {
@@ -387,6 +406,7 @@ interface AppRouteChildren {
   AppFuncionariosRoute: typeof AppFuncionariosRoute
   AppMensalRoute: typeof AppMensalRoute
   AppPdvRoute: typeof AppPdvRoute
+  AppProdutosRoute: typeof AppProdutosRoute
   AppPromotersRoute: typeof AppPromotersRoute
   AppVendasRoute: typeof AppVendasRoute
   AppEventosEventIdRoute: typeof AppEventosEventIdRoute
@@ -402,6 +422,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFuncionariosRoute: AppFuncionariosRoute,
   AppMensalRoute: AppMensalRoute,
   AppPdvRoute: AppPdvRoute,
+  AppProdutosRoute: AppProdutosRoute,
   AppPromotersRoute: AppPromotersRoute,
   AppVendasRoute: AppVendasRoute,
   AppEventosEventIdRoute: AppEventosEventIdRoute,
@@ -421,12 +442,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
