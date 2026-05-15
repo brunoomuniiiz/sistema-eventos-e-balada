@@ -21,7 +21,7 @@ import {
 import { formatBRL } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/estoque")({
-  component: EstoquePage,
+  component: EstoqueView,
 });
 
 type Location = { id: string; name: string; is_default: boolean };
@@ -36,7 +36,7 @@ type InventoryItem = {
   system_qty: number; counted_qty: number | null; cost_price: number; diff_value: number;
 };
 
-function EstoquePage() {
+export function EstoqueView() {
   const { ownerId, can, loading } = usePermissions();
   const qc = useQueryClient();
 

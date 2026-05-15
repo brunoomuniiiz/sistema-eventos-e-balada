@@ -12,10 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatBRL, formatPercent, calcEventGross, calcEventNet, calcBarMargin, calcHookahShare } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/mensal")({
-  component: MensalPage,
+  component: MensalView,
 });
 
-function MensalPage() {
+export function MensalView() {
   const { user } = useAuth();
   const [refDate, setRefDate] = useState(new Date());
 

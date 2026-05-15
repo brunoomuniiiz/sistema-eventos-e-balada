@@ -17,9 +17,12 @@ import {
   Wallet, Layers, Check, MapPin, CalendarDays, Percent, Lock,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
+import { WithdrawalDialog } from "@/components/vendas/WithdrawalDialog";
+import { useQuery as useQueryRQ } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_app/pdv")({
-  component: PdvPage,
+  component: PdvView,
 });
 
 type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix";
@@ -48,7 +51,7 @@ const PAYMENTS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] =
   { key: "pix", label: "Pix", icon: Smartphone },
 ];
 
-function PdvPage() {
+export function PdvView() {
   const { user } = useAuth();
   const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, loading } = usePermissions();
   const qc = useQueryClient();
@@ -59,6 +62,22 @@ function PdvPage() {
   const [locationId, setLocationId] = useState<string | null>(null);
   const [eventId, setEventId] = useState<string>("none");
   const [discountInput, setDiscountInput] = useState<string>("");
+  const [openCash, setOpenCash] = useState(false);
+  const [openWithdraw, setOpenWithdraw] = useState(false);
+
+  const { data: session, refetch: refetchSession } = useQueryRQ({
+    queryKey: ["my-cash-session", user?.id],
+    enabled: !!user && can("vendas"),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_my_open_session");
+      if (error) throw error;
+      return data as null | { id: string; opening_amount: number; opened_at: string; opening_notes: string | null; withdrawals_total: number; sales_total: number };
+    },
+  });
+
+  useEffect(() => {
+    if (session === null && can("vendas") && !openCash) setOpenCash(true);
+  }, [session, can, openCash]);
 
   const { data: locations = [] } = useQuery({
     queryKey: ["pdv-locations", ownerId],
@@ -169,6 +188,7 @@ function PdvPage() {
     if (cart.length === 0) return toast.error("Adicione pelo menos um produto");
     if (!payment) return toast.error("Selecione a forma de pagamento");
     if (!locationId) return toast.error("Selecione um local");
+    if (!session) return toast.error("Abra o caixa antes de vender");
     if (payment === "dinheiro" && !canSellCash) return toast.error("Você não tem permissão para vender em dinheiro");
 
     setSubmitting(true);
@@ -187,6 +207,7 @@ function PdvPage() {
           discount_percent: discountPercent,
           discount_value: discountValue,
           discount_by: discountPercent > 0 ? user.id : null,
+          session_id: session.id,
         })
         .select()
         .single();
@@ -212,6 +233,7 @@ function PdvPage() {
       qc.invalidateQueries({ queryKey: ["pdv-stock"] });
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
+      refetchSession();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao registrar venda");
     } finally {
@@ -227,6 +249,31 @@ function PdvPage() {
   return (
     <div className="pb-32">
       <PageHeader title="Venda Rápida" subtitle="Toque para adicionar ao carrinho" />
+
+      <OpenCashDialog open={openCash} onOpenChange={setOpenCash} onOpened={() => refetchSession()} />
+      <WithdrawalDialog open={openWithdraw} onOpenChange={setOpenWithdraw} onDone={() => refetchSession()} />
+
+      {session && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 p-3 rounded-xl border bg-card/60">
+          <Wallet className="h-4 w-4 text-primary" />
+          <div className="text-xs">
+            <div className="font-medium">Caixa aberto</div>
+            <div className="text-muted-foreground">
+              Inicial {formatBRL(Number(session.opening_amount))} · Vendas {formatBRL(Number(session.sales_total))} · Sangrias {formatBRL(Number(session.withdrawals_total))}
+            </div>
+          </div>
+          <Button size="sm" variant="outline" className="ml-auto" onClick={() => setOpenWithdraw(true)}>
+            Sangria
+          </Button>
+        </div>
+      )}
+      {!session && (
+        <div className="mb-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-sm flex items-center gap-2">
+          <Lock className="h-4 w-4 text-amber-500" />
+          <span className="flex-1">Caixa fechado. Abra para começar a vender.</span>
+          <Button size="sm" onClick={() => setOpenCash(true)}>Abrir caixa</Button>
+        </div>
+      )}
 
       {/* Contexto: local + evento */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">

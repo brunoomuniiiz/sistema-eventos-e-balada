@@ -21,9 +21,24 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 
+import { EstoqueView } from "./_app.estoque";
+
 export const Route = createFileRoute("/_app/produtos")({
-  component: ProdutosPage,
+  component: ProdutosShell,
 });
+
+function ProdutosShell() {
+  return (
+    <Tabs defaultValue="catalogo" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+        <TabsTrigger value="estoque">Estoque</TabsTrigger>
+      </TabsList>
+      <TabsContent value="catalogo"><ProdutosPage /></TabsContent>
+      <TabsContent value="estoque"><EstoqueView /></TabsContent>
+    </Tabs>
+  );
+}
 
 type Product = {
   id: string;

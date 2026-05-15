@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  DollarSign, TrendingUp, TrendingDown, ArrowRight, BarChart3,
+  DollarSign, TrendingUp, TrendingDown, ArrowRight,
   Wine, DoorOpen, ShoppingBag, Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { formatBRL, formatPercent, calcHookahShare } from "@/lib/format";
+
+import { MensalView } from "./_app.mensal";
 
 export const Route = createFileRoute("/_app/financeiro")({
   component: FinanceiroPage,
@@ -156,11 +158,6 @@ function FinanceiroPage() {
       <PageHeader
         title="Financeiro"
         subtitle="Receita real do PDV + portaria, consolidada por evento"
-        actions={
-          <Button asChild className="bg-gradient-primary text-primary-foreground glow-primary">
-            <Link to="/mensal"><BarChart3 className="h-4 w-4 mr-1.5" /> Resumo mensal</Link>
-          </Button>
-        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -180,6 +177,7 @@ function FinanceiroPage() {
         <TabsList>
           <TabsTrigger value="eventos">Por evento</TabsTrigger>
           <TabsTrigger value="bar">Bar avulso</TabsTrigger>
+          <TabsTrigger value="mensal">Mensal</TabsTrigger>
         </TabsList>
 
         <TabsContent value="eventos" className="mt-4">
@@ -256,6 +254,10 @@ function FinanceiroPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="mensal" className="mt-4">
+          <MensalView />
         </TabsContent>
       </Tabs>
     </div>
