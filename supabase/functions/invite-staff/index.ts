@@ -38,13 +38,13 @@ Deno.serve(async (req) => {
     if (!ownerRole) return json({ error: "Apenas o dono pode convidar" }, 403);
 
     const body = await req.json();
-    const { email, password, display_name, permissions } = body as {
+    const { email, password, display_name, permissions, can_discount, max_discount_percent, can_sell_cash } = body as {
       email: string; password: string; display_name?: string; permissions: string[];
+      can_discount?: boolean; max_discount_percent?: number; can_sell_cash?: boolean;
     };
     if (!email || !password) return json({ error: "Email e senha obrigatórios" }, 400);
     if (password.length < 6) return json({ error: "Senha mínima de 6 caracteres" }, 400);
 
-    // Cria usuário (auto-confirmado)
     const { data: created, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
@@ -53,7 +53,6 @@ Deno.serve(async (req) => {
     });
     if (createErr || !created.user) return json({ error: createErr?.message ?? "Falha ao criar" }, 400);
 
-    // Insere role staff vinculado ao owner
     const { error: roleErr } = await admin.from("user_roles").insert({
       user_id: created.user.id,
       owner_id: ownerId,
@@ -61,6 +60,9 @@ Deno.serve(async (req) => {
       permissions: permissions ?? [],
       display_name: display_name ?? email.split("@")[0],
       email,
+      can_discount: !!can_discount,
+      max_discount_percent: Math.max(0, Math.min(100, Number(max_discount_percent ?? 0))),
+      can_sell_cash: can_sell_cash !== false,
     });
     if (roleErr) {
       // rollback do usuário

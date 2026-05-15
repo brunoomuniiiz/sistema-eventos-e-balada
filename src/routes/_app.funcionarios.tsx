@@ -26,7 +26,30 @@ type TeamMember = {
   email: string | null;
   role: "owner" | "staff";
   permissions: Permission[];
+  can_discount: boolean;
+  max_discount_percent: number;
+  can_sell_cash: boolean;
 };
+
+type FormState = {
+  email: string;
+  password: string;
+  display_name: string;
+  permissions: Permission[];
+  can_discount: boolean;
+  max_discount_percent: number;
+  can_sell_cash: boolean;
+};
+
+const emptyForm = (): FormState => ({
+  email: "",
+  password: "",
+  display_name: "",
+  permissions: [],
+  can_discount: false,
+  max_discount_percent: 0,
+  can_sell_cash: true,
+});
 
 function FuncionariosPage() {
   const { user } = useAuth();
@@ -34,7 +57,7 @@ function FuncionariosPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TeamMember | null>(null);
-  const [form, setForm] = useState({ email: "", password: "", display_name: "", permissions: [] as Permission[] });
+  const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
 
   const { data: team = [] } = useQuery({
@@ -42,7 +65,7 @@ function FuncionariosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, permissions")
+        .select("id, user_id, display_name, email, role, permissions, can_discount, max_discount_percent, can_sell_cash")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
@@ -58,14 +81,22 @@ function FuncionariosPage() {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ email: "", password: "", display_name: "", permissions: [] });
+    setForm(emptyForm());
     setOpen(true);
   };
 
   const openEdit = (m: TeamMember) => {
     if (m.role === "owner") return;
     setEditing(m);
-    setForm({ email: m.email ?? "", password: "", display_name: m.display_name ?? "", permissions: m.permissions ?? [] });
+    setForm({
+      email: m.email ?? "",
+      password: "",
+      display_name: m.display_name ?? "",
+      permissions: m.permissions ?? [],
+      can_discount: !!m.can_discount,
+      max_discount_percent: Number(m.max_discount_percent ?? 0),
+      can_sell_cash: m.can_sell_cash !== false,
+    });
     setOpen(true);
   };
 
@@ -82,7 +113,13 @@ function FuncionariosPage() {
       if (editing) {
         const { error } = await supabase
           .from("user_roles")
-          .update({ display_name: form.display_name, permissions: form.permissions })
+          .update({
+            display_name: form.display_name,
+            permissions: form.permissions,
+            can_discount: form.can_discount,
+            max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
+            can_sell_cash: form.can_sell_cash,
+          })
           .eq("id", editing.id);
         if (error) throw error;
         toast.success("Funcionário atualizado");
@@ -94,6 +131,9 @@ function FuncionariosPage() {
             password: form.password,
             display_name: form.display_name || form.email.split("@")[0],
             permissions: form.permissions,
+            can_discount: form.can_discount,
+            max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
+            can_sell_cash: form.can_sell_cash,
           },
         });
         if (error) throw error;
@@ -162,7 +202,7 @@ function FuncionariosPage() {
                   )}
                   <div>
                     <Label className="mb-2 block">Permissões</Label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                       {ALL_PERMISSIONS.map((p) => (
                         <label key={p.key} className="flex items-center gap-2 p-2 rounded-md border cursor-pointer hover:bg-accent/40">
                           <Checkbox checked={form.permissions.includes(p.key)} onCheckedChange={() => togglePerm(p.key)} />
@@ -170,6 +210,37 @@ function FuncionariosPage() {
                         </label>
                       ))}
                     </div>
+                  </div>
+
+                  <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Caixa</div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.can_sell_cash}
+                        onCheckedChange={(v) => setForm({ ...form, can_sell_cash: !!v })}
+                      />
+                      <span className="text-sm">Pode receber em dinheiro</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.can_discount}
+                        onCheckedChange={(v) => setForm({ ...form, can_discount: !!v })}
+                      />
+                      <span className="text-sm">Pode aplicar desconto</span>
+                    </label>
+                    {form.can_discount && (
+                      <div>
+                        <Label className="text-xs">Desconto máximo por venda (%)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.5"
+                          value={form.max_discount_percent}
+                          onChange={(e) => setForm({ ...form, max_discount_percent: Number(e.target.value) })}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
                 <DialogFooter>
