@@ -289,6 +289,14 @@ function FinanceiroPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="fixos" className="mt-4">
+          <ExpensesTab kind="fixed" />
+        </TabsContent>
+
+        <TabsContent value="variaveis" className="mt-4">
+          <ExpensesTab kind="variable" />
+        </TabsContent>
+
         <TabsContent value="mensal" className="mt-4">
           <MensalView />
         </TabsContent>
