@@ -18,6 +18,7 @@ import { Route as ESlugRouteImport } from './routes/e.$slug'
 import { Route as AppVendasRouteImport } from './routes/_app.vendas'
 import { Route as AppPromotersRouteImport } from './routes/_app.promoters'
 import { Route as AppProdutosRouteImport } from './routes/_app.produtos'
+import { Route as AppPortariaRouteImport } from './routes/_app.portaria'
 import { Route as AppPdvRouteImport } from './routes/_app.pdv'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
 import { Route as AppFuncionariosRouteImport } from './routes/_app.funcionarios'
@@ -71,6 +72,11 @@ const AppPromotersRoute = AppPromotersRouteImport.update({
 const AppProdutosRoute = AppProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPortariaRoute = AppPortariaRouteImport.update({
+  id: '/portaria',
+  path: '/portaria',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPdvRoute = AppPdvRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
   '/pdv': typeof AppPdvRoute
+  '/portaria': typeof AppPortariaRoute
   '/produtos': typeof AppProdutosRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/funcionarios': typeof AppFuncionariosRoute
   '/mensal': typeof AppMensalRoute
   '/pdv': typeof AppPdvRoute
+  '/portaria': typeof AppPortariaRoute
   '/produtos': typeof AppProdutosRoute
   '/promoters': typeof AppPromotersRoute
   '/vendas': typeof AppVendasRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/_app/funcionarios': typeof AppFuncionariosRoute
   '/_app/mensal': typeof AppMensalRoute
   '/_app/pdv': typeof AppPdvRoute
+  '/_app/portaria': typeof AppPortariaRoute
   '/_app/produtos': typeof AppProdutosRoute
   '/_app/promoters': typeof AppPromotersRoute
   '/_app/vendas': typeof AppVendasRoute
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/mensal'
     | '/pdv'
+    | '/portaria'
     | '/produtos'
     | '/promoters'
     | '/vendas'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/mensal'
     | '/pdv'
+    | '/portaria'
     | '/produtos'
     | '/promoters'
     | '/vendas'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/_app/funcionarios'
     | '/_app/mensal'
     | '/_app/pdv'
+    | '/_app/portaria'
     | '/_app/produtos'
     | '/_app/promoters'
     | '/_app/vendas'
@@ -322,6 +334,13 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/produtos'
       preLoaderRoute: typeof AppProdutosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/portaria': {
+      id: '/_app/portaria'
+      path: '/portaria'
+      fullPath: '/portaria'
+      preLoaderRoute: typeof AppPortariaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pdv': {
@@ -406,6 +425,7 @@ interface AppRouteChildren {
   AppFuncionariosRoute: typeof AppFuncionariosRoute
   AppMensalRoute: typeof AppMensalRoute
   AppPdvRoute: typeof AppPdvRoute
+  AppPortariaRoute: typeof AppPortariaRoute
   AppProdutosRoute: typeof AppProdutosRoute
   AppPromotersRoute: typeof AppPromotersRoute
   AppVendasRoute: typeof AppVendasRoute
@@ -422,6 +442,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFuncionariosRoute: AppFuncionariosRoute,
   AppMensalRoute: AppMensalRoute,
   AppPdvRoute: AppPdvRoute,
+  AppPortariaRoute: AppPortariaRoute,
   AppProdutosRoute: AppProdutosRoute,
   AppPromotersRoute: AppPromotersRoute,
   AppVendasRoute: AppVendasRoute,
