@@ -13,12 +13,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  Plus, Minus, Trash2, ShoppingBag, Banknote, CreditCard, Smartphone,
-  Wallet, Layers, Check, Percent, Lock,
+  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search, EyeOff,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
 import { WithdrawalDialog } from "@/components/vendas/WithdrawalDialog";
+import { SplitPaymentEditor, isSplitValid, dominantMethod, type PaymentLine } from "@/components/vendas/SplitPaymentEditor";
 import { useQuery as useQueryRQ } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_app/pdv")({
