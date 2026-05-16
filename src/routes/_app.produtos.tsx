@@ -160,10 +160,10 @@ function ProdutosPage() {
   const openNew = (type: "simple" | "combo") => {
     setEditing(null);
     setForm({
-      name: "", price: "", cost_price: "", stock_quantity: "",
+      name: "", price: 0, cost_price: 0, stock_quantity: "",
       product_type: type, track_stock: type === "simple",
       description: "", pickup_description: "", photo_url: "", unit: "un",
-      category_id: "none",
+      category_id: "none", is_available: true,
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -174,8 +174,8 @@ function ProdutosPage() {
     setEditing(p);
     setForm({
       name: p.name,
-      price: String(p.price),
-      cost_price: String(p.cost_price ?? 0),
+      price: Number(p.price),
+      cost_price: Number(p.cost_price ?? 0),
       stock_quantity: String(p.stock_quantity),
       product_type: p.product_type,
       track_stock: p.track_stock,
@@ -184,6 +184,7 @@ function ProdutosPage() {
       photo_url: p.photo_url ?? "",
       unit: p.unit ?? "un",
       category_id: p.category_id ?? "none",
+      is_available: p.is_available ?? true,
     });
     if (p.product_type === "combo") {
       const items = comboItems.filter((c) => c.combo_product_id === p.id);
