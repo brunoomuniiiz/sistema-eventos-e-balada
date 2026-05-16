@@ -631,6 +631,25 @@ function ProdutosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!cascadeAsk} onOpenChange={(v) => !v && setCascadeAsk(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desabilitar combos relacionados?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{cascadeAsk?.product.name}</strong> faz parte de {cascadeAsk?.combos.length} combo(s):
+              <span className="block mt-2 text-sm">
+                {cascadeAsk?.combos.map((c) => c.name).join(", ")}
+              </span>
+              <span className="block mt-2">Deseja desabilitar esses combos também?</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => applyCascade(false)}>Não, manter</AlertDialogCancel>
+            <AlertDialogAction onClick={() => applyCascade(true)}>Sim, desabilitar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
