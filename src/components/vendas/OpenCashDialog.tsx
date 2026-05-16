@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +20,7 @@ interface Props {
 export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
   const { canSellCash } = usePermissions();
   const [step, setStep] = useState<1 | 2>(1);
-  const [amount, setAmount] = useState("0");
+  const [amount, setAmount] = useState<number>(0);
   const [notes, setNotes] = useState("");
   const [eventId, setEventId] = useState<string>("none");
   const [loading, setLoading] = useState(false);
@@ -53,7 +54,7 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
   const submit = async () => {
     setLoading(true);
     try {
-      const v = canSellCash ? (parseFloat(amount.replace(",", ".")) || 0) : 0;
+      const v = canSellCash ? amount : 0;
       const { error } = await supabase.rpc("open_cash_session", {
         _opening: v,
         _notes: notes || undefined,
@@ -112,8 +113,8 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
             {canSellCash ? (
               <>
                 <div>
-                  <Label>Valor inicial (R$)</Label>
-                  <Input type="number" inputMode="decimal" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
+                  <Label>Valor inicial</Label>
+                  <CurrencyInput value={amount} onChange={setAmount} autoFocus />
                 </div>
                 <div>
                   <Label>Observação (opcional)</Label>
