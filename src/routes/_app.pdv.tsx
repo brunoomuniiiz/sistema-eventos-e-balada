@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Plus, Minus, Trash2, ShoppingBag, Banknote, CreditCard, Smartphone,
-  Wallet, Layers, Check, MapPin, CalendarDays, Percent, Lock,
+  Wallet, Layers, Check, Percent, Lock,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
@@ -34,7 +34,9 @@ type Product = {
   product_type: "simple" | "combo";
   track_stock: boolean;
   cost_price: number;
+  category_id: string | null;
 };
+type Category = { id: string; name: string; sort_order: number };
 
 type CartItem = {
   product_id: string;
@@ -64,6 +66,7 @@ export function PdvView() {
   const [discountInput, setDiscountInput] = useState<string>("");
   const [openCash, setOpenCash] = useState(false);
   const [openWithdraw, setOpenWithdraw] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
