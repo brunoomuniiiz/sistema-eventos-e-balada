@@ -1,99 +1,69 @@
-## Objetivo
+# Ajustes — Login, PDV, Estoque, Produtos
 
-Adicionar **lançamentos de custos do bar** (não vinculados a evento) na aba Financeiro:
+## 1. Tirar popup "Abrir evento" no login
+- Remover `useEventStartReminder()` de `src/routes/_app.tsx`. Evento é aberto manualmente em `/eventos`.
 
-1. **Custos fixos** — recorrentes mensais (aluguel, água, luz, internet, +personalizáveis).
-2. **Custos variáveis** — compras/pagamentos avulsos (bebidas com fornecedor + forma de pagamento, +personalizáveis).
+## 2. Fluxo de login do funcionário (wizard de 2 passos)
+Quando o operador entra no `/pdv` sem sessão de caixa aberta, abrir um modal único com 2 etapas:
 
----
+**Passo 1 — Confirmar evento do dia**
+- Busca eventos com `date::date = hoje` e status `upcoming/live/ongoing`.
+- Se houver 1 evento: pré-selecionado, operador só clica "Confirmar".
+- Se houver vários: select com o do dia já marcado.
+- Se não houver nenhum: opção "Sem evento (bar normal)" já marcada.
 
-## 1. Banco
+**Passo 2 — Abrir caixa**
+- Se `can_sell_cash = true`: mostra campo "Valor inicial (R$)" obrigatório + observação.
+- Se `can_sell_cash = false`: **esconde o campo de valor** e o texto diz "Você não opera dinheiro — caixa abre em R$ 0,00". Botão único "Abrir caixa".
+- Em ambos os casos chama `open_cash_session(_opening, _notes, _event_id)`.
 
-**Nova tabela `bar_expense_categories`** (categorias gerenciáveis pelo dono)
-- `name`, `kind` (`fixed` | `variable`), `is_default bool`, `sort_order`, `icon`
-- Seed por dono (no `handle_new_user` + backfill):
-  - **Fixos**: Aluguel, Água, Luz, Internet
-  - **Variáveis**: Bebidas, Insumos, Manutenção
-- RLS: dono e quem tem permissão `financeiro` lê/edita.
+Implementado dentro de `OpenCashDialog.tsx` (reaproveita a query de eventos do dia já existente).
 
-**Nova tabela `bar_expenses`** (lançamentos)
-- `category_id`, `category_name` (snapshot), `kind` (`fixed`|`variable`)
-- `amount numeric`, `description text`, `expense_date date`
-- `payment_method text` (`dinheiro|debito|credito|pix|boleto|transferencia`)
-- `supplier_id uuid` (nullable, opcional)
-- `due_date date` (nullable, p/ fixos com vencimento)
-- `paid bool default true`, `paid_at timestamptz`
-- `recurrence text` (`once|monthly`) — para fixos marcados como recorrentes
-- `notes text`
-- RLS: dono + permissão `financeiro` (CRUD).
+## 3. PDV "cego" para o vendedor
+Em `src/routes/_app.pdv.tsx`:
+- Remover os selects de **Local** e **Evento** do topo (já vêm da sessão).
+- Remover badges "X un. aqui" / "X combo(s) possíveis" / "Sem estoque".
+- Produto só fica desabilitado (opaco) quando `SUM(product_stock.quantity)` em todos os locais = 0.
+- **Aviso discreto** somente quando estoque total ≤ 10: pequeno selo "Últimas {n}". Acima disso, nada.
+- Combos: indisponíveis quando `min(stock_componente_i / qty_i) = 0` em todos os locais.
 
-**Nova tabela `suppliers`** (fornecedores)
-- `name`, `phone`, `notes`
-- Cadastro rápido inline ao lançar custo variável.
-- RLS: dono + permissão `financeiro` ou `estoque`.
+## 4. Estoque — visão do dono (`/estoque`)
+- Adicionar cards de resumo no topo: **Total de produtos**, **Total de unidades**, **Sem estoque**, **Estoque baixo (≤10)**.
+- Manter coluna "Total" agregando todos os locais na lista.
 
----
+## 5. Inventário às cegas
+- Ao contar, a coluna **Sistema** (`system_qty`) fica escondida por padrão; toggle "Mostrar sistema" só para o dono.
+- Input "Contagem" começa vazio (sem default = system_qty).
+- Diferença só aparece depois de fechar o inventário (já calculada por `close_inventory`).
 
-## 2. UI — aba Financeiro
+## 6. Categorias de produto
+**Banco** (migração):
+- Tabela `product_categories(id, user_id, name, icon, sort_order, is_default)` com RLS:
+  - Manage: `has_permission('estoque')`.
+  - Read: `has_permission('vendas')` (PDV filtra).
+- Coluna `products.category_id uuid` (nullable, sem FK rígida).
+- Função `seed_default_product_categories(_user_id)` → **Combos, Narguilé, Long, Baldes, Não alcoólicos, Variados**.
+- Chamada no `handle_new_user` + backfill para owners existentes.
 
-Adicionar **2 novas tabs** no `_app.financeiro.tsx` (já tem Tabs):
+**Produtos** (`_app.produtos.tsx`):
+- Nova aba "Categorias": CRUD (criar, renomear, reordenar, apagar → produtos viram `category_id = NULL`).
+- Form de produto: Select "Categoria" com "+ Nova categoria" inline.
+- Lista mostra a categoria e filtro por categoria.
 
-### Tab "Custos fixos"
-- Cards mostrando total do mês corrente por categoria (Aluguel, Água, Luz, Internet…).
-- Botão "+ Lançamento" → modal:
-  - categoria (select com "+ Nova categoria" inline → cria em `bar_expense_categories`)
-  - valor, data de competência, vencimento, forma de pagamento
-  - toggle "Recorrente mensal" → ao ligar, gera próximos lançamentos automaticamente no mês seguinte (job simples no client ou função SQL `generate_next_month_fixed`)
-  - status: pago / a pagar
-- Lista do mês com filtros: pago/pendente, categoria.
-- Total fixo do mês destacado.
+**PDV**: chips de categorias acima do grid. Produtos sem categoria caem em "Variados" visualmente.
 
-### Tab "Custos variáveis"
-- Botão "+ Lançamento" → modal:
-  - categoria (Bebidas, Insumos, Manutenção, +nova)
-  - valor, data, forma de pagamento
-  - **fornecedor** (select com busca + "+ Novo fornecedor" inline)
-  - descrição
-- Lista agrupada por mês, com totais por categoria e por fornecedor.
-- Filtros: período (mês), categoria, fornecedor, forma de pagamento.
+**Vendas** (`_app.vendas.tsx`): bloco "Por categoria" no relatório.
 
-### Aba "Categorias" (sub-aba dentro de Custos fixos/variáveis ou um botão "Gerenciar categorias")
-- CRUD simples de `bar_expense_categories` separado por tipo.
-- Não permite excluir categoria em uso; oferece reatribuir.
+## 7. Tudo editável
+Categorias de produto, de despesa fixa/variável e de custo de evento — todas com CRUD. Defaults podem ser renomeadas/apagadas.
 
 ---
 
-## 3. Integração com indicadores existentes
-
-- O **Resumo financeiro** (cards do topo da `_app.financeiro.tsx`) ganha:
-  - "Custos fixos do mês" e "Custos variáveis do mês"
-  - "Lucro líquido real" = (lucro de eventos no mês) − fixos − variáveis do mês
-- A view **Mensal** (`_app.mensal.tsx`) também passa a deduzir esses custos do líquido mensal.
-
----
-
-## 4. Arquivos afetados
-
-- Nova migration:
-  - tabelas `bar_expense_categories`, `bar_expenses`, `suppliers`
-  - RLS para todas
-  - seed em `handle_new_user` + backfill para donos existentes
-  - função `generate_next_month_fixed(_user_id uuid)` (opcional, p/ recorrência)
-- `src/routes/_app.financeiro.tsx` — adiciona 2 tabs + cálculos no resumo
-- `src/routes/_app.mensal.tsx` — desconta custos no líquido
-- Novos componentes:
-  - `src/components/financeiro/FixedExpensesTab.tsx`
-  - `src/components/financeiro/VariableExpensesTab.tsx`
-  - `src/components/financeiro/ExpenseCategoriesManager.tsx`
-  - `src/components/financeiro/ExpenseFormDialog.tsx`
-  - `src/components/financeiro/SupplierPicker.tsx`
-
----
+## Arquivos
+- 1 migração SQL nova.
+- Editar: `src/routes/_app.tsx`, `src/routes/_app.pdv.tsx`, `src/routes/_app.produtos.tsx`, `src/routes/_app.estoque.tsx`, `src/routes/_app.vendas.tsx`, `src/components/vendas/OpenCashDialog.tsx`.
 
 ## Fora de escopo
+Portaria, promoters, eventos públicos, autenticação, financeiro.
 
-- Sem fluxo de aprovação / contas a pagar avançado.
-- Sem anexos de comprovantes (pode vir depois).
-- Sem integração bancária.
-
-Posso seguir?
+**Posso seguir?**
