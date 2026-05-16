@@ -35,6 +35,7 @@ type Product = {
   track_stock: boolean;
   cost_price: number;
   category_id: string | null;
+  is_available: boolean;
 };
 type Category = { id: string; name: string; sort_order: number };
 
@@ -45,13 +46,6 @@ type CartItem = {
   cost_price: number;
   quantity: number;
 };
-
-const PAYMENTS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
-  { key: "dinheiro", label: "Dinheiro", icon: Banknote },
-  { key: "debito", label: "Débito", icon: CreditCard },
-  { key: "credito", label: "Crédito", icon: CreditCard },
-  { key: "pix", label: "Pix", icon: Smartphone },
-];
 
 export function PdvView() {
   const { user } = useAuth();
