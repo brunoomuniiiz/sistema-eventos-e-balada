@@ -509,38 +509,18 @@ export function PdvView() {
                   )}
                 </div>
 
-                <div>
-                  <div className="text-xs font-medium mb-2 text-muted-foreground uppercase tracking-wide">Pagamento</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {PAYMENTS.map((p) => {
-                      const active = payment === p.key;
-                      const blocked = p.key === "dinheiro" && !canSellCash;
-                      return (
-                        <button
-                          key={p.key}
-                          onClick={() => !blocked && setPayment(p.key)}
-                          disabled={blocked}
-                          className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
-                            active
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-card border-border hover:border-primary/50"
-                          } ${blocked ? "opacity-40 cursor-not-allowed" : ""}`}
-                        >
-                          <p.icon className="h-5 w-5" />
-                          <span className="font-medium">{p.label}</span>
-                          {blocked && <Lock className="h-3 w-3 ml-auto" />}
-                          {active && <Check className="h-4 w-4 ml-auto" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <SplitPaymentEditor
+                  total={total}
+                  payments={payments}
+                  onChange={setPayments}
+                  canSellCash={canSellCash}
+                />
 
                 <Button
                   size="lg"
                   className="w-full h-14 text-base font-bold"
                   onClick={finalize}
-                  disabled={submitting || !payment || !locationId}
+                  disabled={submitting || !locationId || !isSplitValid(total, payments)}
                 >
                   <Wallet className="h-5 w-5" />
                   {submitting ? "Registrando..." : `Finalizar ${formatBRL(total)}`}
