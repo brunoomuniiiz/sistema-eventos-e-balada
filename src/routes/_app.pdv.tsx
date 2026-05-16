@@ -13,19 +13,19 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  Plus, Minus, Trash2, ShoppingBag, Banknote, CreditCard, Smartphone,
-  Wallet, Layers, Check, Percent, Lock,
+  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
 import { WithdrawalDialog } from "@/components/vendas/WithdrawalDialog";
+import { SplitPaymentEditor, isSplitValid, dominantMethod, type PaymentLine } from "@/components/vendas/SplitPaymentEditor";
 import { useQuery as useQueryRQ } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_app/pdv")({
   component: PdvView,
 });
 
-type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix";
+// PaymentMethod vem do SplitPaymentEditor
 
 type Product = {
   id: string;
@@ -35,6 +35,7 @@ type Product = {
   track_stock: boolean;
   cost_price: number;
   category_id: string | null;
+  is_available: boolean;
 };
 type Category = { id: string; name: string; sort_order: number };
 
@@ -46,20 +47,13 @@ type CartItem = {
   quantity: number;
 };
 
-const PAYMENTS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
-  { key: "dinheiro", label: "Dinheiro", icon: Banknote },
-  { key: "debito", label: "Débito", icon: CreditCard },
-  { key: "credito", label: "Crédito", icon: CreditCard },
-  { key: "pix", label: "Pix", icon: Smartphone },
-];
-
 export function PdvView() {
   const { user } = useAuth();
   const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, loading } = usePermissions();
   const qc = useQueryClient();
 
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [payment, setPayment] = useState<PaymentMethod | null>(null);
+  const [payments, setPayments] = useState<PaymentLine[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [eventId, setEventId] = useState<string>("none");
@@ -67,6 +61,7 @@ export function PdvView() {
   const [openCash, setOpenCash] = useState(false);
   const [openWithdraw, setOpenWithdraw] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [searchQ, setSearchQ] = useState("");
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
@@ -129,7 +124,7 @@ export function PdvView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, product_type, track_stock, cost_price, category_id")
+        .select("id, name, price, product_type, track_stock, cost_price, category_id, is_available")
         .order("name");
       if (error) throw error;
       return data as Product[];
@@ -138,7 +133,7 @@ export function PdvView() {
   });
 
   // Estoque agregado em todos os locais (vendedor é cego — não escolhe local)
-  const { data: stockMap = {} } = useQuery({
+  const { data: stockData = { map: {}, hasRows: new Set<string>() } } = useQuery({
     queryKey: ["pdv-stock-total", ownerId],
     enabled: !!ownerId && can("vendas"),
     queryFn: async () => {
@@ -147,12 +142,16 @@ export function PdvView() {
         .select("product_id, quantity");
       if (error) throw error;
       const map: Record<string, number> = {};
+      const hasRows = new Set<string>();
       (data ?? []).forEach((r) => {
         map[r.product_id] = (map[r.product_id] ?? 0) + r.quantity;
+        hasRows.add(r.product_id);
       });
-      return map;
+      return { map, hasRows };
     },
   });
+  const stockMap = stockData.map;
+  const productsWithStockRows = stockData.hasRows;
 
   // Componentes de todos os combos para calcular estoque virtual
   const { data: comboItems = [] } = useQuery({
@@ -232,20 +231,23 @@ export function PdvView() {
   const finalize = async () => {
     if (!user || !ownerId) return;
     if (cart.length === 0) return toast.error("Adicione pelo menos um produto");
-    if (!payment) return toast.error("Selecione a forma de pagamento");
+    if (payments.length === 0) return toast.error("Adicione formas de pagamento");
+    if (!isSplitValid(total, payments)) return toast.error("Pagamento não confere com o total");
     if (!locationId) return toast.error("Selecione um local");
     if (!session) return toast.error("Abra o caixa antes de vender");
-    if (payment === "dinheiro" && !canSellCash) return toast.error("Você não tem permissão para vender em dinheiro");
+    const hasCash = payments.some((p) => p.method === "dinheiro");
+    if (hasCash && !canSellCash) return toast.error("Você não tem permissão para vender em dinheiro");
 
     setSubmitting(true);
     try {
+      const dominant = dominantMethod(payments);
       const { data: sale, error: saleErr } = await supabase
         .from("sales")
         .insert({
           user_id: ownerId,
           employee_id: null,
           employee_name: user.email ?? null,
-          payment_method: payment,
+          payment_method: dominant,
           total,
           location_id: locationId,
           event_id: eventId === "none" ? null : eventId,
@@ -272,11 +274,31 @@ export function PdvView() {
       const { error: itemsErr } = await supabase.from("sale_items").insert(items);
       if (itemsErr) throw itemsErr;
 
+      // Split payments: registra cada linha
+      // Para dinheiro, registra o valor efetivo (não inclui troco) limitado ao restante.
+      let remaining = total;
+      const payRows: { user_id: string; sale_id: string; method: string; amount: number }[] = [];
+      // primeiro não-dinheiro
+      const ordered = [...payments].sort((a, b) =>
+        a.method === "dinheiro" ? 1 : b.method === "dinheiro" ? -1 : 0
+      );
+      for (const p of ordered) {
+        const amt = p.method === "dinheiro" ? Math.min(p.amount, Math.max(0, remaining)) : p.amount;
+        if (amt > 0) {
+          payRows.push({ user_id: ownerId, sale_id: sale.id, method: p.method, amount: +amt.toFixed(2) });
+          remaining = +(remaining - amt).toFixed(2);
+        }
+      }
+      if (payRows.length > 0) {
+        const { error: payErr } = await supabase.from("sale_payments").insert(payRows);
+        if (payErr) throw payErr;
+      }
+
       toast.success(`Venda de ${formatBRL(total)} registrada!`);
       setCart([]);
-      setPayment(null);
+      setPayments([]);
       setDiscountInput("");
-      qc.invalidateQueries({ queryKey: ["pdv-stock"] });
+      qc.invalidateQueries({ queryKey: ["pdv-stock-total"] });
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
       refetchSession();
@@ -348,6 +370,17 @@ export function PdvView() {
         </div>
       )}
 
+      {/* Busca por produto */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar produto…"
+          value={searchQ}
+          onChange={(e) => setSearchQ(e.target.value)}
+          className="pl-9 h-10"
+        />
+      </div>
+
       {products.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
           <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
@@ -361,11 +394,19 @@ export function PdvView() {
               if (categoryFilter === "none") return !p.category_id;
               return p.category_id === categoryFilter;
             })
+            .filter((p) => p.is_available !== false)
+            .filter((p) => {
+              const q = searchQ.trim().toLowerCase();
+              if (!q) return true;
+              return p.name.toLowerCase().includes(q);
+            })
             .map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const isCombo = p.product_type === "combo";
             const stockTotal = isCombo ? (comboStockMap[p.id] ?? 0) : (stockMap[p.id] ?? 0);
-            const tracked = isCombo || p.track_stock;
+            // Combos: sempre rastreados via componentes.
+            // Simples: só considera "sem estoque" se existe pelo menos uma row em product_stock e a soma é 0.
+            const tracked = isCombo || (p.track_stock && productsWithStockRows.has(p.id));
             const outOfStock = tracked && stockTotal <= 0;
             const lowStock = tracked && !outOfStock && stockTotal <= 10;
             return (
@@ -468,38 +509,18 @@ export function PdvView() {
                   )}
                 </div>
 
-                <div>
-                  <div className="text-xs font-medium mb-2 text-muted-foreground uppercase tracking-wide">Pagamento</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {PAYMENTS.map((p) => {
-                      const active = payment === p.key;
-                      const blocked = p.key === "dinheiro" && !canSellCash;
-                      return (
-                        <button
-                          key={p.key}
-                          onClick={() => !blocked && setPayment(p.key)}
-                          disabled={blocked}
-                          className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
-                            active
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-card border-border hover:border-primary/50"
-                          } ${blocked ? "opacity-40 cursor-not-allowed" : ""}`}
-                        >
-                          <p.icon className="h-5 w-5" />
-                          <span className="font-medium">{p.label}</span>
-                          {blocked && <Lock className="h-3 w-3 ml-auto" />}
-                          {active && <Check className="h-4 w-4 ml-auto" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <SplitPaymentEditor
+                  total={total}
+                  payments={payments}
+                  onChange={setPayments}
+                  canSellCash={canSellCash}
+                />
 
                 <Button
                   size="lg"
                   className="w-full h-14 text-base font-bold"
                   onClick={finalize}
-                  disabled={submitting || !payment || !locationId}
+                  disabled={submitting || !locationId || !isSplitValid(total, payments)}
                 >
                   <Wallet className="h-5 w-5" />
                   {submitting ? "Registrando..." : `Finalizar ${formatBRL(total)}`}

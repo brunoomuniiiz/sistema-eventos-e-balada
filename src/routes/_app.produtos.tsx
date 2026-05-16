@@ -305,11 +305,47 @@ function ProdutosPage() {
     qc.invalidateQueries({ queryKey: ["combo_items_full"] });
   };
 
+  const toggleAvailable = async (p: Product, next: boolean) => {
+    // Se está desativando um produto simples que é componente de combos, perguntar
+    if (!next && p.product_type === "simple") {
+      const dependentCombos = products.filter((c) =>
+        c.product_type === "combo" &&
+        c.is_available !== false &&
+        comboItems.some((ci) => ci.combo_product_id === c.id && ci.component_product_id === p.id)
+      );
+      if (dependentCombos.length > 0) {
+        // primeiro desativa o produto, depois pergunta sobre combos
+        await supabase.from("products").update({ is_available: false }).eq("id", p.id);
+        qc.invalidateQueries({ queryKey: ["products-full"] });
+        qc.invalidateQueries({ queryKey: ["products"] });
+        setCascadeAsk({ product: p, combos: dependentCombos });
+        return;
+      }
+    }
+    const { error } = await supabase.from("products").update({ is_available: next }).eq("id", p.id);
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["products-full"] });
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
+  const applyCascade = async (alsoDisableCombos: boolean) => {
+    if (!cascadeAsk) return;
+    if (alsoDisableCombos) {
+      const ids = cascadeAsk.combos.map((c) => c.id);
+      const { error } = await supabase.from("products").update({ is_available: false }).in("id", ids);
+      if (error) toast.error(error.message);
+      else toast.success(`${ids.length} combo(s) desabilitado(s)`);
+      qc.invalidateQueries({ queryKey: ["products-full"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+    }
+    setCascadeAsk(null);
+  };
+
   const renderCard = (p: Product) => {
     const items = comboItems.filter((c) => c.combo_product_id === p.id);
     const margin = p.price > 0 ? ((p.price - Number(p.cost_price)) / p.price) * 100 : 0;
     return (
-      <Card key={p.id}>
+      <Card key={p.id} className={p.is_available === false ? "opacity-60" : ""}>
         <CardContent className="p-4">
           <div className="flex gap-3">
             <div className="h-16 w-16 rounded-lg bg-secondary/40 grid place-items-center overflow-hidden flex-shrink-0">
@@ -325,6 +361,11 @@ function ProdutosPage() {
                 {p.product_type === "combo" && (
                   <Badge variant="secondary" className="gap-1"><Layers className="h-3 w-3" /> Combo</Badge>
                 )}
+                {p.is_available === false && (
+                  <Badge variant="outline" className="gap-1 text-amber-500 border-amber-500/50">
+                    <EyeOff className="h-3 w-3" /> Indisponível
+                  </Badge>
+                )}
               </div>
               <div className="text-sm text-muted-foreground flex gap-3 flex-wrap">
                 <span>Venda <strong className="text-foreground">{formatBRL(Number(p.price))}</strong></span>
@@ -335,9 +376,16 @@ function ProdutosPage() {
               </div>
               {p.description && <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{p.description}</div>}
             </div>
-            <div className="flex items-center gap-1 self-start">
-              <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
+            <div className="flex flex-col items-end gap-1 self-start">
+              <Switch
+                checked={p.is_available !== false}
+                onCheckedChange={(v) => toggleAvailable(p, v)}
+                aria-label="Disponível"
+              />
+              <div className="flex">
+                <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
             </div>
           </div>
           {p.product_type === "combo" && items.length > 0 && (
@@ -583,6 +631,25 @@ function ProdutosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!cascadeAsk} onOpenChange={(v) => !v && setCascadeAsk(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desabilitar combos relacionados?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{cascadeAsk?.product.name}</strong> faz parte de {cascadeAsk?.combos.length} combo(s):
+              <span className="block mt-2 text-sm">
+                {cascadeAsk?.combos.map((c) => c.name).join(", ")}
+              </span>
+              <span className="block mt-2">Deseja desabilitar esses combos também?</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => applyCascade(false)}>Não, manter</AlertDialogCancel>
+            <AlertDialogAction onClick={() => applyCascade(true)}>Sim, desabilitar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
