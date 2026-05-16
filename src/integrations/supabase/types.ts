@@ -758,6 +758,39 @@ export type Database = {
         }
         Relationships: []
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          is_default: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_stock: {
         Row: {
           created_at: string
@@ -790,6 +823,7 @@ export type Database = {
       }
       products: {
         Row: {
+          category_id: string | null
           cost_price: number
           created_at: string
           description: string | null
@@ -806,6 +840,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category_id?: string | null
           cost_price?: number
           created_at?: string
           description?: string | null
@@ -822,6 +857,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category_id?: string | null
           cost_price?: number
           created_at?: string
           description?: string | null
@@ -1414,6 +1450,10 @@ export type Database = {
         Returns: undefined
       }
       seed_default_cost_categories: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      seed_default_product_categories: {
         Args: { _user_id: string }
         Returns: undefined
       }

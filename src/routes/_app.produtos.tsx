@@ -22,6 +22,7 @@ import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon } 
 import { formatBRL } from "@/lib/format";
 
 import { EstoqueView } from "./_app.estoque";
+import { CategoriasManager } from "@/components/produtos/CategoriasManager";
 
 export const Route = createFileRoute("/_app/produtos")({
   component: ProdutosShell,
@@ -32,9 +33,11 @@ function ProdutosShell() {
     <Tabs defaultValue="catalogo" className="space-y-4">
       <TabsList>
         <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+        <TabsTrigger value="categorias">Categorias</TabsTrigger>
         <TabsTrigger value="estoque">Estoque</TabsTrigger>
       </TabsList>
       <TabsContent value="catalogo"><ProdutosPage /></TabsContent>
+      <TabsContent value="categorias"><CategoriasManager /></TabsContent>
       <TabsContent value="estoque"><EstoqueView /></TabsContent>
     </Tabs>
   );
@@ -52,7 +55,10 @@ type Product = {
   pickup_description: string | null;
   photo_url: string | null;
   unit: string;
+  category_id: string | null;
 };
+
+type Category = { id: string; name: string };
 
 type ComboItem = {
   id: string;
@@ -83,17 +89,31 @@ function ProdutosPage() {
     pickup_description: "",
     photo_url: "",
     unit: "un",
+    category_id: "none" as string,
   });
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
   const [pickComponentId, setPickComponentId] = useState("");
   const [uploading, setUploading] = useState(false);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["product_categories", ownerId],
+    enabled: !!ownerId && can("estoque"),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_categories")
+        .select("id, name")
+        .order("sort_order");
+      if (error) throw error;
+      return data as Category[];
+    },
+  });
 
   const { data: products = [] } = useQuery({
     queryKey: ["products-full", ownerId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit")
+        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id")
         .order("name");
       if (error) throw error;
       return data as Product[];
@@ -134,6 +154,7 @@ function ProdutosPage() {
       name: "", price: "", cost_price: "", stock_quantity: "",
       product_type: type, track_stock: type === "simple",
       description: "", pickup_description: "", photo_url: "", unit: "un",
+      category_id: "none",
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -153,6 +174,7 @@ function ProdutosPage() {
       pickup_description: p.pickup_description ?? "",
       photo_url: p.photo_url ?? "",
       unit: p.unit ?? "un",
+      category_id: p.category_id ?? "none",
     });
     if (p.product_type === "combo") {
       const items = comboItems.filter((c) => c.combo_product_id === p.id);
@@ -224,6 +246,7 @@ function ProdutosPage() {
       pickup_description: form.pickup_description.trim() || null,
       photo_url: form.photo_url.trim() || null,
       unit: form.unit.trim() || "un",
+      category_id: form.category_id === "none" ? null : form.category_id,
     };
 
     let productId = editing?.id;
@@ -391,6 +414,19 @@ function ProdutosPage() {
             <div>
               <Label>Nome</Label>
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </div>
+
+            <div>
+              <Label>Categoria</Label>
+              <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Sem categoria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem categoria</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-3 gap-3">

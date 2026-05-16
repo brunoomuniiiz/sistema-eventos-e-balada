@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wallet, CalendarDays } from "lucide-react";
+import { Wallet, CalendarDays, Check, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface Props {
   open: boolean;
@@ -16,12 +17,13 @@ interface Props {
 }
 
 export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
+  const { canSellCash } = usePermissions();
+  const [step, setStep] = useState<1 | 2>(1);
   const [amount, setAmount] = useState("0");
   const [notes, setNotes] = useState("");
   const [eventId, setEventId] = useState<string>("none");
   const [loading, setLoading] = useState(false);
 
-  // Eventos do dia (status upcoming/live), ordenados pela data
   const { data: todayEvents = [] } = useQuery({
     queryKey: ["open-cash-today-events"],
     enabled: open,
@@ -40,17 +42,18 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
     },
   });
 
-  // Pré-seleciona o único evento do dia (operador ainda confirma)
   useEffect(() => {
-    if (open && todayEvents.length === 1 && eventId === "none") {
-      setEventId(todayEvents[0].id);
+    if (open) {
+      setStep(1);
+      if (todayEvents.length >= 1) setEventId(todayEvents[0].id);
+      else setEventId("none");
     }
-  }, [open, todayEvents, eventId]);
+  }, [open, todayEvents]);
 
   const submit = async () => {
     setLoading(true);
     try {
-      const v = parseFloat(amount.replace(",", ".")) || 0;
+      const v = canSellCash ? (parseFloat(amount.replace(",", ".")) || 0) : 0;
       const { error } = await supabase.rpc("open_cash_session", {
         _opening: v,
         _notes: notes || undefined,
@@ -71,16 +74,19 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Wallet className="h-5 w-5 text-primary" /> Abrir caixa</DialogTitle>
-          <DialogDescription>Confirme o evento de hoje e o valor inicial em dinheiro (troco) para iniciar seu turno.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            {step === 1 ? <><CalendarDays className="h-5 w-5 text-primary" /> Confirmar evento</> : <><Wallet className="h-5 w-5 text-primary" /> Abrir caixa</>}
+          </DialogTitle>
+          <DialogDescription>
+            {step === 1 ? "Confirme o evento de hoje para iniciar seu turno." : canSellCash ? "Informe o valor inicial em dinheiro (troco)." : "Você não opera dinheiro — o caixa abre em R$ 0,00."}
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> Evento</Label>
+
+        {step === 1 && (
+          <div className="space-y-3">
+            <Label className="text-xs">Evento de hoje</Label>
             <Select value={eventId} onValueChange={setEventId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sem evento (bar normal)</SelectItem>
                 {todayEvents.map((e) => (
@@ -91,23 +97,43 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
               </SelectContent>
             </Select>
             {todayEvents.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-1">Nenhum evento programado para hoje.</p>
+              <p className="text-xs text-muted-foreground">Nenhum evento programado para hoje.</p>
             )}
+            <DialogFooter>
+              <Button className="w-full" onClick={() => setStep(2)}>
+                <Check className="h-4 w-4" /> Confirmar
+              </Button>
+            </DialogFooter>
           </div>
-          <div>
-            <Label>Valor inicial (R$)</Label>
-            <Input type="number" inputMode="decimal" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        )}
+
+        {step === 2 && (
+          <div className="space-y-3">
+            {canSellCash ? (
+              <>
+                <div>
+                  <Label>Valor inicial (R$)</Label>
+                  <Input type="number" inputMode="decimal" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus />
+                </div>
+                <div>
+                  <Label>Observação (opcional)</Label>
+                  <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex: troco fornecido pelo gerente" />
+                </div>
+              </>
+            ) : (
+              <div className="flex items-start gap-2 p-3 rounded-lg border bg-card/60 text-sm">
+                <Info className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                <span>Sem operação em dinheiro nesta conta. O caixa abre em R$ 0,00 e você opera apenas débito, crédito e pix.</span>
+              </div>
+            )}
+            <DialogFooter className="gap-2">
+              <Button variant="ghost" onClick={() => setStep(1)}>Voltar</Button>
+              <Button onClick={submit} disabled={loading} className="flex-1">
+                {loading ? "Abrindo..." : "Abrir caixa"}
+              </Button>
+            </DialogFooter>
           </div>
-          <div>
-            <Label>Observação (opcional)</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Ex: troco fornecido pelo gerente" />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button onClick={submit} disabled={loading} className="w-full">
-            {loading ? "Abrindo..." : "Abrir caixa"}
-          </Button>
-        </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

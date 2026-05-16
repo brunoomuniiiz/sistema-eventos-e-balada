@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   Plus, Minus, Trash2, ShoppingBag, Banknote, CreditCard, Smartphone,
-  Wallet, Layers, Check, MapPin, CalendarDays, Percent, Lock,
+  Wallet, Layers, Check, Percent, Lock,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
@@ -34,7 +34,9 @@ type Product = {
   product_type: "simple" | "combo";
   track_stock: boolean;
   cost_price: number;
+  category_id: string | null;
 };
+type Category = { id: string; name: string; sort_order: number };
 
 type CartItem = {
   product_id: string;
@@ -64,6 +66,7 @@ export function PdvView() {
   const [discountInput, setDiscountInput] = useState<string>("");
   const [openCash, setOpenCash] = useState(false);
   const [openWithdraw, setOpenWithdraw] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
@@ -88,38 +91,37 @@ export function PdvView() {
     if (session?.event_id) setEventId(session.event_id);
   }, [session?.event_id]);
 
-  const { data: locations = [] } = useQuery({
-    queryKey: ["pdv-locations", ownerId],
+  // Default location (for sale.location_id) — pega o padrão automaticamente, vendedor não escolhe
+  const { data: defaultLocationId } = useQuery({
+    queryKey: ["pdv-default-location", ownerId],
+    enabled: !!ownerId && can("vendas"),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stock_locations")
-        .select("id, name, is_default")
-        .order("name");
+        .select("id, is_default")
+        .order("is_default", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
-      return data;
+      return data?.id ?? null;
     },
-    enabled: !!ownerId && can("vendas"),
   });
 
   useEffect(() => {
-    if (!locationId && locations.length > 0) {
-      const def = locations.find((l) => l.is_default) ?? locations[0];
-      setLocationId(def.id);
-    }
-  }, [locations, locationId]);
+    if (defaultLocationId && !locationId) setLocationId(defaultLocationId);
+  }, [defaultLocationId, locationId]);
 
-  const { data: events = [] } = useQuery({
-    queryKey: ["pdv-events", ownerId],
+  const { data: categories = [] } = useQuery({
+    queryKey: ["pdv-categories", ownerId],
+    enabled: !!ownerId && can("vendas"),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("events")
-        .select("id, name, date, status")
-        .in("status", ["upcoming", "ongoing"])
-        .order("date", { ascending: true });
+        .from("product_categories")
+        .select("id, name, sort_order")
+        .order("sort_order");
       if (error) throw error;
-      return data;
+      return data as Category[];
     },
-    enabled: !!ownerId && can("vendas"),
   });
 
   const { data: products = [] } = useQuery({
@@ -127,7 +129,7 @@ export function PdvView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, product_type, track_stock, cost_price")
+        .select("id, name, price, product_type, track_stock, cost_price, category_id")
         .order("name");
       if (error) throw error;
       return data as Product[];
@@ -135,20 +137,21 @@ export function PdvView() {
     enabled: !!ownerId && can("vendas"),
   });
 
+  // Estoque agregado em todos os locais (vendedor é cego — não escolhe local)
   const { data: stockMap = {} } = useQuery({
-    queryKey: ["pdv-stock", ownerId, locationId],
+    queryKey: ["pdv-stock-total", ownerId],
+    enabled: !!ownerId && can("vendas"),
     queryFn: async () => {
-      if (!locationId) return {};
       const { data, error } = await supabase
         .from("product_stock")
-        .select("product_id, quantity")
-        .eq("location_id", locationId);
+        .select("product_id, quantity");
       if (error) throw error;
       const map: Record<string, number> = {};
-      (data ?? []).forEach((r) => { map[r.product_id] = r.quantity; });
+      (data ?? []).forEach((r) => {
+        map[r.product_id] = (map[r.product_id] ?? 0) + r.quantity;
+      });
       return map;
     },
-    enabled: !!locationId,
   });
 
   // Componentes de todos os combos para calcular estoque virtual
@@ -318,32 +321,32 @@ export function PdvView() {
         </div>
       )}
 
-      {/* Contexto: local + evento */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        <div>
-          <Label className="text-xs flex items-center gap-1 mb-1"><MapPin className="h-3 w-3" />Local</Label>
-          <Select value={locationId ?? ""} onValueChange={setLocationId}>
-            <SelectTrigger><SelectValue placeholder="Selecione um local" /></SelectTrigger>
-            <SelectContent>
-              {locations.map((l) => (
-                <SelectItem key={l.id} value={l.id}>{l.name}{l.is_default ? " (padrão)" : ""}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Chips de categorias */}
+      {categories.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">
+          <button
+            onClick={() => setCategoryFilter("all")}
+            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border transition ${categoryFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
+          >
+            Todas
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setCategoryFilter(c.id)}
+              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border transition ${categoryFilter === c.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
+            >
+              {c.name}
+            </button>
+          ))}
+          <button
+            onClick={() => setCategoryFilter("none")}
+            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border transition ${categoryFilter === "none" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
+          >
+            Sem categoria
+          </button>
         </div>
-        <div>
-          <Label className="text-xs flex items-center gap-1 mb-1"><CalendarDays className="h-3 w-3" />Evento</Label>
-          <Select value={eventId} onValueChange={setEventId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Sem evento (bar)</SelectItem>
-              {events.map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      )}
 
       {products.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
@@ -352,13 +355,19 @@ export function PdvView() {
         </Card>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {products.map((p) => {
+          {products
+            .filter((p) => {
+              if (categoryFilter === "all") return true;
+              if (categoryFilter === "none") return !p.category_id;
+              return p.category_id === categoryFilter;
+            })
+            .map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const isCombo = p.product_type === "combo";
-            const stockHere = isCombo ? (comboStockMap[p.id] ?? 0) : (stockMap[p.id] ?? 0);
-            const trackedSimple = !isCombo && p.track_stock;
-            const trackedCombo = isCombo; // combos sempre limitados pelos componentes
-            const outOfStock = (trackedSimple || trackedCombo) && stockHere <= 0;
+            const stockTotal = isCombo ? (comboStockMap[p.id] ?? 0) : (stockMap[p.id] ?? 0);
+            const tracked = isCombo || p.track_stock;
+            const outOfStock = tracked && stockTotal <= 0;
+            const lowStock = tracked && !outOfStock && stockTotal <= 10;
             return (
               <button
                 key={p.id}
@@ -382,10 +391,8 @@ export function PdvView() {
                 )}
                 <div className="font-semibold leading-tight mt-6 line-clamp-2 min-h-[2.5rem]">{p.name}</div>
                 <div className="text-lg font-bold text-gradient mt-1">{formatBRL(Number(p.price))}</div>
-                {(trackedSimple || trackedCombo) && (
-                  <div className={`text-[11px] mt-0.5 ${stockHere <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
-                    {outOfStock ? "Sem estoque" : `${stockHere} ${isCombo ? "combo(s) possíveis" : "un. aqui"}`}
-                  </div>
+                {lowStock && (
+                  <div className="text-[11px] mt-0.5 text-amber-500">Últimas {stockTotal}</div>
                 )}
               </button>
             );
