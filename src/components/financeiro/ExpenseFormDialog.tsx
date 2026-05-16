@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -32,7 +33,7 @@ export function ExpenseFormDialog({
 
   const [categoryId, setCategoryId] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number>(0);
   const [description, setDescription] = useState("");
   const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState("");
@@ -45,7 +46,7 @@ export function ExpenseFormDialog({
 
   useEffect(() => {
     if (open) {
-      setCategoryId(""); setNewCategoryName(""); setAmount(""); setDescription("");
+      setCategoryId(""); setNewCategoryName(""); setAmount(0); setDescription("");
       setExpenseDate(new Date().toISOString().slice(0, 10)); setDueDate("");
       setPaymentMethod("pix"); setPaid(true); setRecurrence("once");
       setSupplierId(""); setNewSupplierName(""); setNotes("");
@@ -79,7 +80,7 @@ export function ExpenseFormDialog({
   const save = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
-      const value = Number(amount.replace(",", "."));
+      const value = amount;
       if (!value || value <= 0) throw new Error("Informe um valor válido");
 
       let finalCategoryId: string | null = null;
@@ -172,9 +173,8 @@ export function ExpenseFormDialog({
             </div>
 
             <div>
-              <Label>Valor (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={amount}
-                onChange={(e) => setAmount(e.target.value)} placeholder="0,00" />
+              <Label>Valor</Label>
+              <CurrencyInput value={amount} onChange={setAmount} />
             </div>
             <div>
               <Label>Forma de pagamento</Label>

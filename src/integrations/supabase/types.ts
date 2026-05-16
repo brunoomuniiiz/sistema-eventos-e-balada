@@ -828,6 +828,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_available: boolean
           name: string
           photo_url: string | null
           pickup_description: string | null
@@ -845,6 +846,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_available?: boolean
           name: string
           photo_url?: string | null
           pickup_description?: string | null
@@ -862,6 +864,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_available?: boolean
           name?: string
           photo_url?: string | null
           pickup_description?: string | null
@@ -988,6 +991,41 @@ export type Database = {
           },
           {
             foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: string
+          sale_id: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method: string
+          sale_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: string
+          sale_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_payments_sale_id_fkey"
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sales"

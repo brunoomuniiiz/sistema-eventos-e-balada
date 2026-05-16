@@ -17,9 +17,15 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon, EyeOff } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { CurrencyInput } from "@/components/ui/currency-input";
 
 import { EstoqueView } from "./_app.estoque";
 import { CategoriasManager } from "@/components/produtos/CategoriasManager";
@@ -56,6 +62,7 @@ type Product = {
   photo_url: string | null;
   unit: string;
   category_id: string | null;
+  is_available: boolean;
 };
 
 type Category = { id: string; name: string };
@@ -80,8 +87,8 @@ function ProdutosPage() {
 
   const [form, setForm] = useState({
     name: "",
-    price: "",
-    cost_price: "",
+    price: 0,
+    cost_price: 0,
     stock_quantity: "",
     product_type: "simple" as "simple" | "combo",
     track_stock: true,
@@ -90,10 +97,12 @@ function ProdutosPage() {
     photo_url: "",
     unit: "un",
     category_id: "none" as string,
+    is_available: true,
   });
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
   const [pickComponentId, setPickComponentId] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [cascadeAsk, setCascadeAsk] = useState<{ product: Product; combos: Product[] } | null>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["product_categories", ownerId],
@@ -113,7 +122,7 @@ function ProdutosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id")
+        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available")
         .order("name");
       if (error) throw error;
       return data as Product[];
@@ -151,10 +160,10 @@ function ProdutosPage() {
   const openNew = (type: "simple" | "combo") => {
     setEditing(null);
     setForm({
-      name: "", price: "", cost_price: "", stock_quantity: "",
+      name: "", price: 0, cost_price: 0, stock_quantity: "",
       product_type: type, track_stock: type === "simple",
       description: "", pickup_description: "", photo_url: "", unit: "un",
-      category_id: "none",
+      category_id: "none", is_available: true,
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -165,8 +174,8 @@ function ProdutosPage() {
     setEditing(p);
     setForm({
       name: p.name,
-      price: String(p.price),
-      cost_price: String(p.cost_price ?? 0),
+      price: Number(p.price),
+      cost_price: Number(p.cost_price ?? 0),
       stock_quantity: String(p.stock_quantity),
       product_type: p.product_type,
       track_stock: p.track_stock,
@@ -175,6 +184,7 @@ function ProdutosPage() {
       photo_url: p.photo_url ?? "",
       unit: p.unit ?? "un",
       category_id: p.category_id ?? "none",
+      is_available: p.is_available ?? true,
     });
     if (p.product_type === "combo") {
       const items = comboItems.filter((c) => c.combo_product_id === p.id);
@@ -226,10 +236,10 @@ function ProdutosPage() {
   const save = async () => {
     if (!ownerId) return;
     if (!form.name.trim()) return toast.error("Informe o nome");
-    const price = parseFloat(form.price.replace(",", ".")) || 0;
+    const price = form.price;
     const isCombo = form.product_type === "combo";
-    const cost = isCombo ? draftCost : (parseFloat(form.cost_price.replace(",", ".")) || 0);
-    const stock = isCombo && !form.track_stock ? 0 : parseInt(form.stock_quantity) || 0;
+    const cost = isCombo ? draftCost : form.cost_price;
+    const stock = isCombo ? 0 : parseInt(form.stock_quantity) || 0;
 
     if (isCombo && draftComponents.length === 0) {
       return toast.error("Adicione ao menos um item ao combo");
@@ -247,6 +257,7 @@ function ProdutosPage() {
       photo_url: form.photo_url.trim() || null,
       unit: form.unit.trim() || "un",
       category_id: form.category_id === "none" ? null : form.category_id,
+      is_available: form.is_available,
     };
 
     let productId = editing?.id;
@@ -432,13 +443,13 @@ function ProdutosPage() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>Preço venda</Label>
-                <Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+                <CurrencyInput value={form.price} onChange={(v) => setForm({ ...form, price: v })} />
               </div>
               {form.product_type === "simple" ? (
                 <>
                   <div>
                     <Label>Custo</Label>
-                    <Input type="number" step="0.01" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} />
+                    <CurrencyInput value={form.cost_price} onChange={(v) => setForm({ ...form, cost_price: v })} />
                   </div>
                   <div>
                     <Label>Unidade</Label>
@@ -446,23 +457,24 @@ function ProdutosPage() {
                   </div>
                 </>
               ) : (
-                <>
-                  <div>
-                    <Label>Custo (auto)</Label>
-                    <Input value={formatBRL(draftCost)} disabled />
-                  </div>
-                  <div>
-                    <Label>Estoque próprio?</Label>
-                    <Select value={form.track_stock ? "yes" : "no"} onValueChange={(v) => setForm({ ...form, track_stock: v === "yes" })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="no">Não</SelectItem>
-                        <SelectItem value="yes">Sim</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
+                <div className="col-span-2">
+                  <Label>Custo (somado dos itens)</Label>
+                  <Input value={formatBRL(draftCost)} disabled />
+                </div>
               )}
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card/40">
+              <div>
+                <Label className="cursor-pointer">Disponível para venda</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Desmarque para esconder do PDV (mesmo com estoque).
+                </p>
+              </div>
+              <Switch
+                checked={form.is_available}
+                onCheckedChange={(v) => setForm({ ...form, is_available: v })}
+              />
             </div>
 
             {form.product_type === "simple" && (
