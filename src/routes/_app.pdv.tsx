@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search, EyeOff,
+  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
