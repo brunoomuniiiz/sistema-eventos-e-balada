@@ -133,7 +133,7 @@ export function PdvView() {
   });
 
   // Estoque agregado em todos os locais (vendedor é cego — não escolhe local)
-  const { data: stockMap = {} } = useQuery({
+  const { data: stockData = { map: {}, hasRows: new Set<string>() } } = useQuery({
     queryKey: ["pdv-stock-total", ownerId],
     enabled: !!ownerId && can("vendas"),
     queryFn: async () => {
@@ -142,12 +142,16 @@ export function PdvView() {
         .select("product_id, quantity");
       if (error) throw error;
       const map: Record<string, number> = {};
+      const hasRows = new Set<string>();
       (data ?? []).forEach((r) => {
         map[r.product_id] = (map[r.product_id] ?? 0) + r.quantity;
+        hasRows.add(r.product_id);
       });
-      return map;
+      return { map, hasRows };
     },
   });
+  const stockMap = stockData.map;
+  const productsWithStockRows = stockData.hasRows;
 
   // Componentes de todos os combos para calcular estoque virtual
   const { data: comboItems = [] } = useQuery({
