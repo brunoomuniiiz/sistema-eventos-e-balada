@@ -53,7 +53,7 @@ export function PdvView() {
   const qc = useQueryClient();
 
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [payment, setPayment] = useState<PaymentMethod | null>(null);
+  const [payments, setPayments] = useState<PaymentLine[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [eventId, setEventId] = useState<string>("none");
@@ -61,6 +61,7 @@ export function PdvView() {
   const [openCash, setOpenCash] = useState(false);
   const [openWithdraw, setOpenWithdraw] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [searchQ, setSearchQ] = useState("");
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
