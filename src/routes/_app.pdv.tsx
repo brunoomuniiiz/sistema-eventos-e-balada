@@ -91,38 +91,37 @@ export function PdvView() {
     if (session?.event_id) setEventId(session.event_id);
   }, [session?.event_id]);
 
-  const { data: locations = [] } = useQuery({
-    queryKey: ["pdv-locations", ownerId],
+  // Default location (for sale.location_id) — pega o padrão automaticamente, vendedor não escolhe
+  const { data: defaultLocationId } = useQuery({
+    queryKey: ["pdv-default-location", ownerId],
+    enabled: !!ownerId && can("vendas"),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stock_locations")
-        .select("id, name, is_default")
-        .order("name");
+        .select("id, is_default")
+        .order("is_default", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
-      return data;
+      return data?.id ?? null;
     },
-    enabled: !!ownerId && can("vendas"),
   });
 
   useEffect(() => {
-    if (!locationId && locations.length > 0) {
-      const def = locations.find((l) => l.is_default) ?? locations[0];
-      setLocationId(def.id);
-    }
-  }, [locations, locationId]);
+    if (defaultLocationId && !locationId) setLocationId(defaultLocationId);
+  }, [defaultLocationId, locationId]);
 
-  const { data: events = [] } = useQuery({
-    queryKey: ["pdv-events", ownerId],
+  const { data: categories = [] } = useQuery({
+    queryKey: ["pdv-categories", ownerId],
+    enabled: !!ownerId && can("vendas"),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("events")
-        .select("id, name, date, status")
-        .in("status", ["upcoming", "ongoing"])
-        .order("date", { ascending: true });
+        .from("product_categories")
+        .select("id, name, sort_order")
+        .order("sort_order");
       if (error) throw error;
-      return data;
+      return data as Category[];
     },
-    enabled: !!ownerId && can("vendas"),
   });
 
   const { data: products = [] } = useQuery({
@@ -130,7 +129,7 @@ export function PdvView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, product_type, track_stock, cost_price")
+        .select("id, name, price, product_type, track_stock, cost_price, category_id")
         .order("name");
       if (error) throw error;
       return data as Product[];
@@ -138,20 +137,21 @@ export function PdvView() {
     enabled: !!ownerId && can("vendas"),
   });
 
+  // Estoque agregado em todos os locais (vendedor é cego — não escolhe local)
   const { data: stockMap = {} } = useQuery({
-    queryKey: ["pdv-stock", ownerId, locationId],
+    queryKey: ["pdv-stock-total", ownerId],
+    enabled: !!ownerId && can("vendas"),
     queryFn: async () => {
-      if (!locationId) return {};
       const { data, error } = await supabase
         .from("product_stock")
-        .select("product_id, quantity")
-        .eq("location_id", locationId);
+        .select("product_id, quantity");
       if (error) throw error;
       const map: Record<string, number> = {};
-      (data ?? []).forEach((r) => { map[r.product_id] = r.quantity; });
+      (data ?? []).forEach((r) => {
+        map[r.product_id] = (map[r.product_id] ?? 0) + r.quantity;
+      });
       return map;
     },
-    enabled: !!locationId,
   });
 
   // Componentes de todos os combos para calcular estoque virtual
