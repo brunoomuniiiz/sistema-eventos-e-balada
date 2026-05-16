@@ -321,32 +321,32 @@ export function PdvView() {
         </div>
       )}
 
-      {/* Contexto: local + evento */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        <div>
-          <Label className="text-xs flex items-center gap-1 mb-1"><MapPin className="h-3 w-3" />Local</Label>
-          <Select value={locationId ?? ""} onValueChange={setLocationId}>
-            <SelectTrigger><SelectValue placeholder="Selecione um local" /></SelectTrigger>
-            <SelectContent>
-              {locations.map((l) => (
-                <SelectItem key={l.id} value={l.id}>{l.name}{l.is_default ? " (padrão)" : ""}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Chips de categorias */}
+      {categories.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">
+          <button
+            onClick={() => setCategoryFilter("all")}
+            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border transition ${categoryFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
+          >
+            Todas
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setCategoryFilter(c.id)}
+              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border transition ${categoryFilter === c.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
+            >
+              {c.name}
+            </button>
+          ))}
+          <button
+            onClick={() => setCategoryFilter("none")}
+            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border transition ${categoryFilter === "none" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
+          >
+            Sem categoria
+          </button>
         </div>
-        <div>
-          <Label className="text-xs flex items-center gap-1 mb-1"><CalendarDays className="h-3 w-3" />Evento</Label>
-          <Select value={eventId} onValueChange={setEventId}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Sem evento (bar)</SelectItem>
-              {events.map((e) => (
-                <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      )}
 
       {products.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
@@ -355,13 +355,19 @@ export function PdvView() {
         </Card>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {products.map((p) => {
+          {products
+            .filter((p) => {
+              if (categoryFilter === "all") return true;
+              if (categoryFilter === "none") return !p.category_id;
+              return p.category_id === categoryFilter;
+            })
+            .map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const isCombo = p.product_type === "combo";
-            const stockHere = isCombo ? (comboStockMap[p.id] ?? 0) : (stockMap[p.id] ?? 0);
-            const trackedSimple = !isCombo && p.track_stock;
-            const trackedCombo = isCombo; // combos sempre limitados pelos componentes
-            const outOfStock = (trackedSimple || trackedCombo) && stockHere <= 0;
+            const stockTotal = isCombo ? (comboStockMap[p.id] ?? 0) : (stockMap[p.id] ?? 0);
+            const tracked = isCombo || p.track_stock;
+            const outOfStock = tracked && stockTotal <= 0;
+            const lowStock = tracked && !outOfStock && stockTotal <= 10;
             return (
               <button
                 key={p.id}
@@ -385,10 +391,8 @@ export function PdvView() {
                 )}
                 <div className="font-semibold leading-tight mt-6 line-clamp-2 min-h-[2.5rem]">{p.name}</div>
                 <div className="text-lg font-bold text-gradient mt-1">{formatBRL(Number(p.price))}</div>
-                {(trackedSimple || trackedCombo) && (
-                  <div className={`text-[11px] mt-0.5 ${stockHere <= 5 ? "text-destructive" : "text-muted-foreground"}`}>
-                    {outOfStock ? "Sem estoque" : `${stockHere} ${isCombo ? "combo(s) possíveis" : "un. aqui"}`}
-                  </div>
+                {lowStock && (
+                  <div className="text-[11px] mt-0.5 text-amber-500">Últimas {stockTotal}</div>
                 )}
               </button>
             );
