@@ -154,6 +154,7 @@ function ProdutosPage() {
       name: "", price: "", cost_price: "", stock_quantity: "",
       product_type: type, track_stock: type === "simple",
       description: "", pickup_description: "", photo_url: "", unit: "un",
+      category_id: "none",
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -173,6 +174,7 @@ function ProdutosPage() {
       pickup_description: p.pickup_description ?? "",
       photo_url: p.photo_url ?? "",
       unit: p.unit ?? "un",
+      category_id: p.category_id ?? "none",
     });
     if (p.product_type === "combo") {
       const items = comboItems.filter((c) => c.combo_product_id === p.id);
