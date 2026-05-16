@@ -231,20 +231,23 @@ export function PdvView() {
   const finalize = async () => {
     if (!user || !ownerId) return;
     if (cart.length === 0) return toast.error("Adicione pelo menos um produto");
-    if (!payment) return toast.error("Selecione a forma de pagamento");
+    if (payments.length === 0) return toast.error("Adicione formas de pagamento");
+    if (!isSplitValid(total, payments)) return toast.error("Pagamento não confere com o total");
     if (!locationId) return toast.error("Selecione um local");
     if (!session) return toast.error("Abra o caixa antes de vender");
-    if (payment === "dinheiro" && !canSellCash) return toast.error("Você não tem permissão para vender em dinheiro");
+    const hasCash = payments.some((p) => p.method === "dinheiro");
+    if (hasCash && !canSellCash) return toast.error("Você não tem permissão para vender em dinheiro");
 
     setSubmitting(true);
     try {
+      const dominant = dominantMethod(payments);
       const { data: sale, error: saleErr } = await supabase
         .from("sales")
         .insert({
           user_id: ownerId,
           employee_id: null,
           employee_name: user.email ?? null,
-          payment_method: payment,
+          payment_method: dominant,
           total,
           location_id: locationId,
           event_id: eventId === "none" ? null : eventId,
@@ -271,11 +274,31 @@ export function PdvView() {
       const { error: itemsErr } = await supabase.from("sale_items").insert(items);
       if (itemsErr) throw itemsErr;
 
+      // Split payments: registra cada linha
+      // Para dinheiro, registra o valor efetivo (não inclui troco) limitado ao restante.
+      let remaining = total;
+      const payRows: { user_id: string; sale_id: string; method: string; amount: number }[] = [];
+      // primeiro não-dinheiro
+      const ordered = [...payments].sort((a, b) =>
+        a.method === "dinheiro" ? 1 : b.method === "dinheiro" ? -1 : 0
+      );
+      for (const p of ordered) {
+        const amt = p.method === "dinheiro" ? Math.min(p.amount, Math.max(0, remaining)) : p.amount;
+        if (amt > 0) {
+          payRows.push({ user_id: ownerId, sale_id: sale.id, method: p.method, amount: +amt.toFixed(2) });
+          remaining = +(remaining - amt).toFixed(2);
+        }
+      }
+      if (payRows.length > 0) {
+        const { error: payErr } = await supabase.from("sale_payments").insert(payRows);
+        if (payErr) throw payErr;
+      }
+
       toast.success(`Venda de ${formatBRL(total)} registrada!`);
       setCart([]);
-      setPayment(null);
+      setPayments([]);
       setDiscountInput("");
-      qc.invalidateQueries({ queryKey: ["pdv-stock"] });
+      qc.invalidateQueries({ queryKey: ["pdv-stock-total"] });
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
       refetchSession();
