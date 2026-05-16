@@ -89,10 +89,24 @@ function ProdutosPage() {
     pickup_description: "",
     photo_url: "",
     unit: "un",
+    category_id: "none" as string,
   });
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
   const [pickComponentId, setPickComponentId] = useState("");
   const [uploading, setUploading] = useState(false);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["product_categories", ownerId],
+    enabled: !!ownerId && can("estoque"),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_categories")
+        .select("id, name")
+        .order("sort_order");
+      if (error) throw error;
+      return data as Category[];
+    },
+  });
 
   const { data: products = [] } = useQuery({
     queryKey: ["products-full", ownerId],
