@@ -370,6 +370,17 @@ export function PdvView() {
         </div>
       )}
 
+      {/* Busca por produto */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar produto…"
+          value={searchQ}
+          onChange={(e) => setSearchQ(e.target.value)}
+          className="pl-9 h-10"
+        />
+      </div>
+
       {products.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
           <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
@@ -383,11 +394,19 @@ export function PdvView() {
               if (categoryFilter === "none") return !p.category_id;
               return p.category_id === categoryFilter;
             })
+            .filter((p) => p.is_available !== false)
+            .filter((p) => {
+              const q = searchQ.trim().toLowerCase();
+              if (!q) return true;
+              return p.name.toLowerCase().includes(q);
+            })
             .map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const isCombo = p.product_type === "combo";
             const stockTotal = isCombo ? (comboStockMap[p.id] ?? 0) : (stockMap[p.id] ?? 0);
-            const tracked = isCombo || p.track_stock;
+            // Combos: sempre rastreados via componentes.
+            // Simples: só considera "sem estoque" se existe pelo menos uma row em product_stock e a soma é 0.
+            const tracked = isCombo || (p.track_stock && productsWithStockRows.has(p.id));
             const outOfStock = tracked && stockTotal <= 0;
             const lowStock = tracked && !outOfStock && stockTotal <= 10;
             return (
