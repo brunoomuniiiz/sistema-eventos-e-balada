@@ -443,13 +443,13 @@ function ProdutosPage() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>Preço venda</Label>
-                <Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+                <CurrencyInput value={form.price} onChange={(v) => setForm({ ...form, price: v })} />
               </div>
               {form.product_type === "simple" ? (
                 <>
                   <div>
                     <Label>Custo</Label>
-                    <Input type="number" step="0.01" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} />
+                    <CurrencyInput value={form.cost_price} onChange={(v) => setForm({ ...form, cost_price: v })} />
                   </div>
                   <div>
                     <Label>Unidade</Label>
@@ -457,23 +457,24 @@ function ProdutosPage() {
                   </div>
                 </>
               ) : (
-                <>
-                  <div>
-                    <Label>Custo (auto)</Label>
-                    <Input value={formatBRL(draftCost)} disabled />
-                  </div>
-                  <div>
-                    <Label>Estoque próprio?</Label>
-                    <Select value={form.track_stock ? "yes" : "no"} onValueChange={(v) => setForm({ ...form, track_stock: v === "yes" })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="no">Não</SelectItem>
-                        <SelectItem value="yes">Sim</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
+                <div className="col-span-2">
+                  <Label>Custo (somado dos itens)</Label>
+                  <Input value={formatBRL(draftCost)} disabled />
+                </div>
               )}
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card/40">
+              <div>
+                <Label className="cursor-pointer">Disponível para venda</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Desmarque para esconder do PDV (mesmo com estoque).
+                </p>
+              </div>
+              <Switch
+                checked={form.is_available}
+                onCheckedChange={(v) => setForm({ ...form, is_available: v })}
+              />
             </div>
 
             {form.product_type === "simple" && (
