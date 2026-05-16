@@ -22,6 +22,7 @@ import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon } 
 import { formatBRL } from "@/lib/format";
 
 import { EstoqueView } from "./_app.estoque";
+import { CategoriasManager } from "@/components/produtos/CategoriasManager";
 
 export const Route = createFileRoute("/_app/produtos")({
   component: ProdutosShell,
@@ -32,9 +33,11 @@ function ProdutosShell() {
     <Tabs defaultValue="catalogo" className="space-y-4">
       <TabsList>
         <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
+        <TabsTrigger value="categorias">Categorias</TabsTrigger>
         <TabsTrigger value="estoque">Estoque</TabsTrigger>
       </TabsList>
       <TabsContent value="catalogo"><ProdutosPage /></TabsContent>
+      <TabsContent value="categorias"><CategoriasManager /></TabsContent>
       <TabsContent value="estoque"><EstoqueView /></TabsContent>
     </Tabs>
   );
@@ -52,7 +55,10 @@ type Product = {
   pickup_description: string | null;
   photo_url: string | null;
   unit: string;
+  category_id: string | null;
 };
+
+type Category = { id: string; name: string };
 
 type ComboItem = {
   id: string;
