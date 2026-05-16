@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,14 +16,13 @@ interface Props {
 }
 
 export function WithdrawalDialog({ open, onOpenChange, onDone }: Props) {
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number>(0);
   const [reason, setReason] = useState("");
   const [auth, setAuth] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const start = () => {
-    const v = parseFloat(amount.replace(",", ".")) || 0;
-    if (v <= 0) return toast.error("Valor inválido");
+    if (amount <= 0) return toast.error("Valor inválido");
     if (!reason.trim()) return toast.error("Descreva o motivo");
     setAuth(true);
   };
@@ -31,11 +30,10 @@ export function WithdrawalDialog({ open, onOpenChange, onDone }: Props) {
   const onApproved = async (token: string) => {
     setLoading(true);
     try {
-      const v = parseFloat(amount.replace(",", "."));
-      const { error } = await supabase.rpc("register_withdrawal", { _amount: v, _reason: reason, _grant_token: token });
+      const { error } = await supabase.rpc("register_withdrawal", { _amount: amount, _reason: reason, _grant_token: token });
       if (error) throw error;
       toast.success("Sangria registrada");
-      setAmount(""); setReason("");
+      setAmount(0); setReason("");
       onDone();
       onOpenChange(false);
     } catch (e) {
@@ -55,8 +53,8 @@ export function WithdrawalDialog({ open, onOpenChange, onDone }: Props) {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Valor (R$)</Label>
-              <Input type="number" inputMode="decimal" step="0.01" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <Label>Valor</Label>
+              <CurrencyInput value={amount} onChange={setAmount} autoFocus />
             </div>
             <div>
               <Label>Motivo / observação</Label>
