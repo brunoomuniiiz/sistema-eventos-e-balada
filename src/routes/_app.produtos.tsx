@@ -17,9 +17,15 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon, EyeOff } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { CurrencyInput } from "@/components/ui/currency-input";
 
 import { EstoqueView } from "./_app.estoque";
 import { CategoriasManager } from "@/components/produtos/CategoriasManager";
@@ -56,6 +62,7 @@ type Product = {
   photo_url: string | null;
   unit: string;
   category_id: string | null;
+  is_available: boolean;
 };
 
 type Category = { id: string; name: string };
@@ -80,8 +87,8 @@ function ProdutosPage() {
 
   const [form, setForm] = useState({
     name: "",
-    price: "",
-    cost_price: "",
+    price: 0,
+    cost_price: 0,
     stock_quantity: "",
     product_type: "simple" as "simple" | "combo",
     track_stock: true,
@@ -90,10 +97,12 @@ function ProdutosPage() {
     photo_url: "",
     unit: "un",
     category_id: "none" as string,
+    is_available: true,
   });
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
   const [pickComponentId, setPickComponentId] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [cascadeAsk, setCascadeAsk] = useState<{ product: Product; combos: Product[] } | null>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["product_categories", ownerId],
@@ -113,7 +122,7 @@ function ProdutosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id")
+        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available")
         .order("name");
       if (error) throw error;
       return data as Product[];
