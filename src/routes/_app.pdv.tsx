@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_app/pdv")({
   component: PdvView,
 });
 
-type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix";
+// PaymentMethod vem do SplitPaymentEditor
 
 type Product = {
   id: string;
