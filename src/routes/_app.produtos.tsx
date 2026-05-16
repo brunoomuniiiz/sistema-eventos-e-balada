@@ -236,10 +236,10 @@ function ProdutosPage() {
   const save = async () => {
     if (!ownerId) return;
     if (!form.name.trim()) return toast.error("Informe o nome");
-    const price = parseFloat(form.price.replace(",", ".")) || 0;
+    const price = form.price;
     const isCombo = form.product_type === "combo";
-    const cost = isCombo ? draftCost : (parseFloat(form.cost_price.replace(",", ".")) || 0);
-    const stock = isCombo && !form.track_stock ? 0 : parseInt(form.stock_quantity) || 0;
+    const cost = isCombo ? draftCost : form.cost_price;
+    const stock = isCombo ? 0 : parseInt(form.stock_quantity) || 0;
 
     if (isCombo && draftComponents.length === 0) {
       return toast.error("Adicione ao menos um item ao combo");
@@ -257,6 +257,7 @@ function ProdutosPage() {
       photo_url: form.photo_url.trim() || null,
       unit: form.unit.trim() || "un",
       category_id: form.category_id === "none" ? null : form.category_id,
+      is_available: form.is_available,
     };
 
     let productId = editing?.id;
