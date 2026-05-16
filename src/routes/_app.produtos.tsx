@@ -246,6 +246,7 @@ function ProdutosPage() {
       pickup_description: form.pickup_description.trim() || null,
       photo_url: form.photo_url.trim() || null,
       unit: form.unit.trim() || "un",
+      category_id: form.category_id === "none" ? null : form.category_id,
     };
 
     let productId = editing?.id;
