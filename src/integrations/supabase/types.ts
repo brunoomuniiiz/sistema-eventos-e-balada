@@ -1447,6 +1447,14 @@ export type Database = {
         Returns: undefined
       }
       consume_grant: { Args: { _scope: string; _token: string }; Returns: Json }
+      get_combo_items_for_sales: {
+        Args: never
+        Returns: {
+          combo_product_id: string
+          component_product_id: string
+          quantity: number
+        }[]
+      }
       get_event_landing: { Args: { _slug: string }; Returns: Json }
       get_guest_list_info: {
         Args: { _slug: string }
