@@ -1,4 +1,4 @@
-import { Banknote, CreditCard, Smartphone, Plus, Trash2, Lock } from "lucide-react";
+import { Banknote, CreditCard, Smartphone, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { formatBRL } from "@/lib/format";
