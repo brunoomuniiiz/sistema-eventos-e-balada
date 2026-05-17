@@ -442,95 +442,126 @@ export function PdvView() {
         </div>
       )}
 
-      {/* Sticky cart bar */}
+      {/* FAB do carrinho */}
       {cart.length > 0 && (
-        <div className="fixed bottom-16 md:bottom-4 left-0 right-0 z-30 px-3">
-          <div className="max-w-3xl mx-auto rounded-2xl glass border border-border shadow-2xl overflow-hidden">
-            <details className="group" open>
-              <summary className="flex items-center gap-3 p-4 cursor-pointer list-none">
-                <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center">
-                  <ShoppingBag className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-xs text-muted-foreground">{totalItems} {totalItems === 1 ? "item" : "itens"}</div>
-                  <div className="font-bold text-lg">{formatBRL(total)}</div>
-                  {discountValue > 0 && (
-                    <div className="text-[11px] text-emerald-500">-{formatBRL(discountValue)} ({discountPercent}%)</div>
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground group-open:hidden">Ver</span>
-                <span className="text-xs text-muted-foreground hidden group-open:inline">Fechar</span>
-              </summary>
-
-              <div className="px-4 pb-4 space-y-3 max-h-[60vh] overflow-y-auto">
-                <div className="space-y-2">
-                  {cart.map((i) => (
-                    <div key={i.product_id} className="flex items-center gap-2 p-2 rounded-lg bg-card border">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{i.product_name}</div>
-                        <div className="text-xs text-muted-foreground">{formatBRL(i.unit_price * i.quantity)}</div>
-                      </div>
-                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQty(i.product_id, -1)}>
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-6 text-center font-semibold">{i.quantity}</span>
-                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQty(i.product_id, 1)}>
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeItem(i.product_id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Desconto */}
-                <div>
-                  <Label className="text-xs font-medium mb-2 text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                    <Percent className="h-3 w-3" /> Desconto
-                    {!canDiscount && <Lock className="h-3 w-3 ml-1" />}
-                  </Label>
-                  {canDiscount ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        max={maxDiscountPercent}
-                        step="0.1"
-                        placeholder="0"
-                        value={discountInput}
-                        onChange={(e) => setDiscountInput(e.target.value)}
-                        className="h-10"
-                      />
-                      <span className="text-sm text-muted-foreground whitespace-nowrap">% (máx {maxDiscountPercent}%)</span>
-                    </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground italic">Sem permissão para aplicar desconto</div>
-                  )}
-                </div>
-
-                <SplitPaymentEditor
-                  total={total}
-                  payments={payments}
-                  onChange={setPayments}
-                  canSellCash={canSellCash}
-                />
-
-                <Button
-                  size="lg"
-                  className="w-full h-14 text-base font-bold"
-                  onClick={finalize}
-                  disabled={submitting || !locationId || !isSplitValid(total, payments)}
-                >
-                  <Wallet className="h-5 w-5" />
-                  {submitting ? "Registrando..." : `Finalizar ${formatBRL(total)}`}
-                </Button>
-              </div>
-            </details>
+        <button
+          onClick={() => setCartOpen(true)}
+          className="fixed bottom-20 md:bottom-6 right-4 z-30 flex items-center gap-3 pl-4 pr-5 py-3 rounded-2xl bg-gradient-primary text-primary-foreground shadow-2xl glow-primary active:scale-95 transition"
+        >
+          <div className="relative">
+            <ShoppingBag className="h-5 w-5" />
+            <span className="absolute -top-2 -right-2 h-5 min-w-[20px] px-1 rounded-full bg-background text-foreground text-[10px] font-bold grid place-items-center">
+              {totalItems}
+            </span>
           </div>
-        </div>
+          <span className="font-bold text-sm">{formatBRL(total)}</span>
+        </button>
       )}
+
+      {/* Drawer/Sheet do checkout */}
+      <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-md p-0 flex flex-col gap-0"
+        >
+          <SheetHeader className="px-4 sm:px-6 py-4 border-b">
+            <SheetTitle className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-primary" />
+              Carrinho
+              <Badge variant="secondary" className="ml-auto mr-6">
+                {totalItems} {totalItems === 1 ? "item" : "itens"}
+              </Badge>
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
+            {cart.length === 0 ? (
+              <div className="text-center text-sm text-muted-foreground py-12">
+                Nenhum item no carrinho
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {cart.map((i) => (
+                  <div key={i.product_id} className="flex items-center gap-2 p-2 rounded-lg bg-card border">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{i.product_name}</div>
+                      <div className="text-xs text-muted-foreground">{formatBRL(i.unit_price * i.quantity)}</div>
+                    </div>
+                    <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={() => updateQty(i.product_id, -1)}>
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-6 text-center font-semibold">{i.quantity}</span>
+                    <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={() => updateQty(i.product_id, 1)}>
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => removeItem(i.product_id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Desconto */}
+            <div>
+              <Label className="text-xs font-medium mb-2 text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                <Percent className="h-3 w-3" /> Desconto
+                {!canDiscount && <Lock className="h-3 w-3 ml-1" />}
+              </Label>
+              {canDiscount ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={maxDiscountPercent}
+                    step="0.1"
+                    placeholder="0"
+                    value={discountInput}
+                    onChange={(e) => setDiscountInput(e.target.value)}
+                    className="h-10"
+                  />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">% (máx {maxDiscountPercent}%)</span>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground italic">Sem permissão para aplicar desconto</div>
+              )}
+            </div>
+
+            <SplitPaymentEditor
+              total={total}
+              payments={payments}
+              onChange={setPayments}
+              canSellCash={canSellCash}
+            />
+          </div>
+
+          <div className="border-t p-4 sm:p-6 space-y-3 bg-card/50">
+            {discountValue > 0 && (
+              <div className="flex items-center justify-between text-xs text-emerald-500">
+                <span>Desconto ({discountPercent}%)</span>
+                <span>-{formatBRL(discountValue)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total</span>
+              <span className="text-2xl font-bold text-gradient">{formatBRL(total)}</span>
+            </div>
+            <Button
+              size="lg"
+              className="w-full h-14 text-base font-bold"
+              onClick={async () => {
+                await finalize();
+                if (cart.length === 0) setCartOpen(false);
+              }}
+              disabled={submitting || !locationId || cart.length === 0 || !isSplitValid(total, payments)}
+            >
+              <Wallet className="h-5 w-5" />
+              {submitting ? "Registrando..." : `Finalizar ${formatBRL(total)}`}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
