@@ -55,22 +55,18 @@ export function SplitPaymentEditor({ total, payments, onChange, canSellCash }: P
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        {METHODS.map((m) => {
-          const blocked = m.key === "dinheiro" && !canSellCash;
-          return (
-            <button
-              key={m.key}
-              type="button"
-              disabled={blocked}
-              onClick={() => addLine(m.key)}
-              className={`flex items-center gap-2 p-3 rounded-xl border bg-card hover:border-primary/50 transition ${blocked ? "opacity-40 cursor-not-allowed" : ""}`}
-            >
-              <m.icon className="h-4 w-4" />
-              <span className="font-medium text-sm">{m.label}</span>
-              {blocked ? <Lock className="h-3 w-3 ml-auto" /> : <Plus className="h-4 w-4 ml-auto" />}
-            </button>
-          );
-        })}
+        {METHODS.filter((m) => m.key !== "dinheiro" || canSellCash).map((m) => (
+          <button
+            key={m.key}
+            type="button"
+            onClick={() => addLine(m.key)}
+            className="flex items-center gap-2 p-3 rounded-xl border bg-card hover:border-primary/50 transition"
+          >
+            <m.icon className="h-4 w-4" />
+            <span className="font-medium text-sm">{m.label}</span>
+            <Plus className="h-4 w-4 ml-auto" />
+          </button>
+        ))}
       </div>
 
       {payments.length > 0 && (
