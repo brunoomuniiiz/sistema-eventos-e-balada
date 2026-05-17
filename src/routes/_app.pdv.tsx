@@ -63,6 +63,7 @@ export function PdvView() {
   const [openWithdraw, setOpenWithdraw] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQ, setSearchQ] = useState("");
+  const [cartOpen, setCartOpen] = useState(false);
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
