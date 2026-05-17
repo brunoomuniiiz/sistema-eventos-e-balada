@@ -155,15 +155,14 @@ export function PdvView() {
   const productsWithStockRows = stockData.hasRows;
 
   // Componentes de todos os combos para calcular estoque virtual
+  // Usa RPC para não exigir permissão de estoque do vendedor
   const { data: comboItems = [] } = useQuery({
     queryKey: ["pdv-combo-items", ownerId],
     enabled: !!ownerId && can("vendas"),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("combo_items")
-        .select("combo_product_id, component_product_id, quantity");
+      const { data, error } = await supabase.rpc("get_combo_items_for_sales");
       if (error) throw error;
-      return data as { combo_product_id: string; component_product_id: string; quantity: number }[];
+      return (data ?? []) as { combo_product_id: string; component_product_id: string; quantity: number }[];
     },
   });
 
