@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
@@ -59,6 +60,8 @@ export function PdvView() {
   const [locationId, setLocationId] = useState<string | null>(null);
   const [eventId, setEventId] = useState<string>("none");
   const [discountInput, setDiscountInput] = useState<string>("");
+  const [discountMode, setDiscountMode] = useState<"percent" | "value">("percent");
+  const [discountValueInput, setDiscountValueInput] = useState<number>(0);
   const [openCash, setOpenCash] = useState(false);
   const [openWithdraw, setOpenWithdraw] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -193,10 +196,15 @@ export function PdvView() {
 
   const discountPercent = useMemo(() => {
     if (!canDiscount) return 0;
-    const v = Number(discountInput.replace(",", "."));
-    if (!Number.isFinite(v) || v <= 0) return 0;
-    return Math.min(v, maxDiscountPercent);
-  }, [discountInput, canDiscount, maxDiscountPercent]);
+    if (discountMode === "percent") {
+      const v = Number(discountInput.replace(",", "."));
+      if (!Number.isFinite(v) || v <= 0) return 0;
+      return Math.min(v, maxDiscountPercent);
+    }
+    if (subtotal <= 0 || discountValueInput <= 0) return 0;
+    const pct = (discountValueInput / subtotal) * 100;
+    return Math.min(pct, maxDiscountPercent);
+  }, [discountInput, discountValueInput, discountMode, subtotal, canDiscount, maxDiscountPercent]);
 
   const discountValue = useMemo(() => +(subtotal * discountPercent / 100).toFixed(2), [subtotal, discountPercent]);
   const total = useMemo(() => +(subtotal - discountValue).toFixed(2), [subtotal, discountValue]);
@@ -299,6 +307,7 @@ export function PdvView() {
       setCart([]);
       setPayments([]);
       setDiscountInput("");
+      setDiscountValueInput(0);
       qc.invalidateQueries({ queryKey: ["pdv-stock-total"] });
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
@@ -509,19 +518,52 @@ export function PdvView() {
                 {!canDiscount && <Lock className="h-3 w-3 ml-1" />}
               </Label>
               {canDiscount ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    max={maxDiscountPercent}
-                    step="0.1"
-                    placeholder="0"
-                    value={discountInput}
-                    onChange={(e) => setDiscountInput(e.target.value)}
-                    className="h-10"
-                  />
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">% (máx {maxDiscountPercent}%)</span>
+                <div className="space-y-2">
+                  <div className="flex gap-1 p-1 rounded-lg bg-muted w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setDiscountMode("percent")}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${discountMode === "percent" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                    >
+                      %
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountMode("value")}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${discountMode === "value" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                    >
+                      R$
+                    </button>
+                  </div>
+                  {discountMode === "percent" ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={maxDiscountPercent}
+                        step="0.1"
+                        placeholder="0"
+                        value={discountInput}
+                        onChange={(e) => setDiscountInput(e.target.value)}
+                        className="h-10"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">% (máx {maxDiscountPercent}%)</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <CurrencyInput
+                        value={discountValueInput}
+                        onChange={setDiscountValueInput}
+                        className="h-10"
+                      />
+                      {subtotal > 0 && discountValueInput > 0 && (discountValueInput / subtotal) * 100 > maxDiscountPercent && (
+                        <p className="text-xs text-amber-600">
+                          Limitado a {maxDiscountPercent}% ({formatBRL(subtotal * maxDiscountPercent / 100)})
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground italic">Sem permissão para aplicar desconto</div>
