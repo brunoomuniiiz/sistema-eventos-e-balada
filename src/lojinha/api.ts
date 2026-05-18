@@ -80,3 +80,36 @@ export async function validateQr(token: string) {
   if (error) throw error;
   return data as { ok: boolean; reason?: string; product_name?: string; customer_name?: string; delivered_at?: string };
 }
+
+// --- PDV (modo caixa do garçom) ---
+
+export async function createPosOrder(
+  items: Array<{ product_id: string; quantity: number }>,
+  paymentMethod: "pix" | "card",
+  deviceId: string | null,
+) {
+  const { data, error } = await supabase.rpc("lojinha_create_pos_order", {
+    _items: items,
+    _payment_method: paymentMethod,
+    _device_id: deviceId,
+  });
+  if (error) throw error;
+  return data as { order_id: string; total: number };
+}
+
+export async function markPosPaid(orderId: string, paymentId: string) {
+  const { data, error } = await supabase.rpc("lojinha_mark_pos_paid", {
+    _order_id: orderId,
+    _payment_id: paymentId,
+  });
+  if (error) throw error;
+  return data as { ok: boolean };
+}
+
+export async function confirmDeliveryPos(orderId: string) {
+  const { data, error } = await supabase.rpc("lojinha_confirm_delivery_pos", {
+    _order_id: orderId,
+  });
+  if (error) throw error;
+  return data as { ok: boolean; sale_id: string };
+}
