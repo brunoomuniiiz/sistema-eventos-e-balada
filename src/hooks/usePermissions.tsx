@@ -31,7 +31,7 @@ export function usePermissions() {
       if (!user) return null;
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash")
+        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id")
         .eq("user_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -50,6 +50,13 @@ export function usePermissions() {
   const maxDiscountPercent = isOwner ? 100 : Number(data?.max_discount_percent ?? 0);
   const canSellCash = isOwner || data?.can_sell_cash !== false;
 
+  // Lojinha — modo caixa
+  const lojinhaCanSell = isOwner || !!(data as { lojinha_can_sell?: boolean } | null)?.lojinha_can_sell;
+  const lojinhaPaymentMethods = (
+    isOwner ? ["pix", "card"] : ((data as { lojinha_payment_methods?: string[] } | null)?.lojinha_payment_methods ?? [])
+  ) as Array<"pix" | "card">;
+  const lojinhaPointDeviceId = (data as { lojinha_point_device_id?: string | null } | null)?.lojinha_point_device_id ?? null;
+
   return {
     isOwner,
     ownerId,
@@ -58,6 +65,9 @@ export function usePermissions() {
     canDiscount,
     maxDiscountPercent,
     canSellCash,
+    lojinhaCanSell,
+    lojinhaPaymentMethods,
+    lojinhaPointDeviceId,
     loading: isLoading,
   };
 }
