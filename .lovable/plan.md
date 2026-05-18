@@ -1,106 +1,97 @@
-# Lojinha — módulo separado de venda online com QR
 
-Tudo da venda online vive num módulo isolado ("lojinha") para não interferir no PDV, fechamento de caixa, estoque ou financeiro atuais. Para qualquer ajuste futuro, basta dizer "lojinha".
+# Lojinha — PDV do garçom-caixa
 
-## Isolamento
+Tudo continua isolado em `src/lojinha/`. Adiciona um **modo caixa** dentro do app do garçom: ele monta a venda, cobra na Point Smart (cartão) ou gera Pix MP, e fecha apertando "Entreguei".
 
-- **Pasta dedicada** `src/lojinha/` com seus próprios componentes, hooks e helpers.
-- **Rotas próprias**:
-  - `/loja/$slug` — vitrine pública (cliente)
-  - `/loja/$slug/pedido/$id` — tela do pedido pago com QRs
-  - `/_app/lojinha` — painel admin (configuração + pedidos + scanner)
-  - `/api/public/mp-webhook` — webhook do Mercado Pago
-- **Tabelas com prefixo `lojinha_`** (não toca em `products`, `sales`, `cash_sessions`).
-- **RPCs com prefixo `lojinha_`**.
-- **Permissão nova** `lojinha` em `user_roles.permissions`.
+## Permissões (3 níveis dentro de `lojinha`)
 
-## Dashboard
+Em `user_roles.permissions` continua existindo só `lojinha`. Os sub-níveis ficam em colunas/flags próprias do `user_roles` (sem inventar permissão nova solta):
 
-Novo card "Vendas online" no `/_app/dashboard` mostrando:
-- Pedidos pagos hoje (qtd + R$).
-- Itens pendentes de retirada.
-- Link "Abrir lojinha" → `/_app/lojinha`.
+- `lojinha_can_sell` (bool) — pode abrir o PDV da lojinha.
+- `lojinha_payment_methods` (text[]) — `['pix']`, `['pix','card']` ou `[]`.
+- Quem tem `lojinha` mas sem `lojinha_can_sell` → **só scanner** (entrega QR do cliente online), igual hoje.
+- Maquininha vinculada (`lojinha_point_device_id`) só faz sentido se `'card'` estiver nos métodos.
 
-Sem mexer em mais nada do dashboard.
+Tela do convite/edição de funcionário ganha um bloco "Lojinha" com 3 checkboxes (Validar QR, Vender no Pix, Vender no cartão) + dropdown da maquininha quando cartão estiver marcado.
 
-## Fluxo do cliente
+## Cadastro de maquininhas (owner)
 
-1. Acessa `/loja/{slug}` no celular → catálogo (produtos marcados `sell_online`).
-2. Monta carrinho → estoque fica **reservado temporariamente** (TTL 15 min).
-3. Primeira compra: pede nome + email + WhatsApp (salvo em `localStorage`).
-4. Paga via Mercado Pago Checkout Pro (Pix / débito / crédito).
-5. Volta para `/loja/{slug}/pedido/{id}` (polling + Realtime).
-6. Pago: tela mostra **1 QR por unidade** ("Heineken 600 — 1 de 3"), cada um com status (válido / entregue).
+Nova aba em `/_app/lojinha` → **Maquininhas**:
+- Lista de Point Smart cadastradas (nome amigável + `device_id` da MP + garçom vinculado).
+- Botão "Sincronizar com Mercado Pago" puxa `GET /point/integration-api/devices` e mostra os aparelhos disponíveis para o owner escolher.
+- Cada maquininha pode ser vinculada a 1 garçom (ou ficar livre para owner usar).
 
-## Fluxo do garçom
+Secret necessário (no fim, junto com o resto): `MERCADO_PAGO_ACCESS_TOKEN` (mesma conta da loja online já cobre tudo: Pix Checkout Pro + Point API + webhook).
 
-1. Aba "Lojinha" no app (requer permissão `lojinha`).
-2. Botão grande "Validar QR" → abre câmera (`html5-qrcode`) ou input manual.
-3. Ao escanear: mostra produto + cliente. Botão "Entregar" → marca unidade `delivered`, invalida QR. Se já entregue → alerta vermelho.
+## PDV do garçom-caixa (`/lojinha-pdv` no app)
 
-## Estoque (dois momentos)
+Layout mobile, parecido com o PDV atual:
 
-- **Reserva no carrinho**: nova coluna `lojinha_reserved_qty` em `product_stock` (não mexe na `reserved_qty` se existir, é coluna própria). RPC libera reservas expiradas antes de cada leitura.
-- **Baixa definitiva no pagamento confirmado** (webhook MP):
-  - Subtrai de `product_stock.quantity` (combos explodem em componentes, igual PDV).
-  - Libera `lojinha_reserved_qty`.
-  - Gera `lojinha_order_units` com `qr_token` (24 bytes) por unidade.
-  - **Registra a venda em `sales` + `sale_items`** com `category='online'` e `session_id=NULL`, para aparecer no Financeiro sem afetar fechamento de caixa.
-- **QR só entrega** — não mexe em estoque.
-- Cancelamento/estorno: estorna `product_stock.quantity` e marca pedido `cancelled`.
+1. Lista de produtos marcados `sell_online` (com `online_price` se houver).
+2. Carrinho lateral.
+3. Botão "Cobrar" → modal com métodos **filtrados pela permissão do garçom**:
+   - **Pix MP** → cria preference Checkout Pro e mostra QR Pix grande na tela para o cliente apontar o celular.
+   - **Cartão (Point Smart)** → chama `POST /point/integration-api/devices/{device_id}/payment-intents` com o valor; a maquininha vinculada acorda sozinha; cliente insere/aproxima.
+4. Tela de espera: polling de 2s no status do pedido (Realtime já habilitado).
+5. Pago: aparece **recibo + botão grande "Entreguei o produto"**.
+6. Toque em "Entreguei" → chama `lojinha_confirm_delivery_pos`:
+   - Marca todas as unidades do pedido como `delivered` (delivered_by = garçom).
+   - Baixa de `product_stock.quantity` (combos explodem como no PDV).
+   - Registra em `sales`/`sale_items` com `category='online'`, `session_id=NULL`, `payment_method` correto.
+   - Pedido vai para `delivered` direto.
+7. Não gera QR para venda do garçom-caixa (não precisa, é entrega imediata). Cancelar pagamento antes de entregar libera reserva.
 
-## Banco (novas tabelas, todas com RLS por `owner_id` e permissão `lojinha`)
+## Integração Point Smart
 
-- `lojinha_settings(user_id, enabled, slug UNIQUE, stock_location_id, pickup_message, accent_color)`
-- `lojinha_orders(id, user_id, customer_name, customer_email, customer_phone, subtotal, total, status, mp_preference_id, mp_payment_id, paid_at, created_at)` — status: `pending|paid|partial|delivered|cancelled|refunded`
-- `lojinha_order_items(id, order_id, product_id, product_name_snapshot, unit_price, quantity)`
-- `lojinha_order_units(id, order_id, order_item_id, product_id, qr_token UNIQUE, status, delivered_at, delivered_by, delivered_by_name)`
-- `lojinha_stock_reservations(id, product_id, location_id, quantity, cart_token, expires_at)`
+Server functions em `src/lojinha/point.functions.ts`:
 
-Alterações mínimas em tabelas existentes:
-- `products`: `sell_online boolean DEFAULT false`, `online_price numeric NULL`.
-- `product_stock`: `lojinha_reserved_qty integer DEFAULT 0`.
-- `sales`: aceitar `category='online'` (string, sem mudar schema se já for texto livre).
+- `pointListDevices()` — owner, lista aparelhos do MP.
+- `pointCreatePaymentIntent({ orderId, deviceId, amount })` — cria intent; salva `mp_point_intent_id` no pedido.
+- `pointCancelPaymentIntent({ orderId })` — se garçom cancelar antes do cliente passar o cartão.
 
-RPCs:
-- `lojinha_get_storefront(_slug)` — público.
-- `lojinha_reserve_cart_item(_cart_token, _product_id, _qty)` — público.
-- `lojinha_release_expired_reservations()` — chamada lazy.
-- `lojinha_create_order(_cart_token, _customer, _items)` — público, cria `pending`.
-- `lojinha_confirm_payment(_order_id, _mp_payment_id)` — chamada pelo webhook (admin client).
-- `lojinha_validate_qr(_token)` — autenticada com permissão `lojinha`.
+Webhook **único** `/api/public/mp-webhook` já estava planejado; agora trata:
+- `topic=payment` (Pix Checkout Pro) → confirma pedido.
+- `topic=point_integration_wh` (cartão na Point) → confirma pedido pelo `external_reference`.
 
-## Pagamento
+Em ambos: marca pedido `paid`, dispara Realtime, **mas não baixa estoque** — a baixa só acontece quando garçom clica "Entreguei" (ou na entrega do QR do cliente online).
 
-- Secret: `MERCADO_PAGO_ACCESS_TOKEN` (te peço depois da migração).
-- Server fn `lojinha.createMpPreference` monta Checkout Pro com `external_reference=order.id` e `notification_url` apontando ao webhook.
-- Server route `/api/public/mp-webhook` valida via API do MP pelo `payment_id` e chama `lojinha_confirm_payment` com `supabaseAdmin`.
+## Banco (delta)
 
-## Painel admin (`/_app/lojinha`)
+- `user_roles`: adicionar `lojinha_can_sell boolean DEFAULT false`, `lojinha_payment_methods text[] DEFAULT '{}'`, `lojinha_point_device_id text NULL`.
+- Nova tabela `lojinha_point_devices(id, user_id, mp_device_id UNIQUE, label, assigned_to_user_id NULL, created_at)`.
+- `lojinha_orders`: `channel text DEFAULT 'online'` (`'online'` ou `'pos'`), `seller_user_id uuid NULL`, `seller_name text NULL`, `mp_point_intent_id text NULL`, `point_device_id text NULL`.
+- Nova RPC `lojinha_create_pos_order(_items, _payment_method, _device_id)` — cria pedido `pending` já com `channel='pos'`, reserva estoque, devolve `order_id`.
+- Nova RPC `lojinha_confirm_delivery_pos(_order_id)` — só roda se pedido é `pos` + `paid`; faz a baixa de estoque, registra `sales`, marca `delivered`.
 
-- **Configuração**: liga/desliga loja, define slug, escolhe localização de estoque, mensagem de retirada, cor de destaque.
-- **Produtos**: na tela de Produtos atual, adiciono toggle "Vender online" + campo `online_price`. (única alteração em tela existente — bem pequena.)
-- **Pedidos**: lista com filtros (pago, pendente entrega, entregue, cancelado), valor, tempo desde pagamento.
-- **Scanner**: tela full-screen com câmera + input manual.
+## Fluxo resumido
 
-## Bibliotecas
+```text
+Cliente online:        catálogo → carrinho → MP Checkout Pro → QR no cel do cliente → garçom scanner → entregue
+Garçom-caixa (Pix):    PDV → carrinho → "Cobrar Pix" → QR na tela do garçom → cliente paga → "Entreguei" → baixa estoque
+Garçom-caixa (cartão): PDV → carrinho → "Cobrar cartão" → Point acorda → cliente passa → "Entreguei" → baixa estoque
+```
 
-- `html5-qrcode` (scanner)
-- `qrcode.react` (renderiza QR)
+## Detalhes técnicos
 
-## Fora do escopo
-
-- Envio do QR/nota por WhatsApp (próxima rodada).
-- Cupons online.
-- Refund pelo painel (manual no MP por ora).
+- **Comunicação com a Point**: 100% via API HTTP do Mercado Pago (servidor → MP → maquininha pela rede da própria MP). **Não usa Bluetooth nem WiFi local**, só precisa que a maquininha esteja ligada e com internet (chip ou WiFi do bar). É o caminho oficial e o único confiável.
+- **Vínculo da maquininha ↔ garçom**: 1 fixa por garçom que tem cartão (owner amarra no painel). Garçom sem maquininha vinculada não vê opção "cartão" no PDV. Owner pode usar qualquer uma das livres.
+- **Realtime**: já habilitado em `lojinha_orders`; mesmo canal serve para a tela de espera do PDV.
+- **Sem QR para venda POS**: simplifica, evita confusão. Se um dia precisar (ex: dois garçons no mesmo balcão), basta ligar uma flag.
 
 ## Ordem de implementação
 
-1. Migração SQL + permissão `lojinha`.
-2. Toggle "Vender online" em Produtos + tela de configuração da loja.
-3. Vitrine pública + carrinho + reserva temporária + tela do cliente.
-4. Mercado Pago (preference + webhook + tela de pedido com QRs).
-5. Painel `/_app/lojinha` + scanner.
-6. Card "Vendas online" no dashboard.
+1. Migração (colunas + tabela `lojinha_point_devices` + RPCs novas).
+2. UI de permissões no convite/edição de funcionário (3 checkboxes + dropdown maquininha).
+3. Aba "Maquininhas" no `/_app/lojinha` (owner) — sem chamar MP ainda, só CRUD manual de serial.
+4. PDV mobile `/lojinha-pdv` com fluxo Pix (já que MP token virá no fim).
+5. Integração Point Smart (server fn + tela de "aguardando cartão").
+6. Webhook MP único tratando os dois tópicos.
+7. No final: pedir `MERCADO_PAGO_ACCESS_TOKEN` + `MERCADO_PAGO_WEBHOOK_SECRET` e ativar tudo.
 
-Posso seguir? Primeiro passo: rodo a migração e te peço o `MERCADO_PAGO_ACCESS_TOKEN`.
+## Fora do escopo
+
+- Estorno automatizado (Pix ou cartão) — continua manual no painel MP.
+- Trocar de maquininha no meio da venda.
+- Recibo impresso (a Point Smart imprime o comprovante do cartão sozinha).
+
+Posso seguir nessa direção?

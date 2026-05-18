@@ -26,6 +26,9 @@ type TeamMember = {
   max_discount_percent: number;
   can_sell_cash: boolean;
   can_authorize: boolean;
+  lojinha_can_sell: boolean;
+  lojinha_payment_methods: string[];
+  lojinha_point_device_id: string | null;
 };
 
 type FormState = {
@@ -38,6 +41,9 @@ type FormState = {
   max_discount_percent: number;
   can_sell_cash: boolean;
   can_authorize: boolean;
+  lojinha_can_sell: boolean;
+  lojinha_payment_methods: string[];
+  lojinha_point_device_id: string | null;
 };
 
 type Preset = {
@@ -56,8 +62,10 @@ const PRESETS: Preset[] = [
     permissions: ["vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
   { key: "caixa_portaria", label: "Caixa da Portaria", description: "Só acessa a aba Portaria (check-in e cobrança de entrada)",
     permissions: ["portaria"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+  { key: "garcom_lojinha", label: "Garçom da Lojinha", description: "Valida QR de pedidos online e (opcional) vende no balcão",
+    permissions: ["lojinha"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
   { key: "gerente", label: "Gerente", description: "Acesso amplo + pode autorizar sangria, desconto e fechamento",
-    permissions: ["vendas", "estoque", "eventos", "promoters", "financeiro", "portaria", "funcionarios"],
+    permissions: ["vendas", "estoque", "eventos", "promoters", "financeiro", "portaria", "funcionarios", "lojinha"],
     can_authorize: true, can_discount: true, max_discount_percent: 100, can_sell_cash: true },
   { key: "custom", label: "Personalizado", description: "Marque manualmente as permissões abaixo",
     permissions: [], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
@@ -73,6 +81,9 @@ const emptyForm = (): FormState => ({
   max_discount_percent: 0,
   can_sell_cash: true,
   can_authorize: false,
+  lojinha_can_sell: false,
+  lojinha_payment_methods: [],
+  lojinha_point_device_id: null,
 });
 
 export function TeamPanel() {
@@ -89,13 +100,26 @@ export function TeamPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize")
+        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
       return data as TeamMember[];
     },
     enabled: !!ownerId && can("funcionarios"),
+  });
+
+  const { data: devices = [] } = useQuery({
+    queryKey: ["lojinha-point-devices", ownerId],
+    enabled: !!ownerId && isOwner,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lojinha_point_devices")
+        .select("id, mp_device_id, label")
+        .order("label");
+      if (error) throw error;
+      return data as Array<{ id: string; mp_device_id: string; label: string }>;
+    },
   });
 
   if (!can("funcionarios")) {
@@ -116,6 +140,9 @@ export function TeamPanel() {
       max_discount_percent: Number(m.max_discount_percent ?? 0),
       can_sell_cash: m.can_sell_cash !== false,
       can_authorize: !!m.can_authorize,
+      lojinha_can_sell: !!m.lojinha_can_sell,
+      lojinha_payment_methods: m.lojinha_payment_methods ?? [],
+      lojinha_point_device_id: m.lojinha_point_device_id ?? null,
     });
     setOpen(true);
   };
@@ -141,20 +168,40 @@ export function TeamPanel() {
     }));
   };
 
+  const toggleLojinhaMethod = (m: "pix" | "card") => {
+    setForm((f) => {
+      const has = f.lojinha_payment_methods.includes(m);
+      const next = has ? f.lojinha_payment_methods.filter((x) => x !== m) : [...f.lojinha_payment_methods, m];
+      return {
+        ...f,
+        lojinha_payment_methods: next,
+        lojinha_point_device_id: next.includes("card") ? f.lojinha_point_device_id : null,
+        lojinha_can_sell: next.length > 0 ? true : f.lojinha_can_sell,
+      };
+    });
+  };
+
   const save = async () => {
     setSaving(true);
     try {
+      const permsToSave = (form.lojinha_can_sell && !form.permissions.includes("lojinha"))
+        ? [...form.permissions, "lojinha" as Permission]
+        : form.permissions;
+
       if (editing) {
         const { error } = await supabase
           .from("user_roles")
           .update({
             display_name: form.display_name,
             role_preset: form.role_preset,
-            permissions: form.permissions,
+            permissions: permsToSave,
             can_discount: form.can_discount,
             max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
             can_sell_cash: form.can_sell_cash,
             can_authorize: form.can_authorize,
+            lojinha_can_sell: form.lojinha_can_sell,
+            lojinha_payment_methods: form.lojinha_payment_methods,
+            lojinha_point_device_id: form.lojinha_point_device_id,
           })
           .eq("id", editing.id);
         if (error) throw error;
@@ -167,11 +214,14 @@ export function TeamPanel() {
             password: form.password,
             display_name: form.display_name || form.email.split("@")[0],
             role_preset: form.role_preset,
-            permissions: form.permissions,
+            permissions: permsToSave,
             can_discount: form.can_discount,
             max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
             can_sell_cash: form.can_sell_cash,
             can_authorize: form.can_authorize,
+            lojinha_can_sell: form.lojinha_can_sell,
+            lojinha_payment_methods: form.lojinha_payment_methods,
+            lojinha_point_device_id: form.lojinha_point_device_id,
           },
         });
         if (error) throw error;
@@ -292,6 +342,51 @@ export function TeamPanel() {
                     </span>
                   </label>
                 </div>
+
+                {form.permissions.includes("lojinha") && (
+                  <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lojinha — modo caixa</div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Sem marcar nada abaixo, este funcionário só valida QR de pedidos online.
+                    </p>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.lojinha_payment_methods.includes("pix")}
+                        onCheckedChange={() => toggleLojinhaMethod("pix")}
+                      />
+                      <span className="text-sm">Pode vender no balcão recebendo Pix</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.lojinha_payment_methods.includes("card")}
+                        onCheckedChange={() => toggleLojinhaMethod("card")}
+                      />
+                      <span className="text-sm">Pode vender no balcão recebendo cartão (Point Smart)</span>
+                    </label>
+                    {form.lojinha_payment_methods.includes("card") && (
+                      <div>
+                        <Label className="text-xs">Maquininha vinculada</Label>
+                        <Select
+                          value={form.lojinha_point_device_id ?? "none"}
+                          onValueChange={(v) => setForm({ ...form, lojinha_point_device_id: v === "none" ? null : v })}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sem maquininha fixa</SelectItem>
+                            {devices.map((d) => (
+                              <SelectItem key={d.id} value={d.mp_device_id}>{d.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {devices.length === 0 && (
+                          <p className="text-[11px] text-warning mt-1">
+                            Cadastre maquininhas na aba Lojinha → Maquininhas.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>

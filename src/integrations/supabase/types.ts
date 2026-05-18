@@ -829,6 +829,7 @@ export type Database = {
       lojinha_orders: {
         Row: {
           cancelled_at: string | null
+          channel: string
           created_at: string
           customer_email: string | null
           customer_name: string
@@ -837,8 +838,12 @@ export type Database = {
           id: string
           init_point: string | null
           mp_payment_id: string | null
+          mp_point_intent_id: string | null
           mp_preference_id: string | null
           paid_at: string | null
+          point_device_id: string | null
+          seller_name: string | null
+          seller_user_id: string | null
           status: string
           subtotal: number
           total: number
@@ -847,6 +852,7 @@ export type Database = {
         }
         Insert: {
           cancelled_at?: string | null
+          channel?: string
           created_at?: string
           customer_email?: string | null
           customer_name: string
@@ -855,8 +861,12 @@ export type Database = {
           id?: string
           init_point?: string | null
           mp_payment_id?: string | null
+          mp_point_intent_id?: string | null
           mp_preference_id?: string | null
           paid_at?: string | null
+          point_device_id?: string | null
+          seller_name?: string | null
+          seller_user_id?: string | null
           status?: string
           subtotal?: number
           total?: number
@@ -865,6 +875,7 @@ export type Database = {
         }
         Update: {
           cancelled_at?: string | null
+          channel?: string
           created_at?: string
           customer_email?: string | null
           customer_name?: string
@@ -873,11 +884,45 @@ export type Database = {
           id?: string
           init_point?: string | null
           mp_payment_id?: string | null
+          mp_point_intent_id?: string | null
           mp_preference_id?: string | null
           paid_at?: string | null
+          point_device_id?: string | null
+          seller_name?: string | null
+          seller_user_id?: string | null
           status?: string
           subtotal?: number
           total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lojinha_point_devices: {
+        Row: {
+          assigned_to_user_id: string | null
+          created_at: string
+          id: string
+          label: string
+          mp_device_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to_user_id?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          mp_device_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to_user_id?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          mp_device_id?: string
           updated_at?: string
           user_id?: string
         }
@@ -1594,6 +1639,9 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          lojinha_can_sell: boolean
+          lojinha_payment_methods: string[]
+          lojinha_point_device_id: string | null
           max_discount_percent: number
           owner_id: string
           permissions: string[]
@@ -1610,6 +1658,9 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          lojinha_can_sell?: boolean
+          lojinha_payment_methods?: string[]
+          lojinha_point_device_id?: string | null
           max_discount_percent?: number
           owner_id: string
           permissions?: string[]
@@ -1626,6 +1677,9 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          lojinha_can_sell?: boolean
+          lojinha_payment_methods?: string[]
+          lojinha_point_device_id?: string | null
           max_discount_percent?: number
           owner_id?: string
           permissions?: string[]
@@ -1721,6 +1775,10 @@ export type Database = {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
       }
+      lojinha_confirm_delivery_pos: {
+        Args: { _order_id: string }
+        Returns: Json
+      }
       lojinha_confirm_payment: {
         Args: { _mp_payment_id: string; _order_id: string }
         Returns: Json
@@ -1735,8 +1793,16 @@ export type Database = {
         }
         Returns: Json
       }
+      lojinha_create_pos_order: {
+        Args: { _device_id: string; _items: Json; _payment_method: string }
+        Returns: Json
+      }
       lojinha_get_order: { Args: { _order_id: string }; Returns: Json }
       lojinha_get_storefront: { Args: { _slug: string }; Returns: Json }
+      lojinha_mark_pos_paid: {
+        Args: { _order_id: string; _payment_id: string }
+        Returns: Json
+      }
       lojinha_release_expired_reservations: { Args: never; Returns: undefined }
       lojinha_reserve_cart_item: {
         Args: {
