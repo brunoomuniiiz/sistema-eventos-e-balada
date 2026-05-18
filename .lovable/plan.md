@@ -1,36 +1,42 @@
-## O que muda no checkout do PDV
+# Plano: combo bloqueado e botão de Sangria
 
-### 1. Desconto: valor (R$) **ou** porcentagem (%)
-Hoje o input só aceita %. Vou adicionar um **toggle de duas opções** (`%` | `R$`) ao lado do campo. O estado guarda `discountMode: "percent" | "value"` + `discountInput`.
+## Problema 1 — Combo "Orloff + Red Bull" aparece sem estoque
 
-- Em `%`: comportamento atual (limitado por `maxDiscountPercent`).
-- Em `R$`: usa `CurrencyInput`, calcula `discountPercent = (valor / subtotal) * 100`, **clampado** ao `maxDiscountPercent` (com toast se o valor digitado exceder o máximo permitido para o usuário). `discount_value` salvo no banco bate exatamente com o digitado.
+Confirmado no banco:
+- `orloff` e `red bull` têm `products.stock_quantity = 48` e `track_stock = true`.
+- Porém **não existem linhas em `product_stock`** para esses produtos (ainda não foram alocados em nenhum local de estoque).
+- Para produtos **simples**, o PDV já trata isso como "sem rastreio efetivo" (regra: só considera "sem estoque" se houver pelo menos uma linha em `product_stock`). Por isso Orloff e Red Bull individualmente continuam vendáveis.
+- Para **combos**, a regra atual é `tracked = isCombo` (sempre rastreado). O cálculo virtual `min(stockMap[componente] / qty)` retorna 0 porque `stockMap` está vazio para esses componentes → combo é marcado como sem estoque.
 
-Cálculo final continua o mesmo: `discount_value` e `discount_percent` são gravados na venda.
+### Correção (em `src/routes/_app.pdv.tsx`)
 
-### 2. Fluxo de pagamento mobile-first (wizard em 2 telas)
-O `SplitPaymentEditor` atual mostra todos os botões e linhas ao mesmo tempo — confuso no celular. Vou trocar pela seguinte UX:
+Aplicar ao combo a mesma regra usada para produtos simples: **só considerar o componente no cálculo se ele tiver linhas em `product_stock` E `track_stock = true`**. Componentes sem rastreio efetivo são tratados como ilimitados.
 
-**Tela "resumo" (default, dentro do Sheet do carrinho):**
-- Card grande com **Total** e, abaixo, **"Falta R$ X,XX"** (ou "Pago integralmente" / "Troco R$ Y").
-- Lista compacta das parcelas já adicionadas (ícone + método + valor + lixeira).
-- Um único botão grande: **"Adicionar pagamento"** (só aparece se ainda falta valor).
-- Botão final **"Finalizar R$ X"** habilita só quando `isSplitValid`.
+- Em `comboStockMap`, buscar também `products.track_stock` (já carregado em `products`) e usar `productsWithStockRows` para filtrar componentes.
+- Se **nenhum** componente do combo é rastreado efetivamente → combo fica ilimitado (não bloqueia).
+- Se **algum** é rastreado → `min(floor(stock / qty))` apenas entre os rastreados.
+- Em `tracked` (linha 419), trocar `isCombo || …` por `isCombo ? hasAnyTrackedComponent(p.id) : (p.track_stock && productsWithStockRows.has(p.id))`.
 
-**Tela "wizard" (overlay full-screen dentro do Sheet, ocupa toda a área quando aberta):**
-- **Passo 1 — Valor:** título "Quanto vai pagar?", `CurrencyInput` enorme (texto 3xl, auto-focus, teclado numérico), pré-preenchido com o `Falta`. Botões "Cancelar" e "Avançar". "Avançar" desabilita se valor ≤ 0.
-- **Passo 2 — Forma de pagamento:** título "Como vai pagar R$ X?", **4 botões grandes** (Dinheiro, Débito, Crédito, Pix — Dinheiro escondido se `!canSellCash`), cada um ocupando metade da largura, com ícone grande + label. Tocar no botão **adiciona a linha** e fecha o wizard, voltando à tela resumo.
-- Botão "Voltar" no passo 2 retorna ao passo 1 sem perder o valor digitado.
+Resultado: combo Orloff+Red Bull volta a aparecer disponível, mesmo sem linhas em `product_stock` (vendedor pode vender; o trigger `decrement_product_stock` continua deduzindo se/quando houver linhas).
 
-Permite repetir o ciclo até zerar. Toda a interação é vertical, com targets ≥56px de altura — adequado pra polegar.
+## Problema 2 — Como faço a sangria?
 
-### Arquivos a editar
-- `src/components/vendas/SplitPaymentEditor.tsx` — reescrever para o modelo resumo + wizard interno (estado `wizardStep: null | "amount" | "method"` e `wizardAmount`).
-- `src/routes/_app.pdv.tsx` — adicionar toggle `%`/`R$` no bloco de Desconto (linhas 505–529); ajustar `discountPercent`/`discountValue` `useMemo` para suportar os dois modos.
+O fluxo de sangria já existe, mas hoje o **botão "Sangria"** só aparece na tela **PDV** (Vendas → aba PDV), no card "Caixa aberto", canto direito. Na aba **Fechamento** só aparece a *lista* de sangrias já feitas, sem botão para criar — daí a confusão.
 
-### Fora de escopo
-- Mexer no `discount_by`, RLS de desconto, ou regra de `maxDiscountPercent` (continua igual).
-- Mudar o fluxo de finalização da venda em si.
-- Refatorar a aba de Fechamento ou o `WithdrawalDialog`.
+### Correção (em `src/components/vendas/SessionWithdrawalsCard.tsx`)
+
+Adicionar botão **"Nova sangria"** no topo do card, ao lado do total, abrindo o `WithdrawalDialog` existente (já pede valor + motivo + autorização do responsável com e-mail/senha, e desconta apenas do dinheiro em espécie). Após gravar, invalidar `["session-withdrawals", sessionId]` para a lista atualizar.
+
+Nenhuma mudança de banco. Nenhum impacto em permissão (a RPC `register_withdrawal` já exige autorização via `consume_grant` com escopo `withdrawal`).
+
+## Arquivos a editar
+
+- `src/routes/_app.pdv.tsx` — ajustar `comboStockMap` e cálculo de `tracked` para combos.
+- `src/components/vendas/SessionWithdrawalsCard.tsx` — adicionar botão "Nova sangria" + `WithdrawalDialog`.
+
+## Fora de escopo
+
+- Não criar linhas em `product_stock` automaticamente para Orloff/Red Bull (isso é decisão do usuário, via tela de Estoque).
+- Não mexer em RPC, RLS, fluxo de autorização nem no `decrement_product_stock`.
 
 Posso seguir?

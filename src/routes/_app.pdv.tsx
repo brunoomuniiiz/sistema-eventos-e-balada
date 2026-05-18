@@ -170,9 +170,18 @@ export function PdvView() {
     },
   });
 
-  // stock virtual: combo => min(stock_componente / qty)
+  // mapa de track_stock por produto (para checar componentes do combo)
+  const productTrackMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    products.forEach((p) => { map[p.id] = !!p.track_stock; });
+    return map;
+  }, [products]);
+
+  // stock virtual: combo => min(stock_componente / qty), considerando apenas
+  // componentes efetivamente rastreados (track_stock=true E com linhas em product_stock).
+  // Combos cujos componentes não têm rastreio efetivo ficam ilimitados.
   const comboStockMap = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, number | null> = {};
     const grouped = new Map<string, { component_product_id: string; quantity: number }[]>();
     comboItems.forEach((ci) => {
       const list = grouped.get(ci.combo_product_id) ?? [];
@@ -181,15 +190,19 @@ export function PdvView() {
     });
     grouped.forEach((items, comboId) => {
       let min = Infinity;
+      let anyTracked = false;
       for (const it of items) {
+        const tracked = productTrackMap[it.component_product_id] && productsWithStockRows.has(it.component_product_id);
+        if (!tracked) continue;
+        anyTracked = true;
         const stock = stockMap[it.component_product_id] ?? 0;
         const qty = it.quantity > 0 ? it.quantity : 1;
         min = Math.min(min, Math.floor(stock / qty));
       }
-      map[comboId] = Number.isFinite(min) ? min : 0;
+      map[comboId] = anyTracked ? (Number.isFinite(min) ? min : 0) : null;
     });
     return map;
-  }, [comboItems, stockMap]);
+  }, [comboItems, stockMap, productTrackMap, productsWithStockRows]);
 
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.unit_price * i.quantity, 0), [cart]);
   const totalItems = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
