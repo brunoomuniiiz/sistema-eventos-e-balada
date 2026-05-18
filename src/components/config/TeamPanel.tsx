@@ -342,6 +342,51 @@ export function TeamPanel() {
                     </span>
                   </label>
                 </div>
+
+                {form.permissions.includes("lojinha") && (
+                  <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lojinha — modo caixa</div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Sem marcar nada abaixo, este funcionário só valida QR de pedidos online.
+                    </p>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.lojinha_payment_methods.includes("pix")}
+                        onCheckedChange={() => toggleLojinhaMethod("pix")}
+                      />
+                      <span className="text-sm">Pode vender no balcão recebendo Pix</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        checked={form.lojinha_payment_methods.includes("card")}
+                        onCheckedChange={() => toggleLojinhaMethod("card")}
+                      />
+                      <span className="text-sm">Pode vender no balcão recebendo cartão (Point Smart)</span>
+                    </label>
+                    {form.lojinha_payment_methods.includes("card") && (
+                      <div>
+                        <Label className="text-xs">Maquininha vinculada</Label>
+                        <Select
+                          value={form.lojinha_point_device_id ?? "none"}
+                          onValueChange={(v) => setForm({ ...form, lojinha_point_device_id: v === "none" ? null : v })}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sem maquininha fixa</SelectItem>
+                            {devices.map((d) => (
+                              <SelectItem key={d.id} value={d.mp_device_id}>{d.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {devices.length === 0 && (
+                          <p className="text-[11px] text-warning mt-1">
+                            Cadastre maquininhas na aba Lojinha → Maquininhas.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
