@@ -63,6 +63,8 @@ type Product = {
   unit: string;
   category_id: string | null;
   is_available: boolean;
+  sell_online?: boolean;
+  online_price?: number | null;
 };
 
 type Category = { id: string; name: string };
@@ -98,6 +100,8 @@ function ProdutosPage() {
     unit: "un",
     category_id: "none" as string,
     is_available: true,
+    sell_online: false,
+    online_price: 0,
   });
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
   const [pickComponentId, setPickComponentId] = useState("");
@@ -122,7 +126,7 @@ function ProdutosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available")
+        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available, sell_online, online_price")
         .order("name");
       if (error) throw error;
       return data as Product[];
@@ -164,6 +168,7 @@ function ProdutosPage() {
       product_type: type, track_stock: type === "simple",
       description: "", pickup_description: "", photo_url: "", unit: "un",
       category_id: "none", is_available: true,
+      sell_online: false, online_price: 0,
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -185,6 +190,8 @@ function ProdutosPage() {
       unit: p.unit ?? "un",
       category_id: p.category_id ?? "none",
       is_available: p.is_available ?? true,
+      sell_online: p.sell_online ?? false,
+      online_price: Number(p.online_price ?? 0),
     });
     if (p.product_type === "combo") {
       const items = comboItems.filter((c) => c.combo_product_id === p.id);
@@ -258,6 +265,8 @@ function ProdutosPage() {
       unit: form.unit.trim() || "un",
       category_id: form.category_id === "none" ? null : form.category_id,
       is_available: form.is_available,
+      sell_online: form.sell_online ?? false,
+      online_price: form.online_price && form.online_price > 0 ? form.online_price : null,
     };
 
     let productId = editing?.id;
@@ -523,6 +532,28 @@ function ProdutosPage() {
                 checked={form.is_available}
                 onCheckedChange={(v) => setForm({ ...form, is_available: v })}
               />
+            </div>
+
+            <div className="p-3 rounded-lg border bg-card/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="cursor-pointer">Vender online (Lojinha)</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Aparece no catálogo público com QR code para retirada.
+                  </p>
+                </div>
+                <Switch
+                  checked={!!form.sell_online}
+                  onCheckedChange={(v) => setForm({ ...form, sell_online: v })}
+                />
+              </div>
+              {form.sell_online && (
+                <div>
+                  <Label>Preço online (opcional)</Label>
+                  <CurrencyInput value={form.online_price ?? 0} onChange={(v) => setForm({ ...form, online_price: v })} />
+                  <p className="text-[11px] text-muted-foreground mt-1">Deixe vazio para usar o mesmo preço do PDV.</p>
+                </div>
+              )}
             </div>
 
             {form.product_type === "simple" && (
