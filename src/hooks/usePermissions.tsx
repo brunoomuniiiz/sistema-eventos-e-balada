@@ -9,7 +9,8 @@ export type Permission =
   | "promoters"
   | "financeiro"
   | "funcionarios"
-  | "portaria";
+  | "portaria"
+  | "lojinha";
 
 export const ALL_PERMISSIONS: { key: Permission; label: string }[] = [
   { key: "vendas", label: "Vendas (PDV)" },
@@ -19,6 +20,7 @@ export const ALL_PERMISSIONS: { key: Permission; label: string }[] = [
   { key: "portaria", label: "Portaria" },
   { key: "financeiro", label: "Financeiro" },
   { key: "funcionarios", label: "Funcionários" },
+  { key: "lojinha", label: "Lojinha (venda online)" },
 ];
 
 export function usePermissions() {

@@ -13,6 +13,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as ListaSlugRouteImport } from './routes/lista.$slug'
 import { Route as ESlugRouteImport } from './routes/e.$slug'
 import { Route as AppVendasRouteImport } from './routes/_app.vendas'
@@ -21,6 +22,7 @@ import { Route as AppProdutosRouteImport } from './routes/_app.produtos'
 import { Route as AppPortariaRouteImport } from './routes/_app.portaria'
 import { Route as AppPdvRouteImport } from './routes/_app.pdv'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
+import { Route as AppLojinhaRouteImport } from './routes/_app.lojinha'
 import { Route as AppFuncionariosRouteImport } from './routes/_app.funcionarios'
 import { Route as AppFinanceiroRouteImport } from './routes/_app.financeiro'
 import { Route as AppEstoqueRouteImport } from './routes/_app.estoque'
@@ -29,6 +31,7 @@ import { Route as AppConfiguracaoRouteImport } from './routes/_app.configuracao'
 import { Route as AppBarSettingsRouteImport } from './routes/_app.bar-settings'
 import { Route as AppEventosIndexRouteImport } from './routes/_app.eventos.index'
 import { Route as AppEventosEventIdRouteImport } from './routes/_app.eventos.$eventId'
+import { Route as LojaSlugPedidoOrderIdRouteImport } from './routes/loja.$slug.pedido.$orderId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -47,6 +50,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LojaSlugRoute = LojaSlugRouteImport.update({
+  id: '/loja/$slug',
+  path: '/loja/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListaSlugRoute = ListaSlugRouteImport.update({
@@ -89,6 +97,11 @@ const AppMensalRoute = AppMensalRouteImport.update({
   path: '/mensal',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLojinhaRoute = AppLojinhaRouteImport.update({
+  id: '/lojinha',
+  path: '/lojinha',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFuncionariosRoute = AppFuncionariosRouteImport.update({
   id: '/funcionarios',
   path: '/funcionarios',
@@ -129,6 +142,11 @@ const AppEventosEventIdRoute = AppEventosEventIdRouteImport.update({
   path: '/eventos/$eventId',
   getParentRoute: () => AppRoute,
 } as any)
+const LojaSlugPedidoOrderIdRoute = LojaSlugPedidoOrderIdRouteImport.update({
+  id: '/pedido/$orderId',
+  path: '/pedido/$orderId',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -140,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/estoque': typeof AppEstoqueRoute
   '/financeiro': typeof AppFinanceiroRoute
   '/funcionarios': typeof AppFuncionariosRoute
+  '/lojinha': typeof AppLojinhaRoute
   '/mensal': typeof AppMensalRoute
   '/pdv': typeof AppPdvRoute
   '/portaria': typeof AppPortariaRoute
@@ -148,8 +167,10 @@ export interface FileRoutesByFullPath {
   '/vendas': typeof AppVendasRoute
   '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
+  '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/eventos/': typeof AppEventosIndexRoute
+  '/loja/$slug/pedido/$orderId': typeof LojaSlugPedidoOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -161,6 +182,7 @@ export interface FileRoutesByTo {
   '/estoque': typeof AppEstoqueRoute
   '/financeiro': typeof AppFinanceiroRoute
   '/funcionarios': typeof AppFuncionariosRoute
+  '/lojinha': typeof AppLojinhaRoute
   '/mensal': typeof AppMensalRoute
   '/pdv': typeof AppPdvRoute
   '/portaria': typeof AppPortariaRoute
@@ -169,8 +191,10 @@ export interface FileRoutesByTo {
   '/vendas': typeof AppVendasRoute
   '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
+  '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/eventos': typeof AppEventosIndexRoute
+  '/loja/$slug/pedido/$orderId': typeof LojaSlugPedidoOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -184,6 +208,7 @@ export interface FileRoutesById {
   '/_app/estoque': typeof AppEstoqueRoute
   '/_app/financeiro': typeof AppFinanceiroRoute
   '/_app/funcionarios': typeof AppFuncionariosRoute
+  '/_app/lojinha': typeof AppLojinhaRoute
   '/_app/mensal': typeof AppMensalRoute
   '/_app/pdv': typeof AppPdvRoute
   '/_app/portaria': typeof AppPortariaRoute
@@ -192,8 +217,10 @@ export interface FileRoutesById {
   '/_app/vendas': typeof AppVendasRoute
   '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
+  '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/_app/eventos/$eventId': typeof AppEventosEventIdRoute
   '/_app/eventos/': typeof AppEventosIndexRoute
+  '/loja/$slug/pedido/$orderId': typeof LojaSlugPedidoOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -207,6 +234,7 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/financeiro'
     | '/funcionarios'
+    | '/lojinha'
     | '/mensal'
     | '/pdv'
     | '/portaria'
@@ -215,8 +243,10 @@ export interface FileRouteTypes {
     | '/vendas'
     | '/e/$slug'
     | '/lista/$slug'
+    | '/loja/$slug'
     | '/eventos/$eventId'
     | '/eventos/'
+    | '/loja/$slug/pedido/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -228,6 +258,7 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/financeiro'
     | '/funcionarios'
+    | '/lojinha'
     | '/mensal'
     | '/pdv'
     | '/portaria'
@@ -236,8 +267,10 @@ export interface FileRouteTypes {
     | '/vendas'
     | '/e/$slug'
     | '/lista/$slug'
+    | '/loja/$slug'
     | '/eventos/$eventId'
     | '/eventos'
+    | '/loja/$slug/pedido/$orderId'
   id:
     | '__root__'
     | '/'
@@ -250,6 +283,7 @@ export interface FileRouteTypes {
     | '/_app/estoque'
     | '/_app/financeiro'
     | '/_app/funcionarios'
+    | '/_app/lojinha'
     | '/_app/mensal'
     | '/_app/pdv'
     | '/_app/portaria'
@@ -258,8 +292,10 @@ export interface FileRouteTypes {
     | '/_app/vendas'
     | '/e/$slug'
     | '/lista/$slug'
+    | '/loja/$slug'
     | '/_app/eventos/$eventId'
     | '/_app/eventos/'
+    | '/loja/$slug/pedido/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -269,6 +305,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ESlugRoute: typeof ESlugRoute
   ListaSlugRoute: typeof ListaSlugRoute
+  LojaSlugRoute: typeof LojaSlugRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -299,6 +336,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loja/$slug': {
+      id: '/loja/$slug'
+      path: '/loja/$slug'
+      fullPath: '/loja/$slug'
+      preLoaderRoute: typeof LojaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lista/$slug': {
@@ -357,6 +401,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMensalRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/lojinha': {
+      id: '/_app/lojinha'
+      path: '/lojinha'
+      fullPath: '/lojinha'
+      preLoaderRoute: typeof AppLojinhaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/funcionarios': {
       id: '/_app/funcionarios'
       path: '/funcionarios'
@@ -413,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEventosEventIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/loja/$slug/pedido/$orderId': {
+      id: '/loja/$slug/pedido/$orderId'
+      path: '/pedido/$orderId'
+      fullPath: '/loja/$slug/pedido/$orderId'
+      preLoaderRoute: typeof LojaSlugPedidoOrderIdRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
   }
 }
 
@@ -423,6 +481,7 @@ interface AppRouteChildren {
   AppEstoqueRoute: typeof AppEstoqueRoute
   AppFinanceiroRoute: typeof AppFinanceiroRoute
   AppFuncionariosRoute: typeof AppFuncionariosRoute
+  AppLojinhaRoute: typeof AppLojinhaRoute
   AppMensalRoute: typeof AppMensalRoute
   AppPdvRoute: typeof AppPdvRoute
   AppPortariaRoute: typeof AppPortariaRoute
@@ -440,6 +499,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEstoqueRoute: AppEstoqueRoute,
   AppFinanceiroRoute: AppFinanceiroRoute,
   AppFuncionariosRoute: AppFuncionariosRoute,
+  AppLojinhaRoute: AppLojinhaRoute,
   AppMensalRoute: AppMensalRoute,
   AppPdvRoute: AppPdvRoute,
   AppPortariaRoute: AppPortariaRoute,
@@ -452,6 +512,18 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface LojaSlugRouteChildren {
+  LojaSlugPedidoOrderIdRoute: typeof LojaSlugPedidoOrderIdRoute
+}
+
+const LojaSlugRouteChildren: LojaSlugRouteChildren = {
+  LojaSlugPedidoOrderIdRoute: LojaSlugPedidoOrderIdRoute,
+}
+
+const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
+  LojaSlugRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
@@ -459,17 +531,8 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ESlugRoute: ESlugRoute,
   ListaSlugRoute: ListaSlugRoute,
+  LojaSlugRoute: LojaSlugRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
