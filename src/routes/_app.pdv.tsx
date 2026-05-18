@@ -195,10 +195,15 @@ export function PdvView() {
 
   const discountPercent = useMemo(() => {
     if (!canDiscount) return 0;
-    const v = Number(discountInput.replace(",", "."));
-    if (!Number.isFinite(v) || v <= 0) return 0;
-    return Math.min(v, maxDiscountPercent);
-  }, [discountInput, canDiscount, maxDiscountPercent]);
+    if (discountMode === "percent") {
+      const v = Number(discountInput.replace(",", "."));
+      if (!Number.isFinite(v) || v <= 0) return 0;
+      return Math.min(v, maxDiscountPercent);
+    }
+    if (subtotal <= 0 || discountValueInput <= 0) return 0;
+    const pct = (discountValueInput / subtotal) * 100;
+    return Math.min(pct, maxDiscountPercent);
+  }, [discountInput, discountValueInput, discountMode, subtotal, canDiscount, maxDiscountPercent]);
 
   const discountValue = useMemo(() => +(subtotal * discountPercent / 100).toFixed(2), [subtotal, discountPercent]);
   const total = useMemo(() => +(subtotal - discountValue).toFixed(2), [subtotal, discountValue]);
