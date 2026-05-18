@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, Users, TrendingUp, DollarSign, Plus, Sparkles } from "lucide-react";
+import { Calendar, Users, TrendingUp, DollarSign, Plus, Sparkles, Store, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -49,6 +49,24 @@ function Dashboard() {
       const { data, error } = await supabase.from("event_financials").select("*");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: lojinhaStats } = useQuery({
+    queryKey: ["lojinha-dashboard", user?.id],
+    enabled: !!user,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const [{ data: paidToday }, { data: pending }] = await Promise.all([
+        supabase.from("lojinha_orders").select("id, total").gte("paid_at", today.toISOString()),
+        supabase.from("lojinha_orders").select("id").eq("status", "paid"),
+      ]);
+      return {
+        paidCount: paidToday?.length ?? 0,
+        paidTotal: (paidToday ?? []).reduce((s, o) => s + Number(o.total), 0),
+        pendingDelivery: pending?.length ?? 0,
+      };
     },
   });
 
@@ -182,6 +200,35 @@ function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="glass border-border/60 mt-4 md:mt-6 overflow-hidden relative group">
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-primary to-accent opacity-20 blur-2xl" />
+        <CardHeader className="flex flex-row items-center justify-between relative">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Store className="h-4 w-4 text-primary" /> Lojinha (vendas online)
+          </CardTitle>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/lojinha">Abrir</Link>
+          </Button>
+        </CardHeader>
+        <CardContent className="grid grid-cols-3 gap-3 relative">
+          <div>
+            <div className="text-xs text-muted-foreground">Vendido hoje</div>
+            <div className="text-xl font-bold font-display">{formatBRL(lojinhaStats?.paidTotal ?? 0)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Pedidos hoje</div>
+            <div className="text-xl font-bold font-display">{lojinhaStats?.paidCount ?? 0}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground">Para retirar</div>
+            <div className="text-xl font-bold font-display flex items-center gap-1">
+              <Package className="h-4 w-4 text-warning" />
+              {lojinhaStats?.pendingDelivery ?? 0}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
