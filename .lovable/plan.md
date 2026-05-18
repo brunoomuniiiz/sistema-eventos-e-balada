@@ -1,42 +1,42 @@
-# Plano: combo bloqueado e botão de Sangria
+## 1. Fechamento de caixa em 3 etapas (revisão antes de confirmar)
 
-## Problema 1 — Combo "Orloff + Red Bull" aparece sem estoque
+Hoje: digita valores → senha → fecha direto. Vou transformar em **3 etapas dentro do `CashClosingDialog`**:
 
-Confirmado no banco:
-- `orloff` e `red bull` têm `products.stock_quantity = 48` e `track_stock = true`.
-- Porém **não existem linhas em `product_stock`** para esses produtos (ainda não foram alocados em nenhum local de estoque).
-- Para produtos **simples**, o PDV já trata isso como "sem rastreio efetivo" (regra: só considera "sem estoque" se houver pelo menos uma linha em `product_stock`). Por isso Orloff e Red Bull individualmente continuam vendáveis.
-- Para **combos**, a regra atual é `tracked = isCombo` (sempre rastreado). O cálculo virtual `min(stockMap[componente] / qty)` retorna 0 porque `stockMap` está vazio para esses componentes → combo é marcado como sem estoque.
+**Etapa 1 — Declaração (igual hoje)**
+- Operador digita Dinheiro / Débito / Crédito / Pix sem ver o esperado.
+- Botão: "Pedir autorização".
 
-### Correção (em `src/routes/_app.pdv.tsx`)
+**Etapa 2 — Autorização**
+- Abre o `AuthorizationDialog` (e-mail + senha do responsável).
+- Ao aprovar, **guarda o `grant_token`** e vai para Etapa 3 (não fecha ainda).
+- Para ter os esperados sem consumir o grant, crio uma RPC read-only `get_session_expected_totals()` que devolve: `expected_dinheiro` (= abertura + vendas em dinheiro − sangrias), `expected_debito`, `expected_credito`, `expected_pix`, `opening_amount`, `withdrawals_total`, `sales_count`.
 
-Aplicar ao combo a mesma regra usada para produtos simples: **só considerar o componente no cálculo se ele tiver linhas em `product_stock` E `track_stock = true`**. Componentes sem rastreio efetivo são tratados como ilimitados.
+**Etapa 3 — Revisão e confirmação**
+- Tabela por forma de pagamento: **Esperado · Declarado · Diferença**.
+  - **Dinheiro**: precisa bater exato. Diferença ≠ 0 → vermelho com aviso "O dinheiro precisa estar correto".
+  - **Débito / Crédito / Pix**: sobra ou exato → ok; faltando → vermelho com aviso "Está faltando R$ X, verifique antes de confirmar".
+- Resumo: abertura, sangrias, total de vendas.
+- Dois botões: "Voltar e corrigir" (volta pra Etapa 1, mantém o token) e "Confirmar fechamento" (chama `close_cash_blind` com o `grant_token`).
+- Se o token expirar entre etapas, mostro erro e peço nova autorização.
 
-- Em `comboStockMap`, buscar também `products.track_stock` (já carregado em `products`) e usar `productsWithStockRows` para filtrar componentes.
-- Se **nenhum** componente do combo é rastreado efetivamente → combo fica ilimitado (não bloqueia).
-- Se **algum** é rastreado → `min(floor(stock / qty))` apenas entre os rastreados.
-- Em `tracked` (linha 419), trocar `isCombo || …` por `isCombo ? hasAnyTrackedComponent(p.id) : (p.track_stock && productsWithStockRows.has(p.id))`.
+## 2. Abrir caixa — manter escolha de evento, mas corrigir erro quando não há evento
 
-Resultado: combo Orloff+Red Bull volta a aparecer disponível, mesmo sem linhas em `product_stock` (vendedor pode vender; o trigger `decrement_product_stock` continua deduzindo se/quando houver linhas).
+A UI continua igual (Select de evento com opção "Sem evento (bar normal)"). O problema é técnico: existem **duas versões da função `open_cash_session` no banco** (uma com 2 args, outra com 3), o que deixa a chamada RPC ambígua quando `_event_id` vem `undefined`.
 
-## Problema 2 — Como faço a sangria?
+Vou:
+- Em migração SQL, **remover a versão antiga** `open_cash_session(_opening, _notes)` e manter só a com `_event_id uuid DEFAULT NULL`.
+- Em `OpenCashDialog.submit`, passar `_event_id: eventId === "none" ? null : eventId` (null explícito em vez de undefined).
+- Mantém intacta a possibilidade de selecionar evento quando houver.
 
-O fluxo de sangria já existe, mas hoje o **botão "Sangria"** só aparece na tela **PDV** (Vendas → aba PDV), no card "Caixa aberto", canto direito. Na aba **Fechamento** só aparece a *lista* de sangrias já feitas, sem botão para criar — daí a confusão.
+## Arquivos afetados
 
-### Correção (em `src/components/vendas/SessionWithdrawalsCard.tsx`)
+- `src/components/vendas/CashClosingDialog.tsx` — reescrito com 3 etapas.
+- `src/components/vendas/OpenCashDialog.tsx` — ajuste pequeno no submit.
+- Migração SQL — nova RPC `get_session_expected_totals()` + drop da overload antiga de `open_cash_session`.
 
-Adicionar botão **"Nova sangria"** no topo do card, ao lado do total, abrindo o `WithdrawalDialog` existente (já pede valor + motivo + autorização do responsável com e-mail/senha, e desconta apenas do dinheiro em espécie). Após gravar, invalidar `["session-withdrawals", sessionId]` para a lista atualizar.
+## Fora do escopo
 
-Nenhuma mudança de banco. Nenhum impacto em permissão (a RPC `register_withdrawal` já exige autorização via `consume_grant` com escopo `withdrawal`).
-
-## Arquivos a editar
-
-- `src/routes/_app.pdv.tsx` — ajustar `comboStockMap` e cálculo de `tracked` para combos.
-- `src/components/vendas/SessionWithdrawalsCard.tsx` — adicionar botão "Nova sangria" + `WithdrawalDialog`.
-
-## Fora de escopo
-
-- Não criar linhas em `product_stock` automaticamente para Orloff/Red Bull (isso é decisão do usuário, via tela de Estoque).
-- Não mexer em RPC, RLS, fluxo de autorização nem no `decrement_product_stock`.
+- Não mexo em quem pode autorizar nem na lógica de `close_cash_blind`.
+- Não mexo em PDV nem sangria.
 
 Posso seguir?

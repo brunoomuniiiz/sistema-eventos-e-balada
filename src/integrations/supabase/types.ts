@@ -1473,6 +1473,7 @@ export type Database = {
       get_my_open_session: { Args: never; Returns: Json }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
       get_portaria_summary: { Args: { _event_id: string }; Returns: Json }
+      get_session_expected_totals: { Args: never; Returns: Json }
       has_permission: {
         Args: { _owner_id: string; _permission: string; _user_id: string }
         Returns: boolean
@@ -1481,12 +1482,10 @@ export type Database = {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
       }
-      open_cash_session:
-        | { Args: { _notes?: string; _opening: number }; Returns: string }
-        | {
-            Args: { _event_id?: string; _notes?: string; _opening: number }
-            Returns: string
-          }
+      open_cash_session: {
+        Args: { _event_id?: string; _notes?: string; _opening: number }
+        Returns: string
+      }
       register_withdrawal: {
         Args: { _amount: number; _grant_token: string; _reason: string }
         Returns: string

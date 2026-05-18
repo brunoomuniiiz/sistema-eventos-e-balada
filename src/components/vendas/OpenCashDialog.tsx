@@ -58,7 +58,7 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
       const { error } = await supabase.rpc("open_cash_session", {
         _opening: v,
         _notes: notes || undefined,
-        _event_id: eventId === "none" ? undefined : eventId,
+        _event_id: (eventId === "none" ? null : eventId) as unknown as string | undefined,
       });
       if (error) throw error;
       toast.success("Caixa aberto");
