@@ -725,6 +725,236 @@ export type Database = {
           },
         ]
       }
+      lojinha_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          product_name_snapshot: string
+          quantity: number
+          unit_price: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          product_name_snapshot: string
+          quantity: number
+          unit_price: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_name_snapshot?: string
+          quantity?: number
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lojinha_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lojinha_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lojinha_order_units: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          delivered_by: string | null
+          delivered_by_name: string | null
+          id: string
+          order_id: string
+          order_item_id: string
+          product_id: string
+          product_name_snapshot: string
+          qr_token: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          delivered_by?: string | null
+          delivered_by_name?: string | null
+          id?: string
+          order_id: string
+          order_item_id: string
+          product_id: string
+          product_name_snapshot: string
+          qr_token: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          delivered_by?: string | null
+          delivered_by_name?: string | null
+          id?: string
+          order_id?: string
+          order_item_id?: string
+          product_id?: string
+          product_name_snapshot?: string
+          qr_token?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lojinha_order_units_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lojinha_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lojinha_order_units_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "lojinha_order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lojinha_orders: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          delivered_at: string | null
+          id: string
+          init_point: string | null
+          mp_payment_id: string | null
+          mp_preference_id: string | null
+          paid_at: string | null
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          delivered_at?: string | null
+          id?: string
+          init_point?: string | null
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          paid_at?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          delivered_at?: string | null
+          id?: string
+          init_point?: string | null
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          paid_at?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lojinha_settings: {
+        Row: {
+          accent_color: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          pickup_message: string | null
+          slug: string | null
+          stock_location_id: string | null
+          store_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pickup_message?: string | null
+          slug?: string | null
+          stock_location_id?: string | null
+          store_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          pickup_message?: string | null
+          slug?: string | null
+          stock_location_id?: string | null
+          store_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lojinha_stock_reservations: {
+        Row: {
+          cart_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          location_id: string
+          product_id: string
+          quantity: number
+          user_id: string
+        }
+        Insert: {
+          cart_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          location_id: string
+          product_id: string
+          quantity: number
+          user_id: string
+        }
+        Update: {
+          cart_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          location_id?: string
+          product_id?: string
+          quantity?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       monthly_plans: {
         Row: {
           created_at: string
@@ -796,6 +1026,7 @@ export type Database = {
           created_at: string
           id: string
           location_id: string
+          lojinha_reserved_qty: number
           product_id: string
           quantity: number
           updated_at: string
@@ -805,6 +1036,7 @@ export type Database = {
           created_at?: string
           id?: string
           location_id: string
+          lojinha_reserved_qty?: number
           product_id: string
           quantity?: number
           updated_at?: string
@@ -814,6 +1046,7 @@ export type Database = {
           created_at?: string
           id?: string
           location_id?: string
+          lojinha_reserved_qty?: number
           product_id?: string
           quantity?: number
           updated_at?: string
@@ -830,10 +1063,12 @@ export type Database = {
           id: string
           is_available: boolean
           name: string
+          online_price: number | null
           photo_url: string | null
           pickup_description: string | null
           price: number
           product_type: string
+          sell_online: boolean
           stock_quantity: number
           track_stock: boolean
           unit: string
@@ -848,10 +1083,12 @@ export type Database = {
           id?: string
           is_available?: boolean
           name: string
+          online_price?: number | null
           photo_url?: string | null
           pickup_description?: string | null
           price?: number
           product_type?: string
+          sell_online?: boolean
           stock_quantity?: number
           track_stock?: boolean
           unit?: string
@@ -866,10 +1103,12 @@ export type Database = {
           id?: string
           is_available?: boolean
           name?: string
+          online_price?: number | null
           photo_url?: string | null
           pickup_description?: string | null
           price?: number
           product_type?: string
+          sell_online?: boolean
           stock_quantity?: number
           track_stock?: boolean
           unit?: string
@@ -1482,6 +1721,33 @@ export type Database = {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
       }
+      lojinha_confirm_payment: {
+        Args: { _mp_payment_id: string; _order_id: string }
+        Returns: Json
+      }
+      lojinha_create_order: {
+        Args: {
+          _cart_token: string
+          _customer_email: string
+          _customer_name: string
+          _customer_phone: string
+          _slug: string
+        }
+        Returns: Json
+      }
+      lojinha_get_order: { Args: { _order_id: string }; Returns: Json }
+      lojinha_get_storefront: { Args: { _slug: string }; Returns: Json }
+      lojinha_release_expired_reservations: { Args: never; Returns: undefined }
+      lojinha_reserve_cart_item: {
+        Args: {
+          _cart_token: string
+          _product_id: string
+          _qty: number
+          _slug: string
+        }
+        Returns: Json
+      }
+      lojinha_validate_qr: { Args: { _token: string }; Returns: Json }
       open_cash_session: {
         Args: { _event_id?: string; _notes?: string; _opening: number }
         Returns: string
