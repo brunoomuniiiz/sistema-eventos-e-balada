@@ -89,9 +89,9 @@ export async function createPosOrder(
   deviceId: string | null,
 ) {
   const { data, error } = await supabase.rpc("lojinha_create_pos_order", {
-    _items: items,
+    _items: items as never,
     _payment_method: paymentMethod,
-    _device_id: deviceId,
+    _device_id: deviceId as never,
   });
   if (error) throw error;
   return data as { order_id: string; total: number };
