@@ -26,6 +26,9 @@ type TeamMember = {
   max_discount_percent: number;
   can_sell_cash: boolean;
   can_authorize: boolean;
+  lojinha_can_sell: boolean;
+  lojinha_payment_methods: string[];
+  lojinha_point_device_id: string | null;
 };
 
 type FormState = {
@@ -38,6 +41,9 @@ type FormState = {
   max_discount_percent: number;
   can_sell_cash: boolean;
   can_authorize: boolean;
+  lojinha_can_sell: boolean;
+  lojinha_payment_methods: string[];
+  lojinha_point_device_id: string | null;
 };
 
 type Preset = {
@@ -56,8 +62,10 @@ const PRESETS: Preset[] = [
     permissions: ["vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
   { key: "caixa_portaria", label: "Caixa da Portaria", description: "Só acessa a aba Portaria (check-in e cobrança de entrada)",
     permissions: ["portaria"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+  { key: "garcom_lojinha", label: "Garçom da Lojinha", description: "Valida QR de pedidos online e (opcional) vende no balcão",
+    permissions: ["lojinha"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
   { key: "gerente", label: "Gerente", description: "Acesso amplo + pode autorizar sangria, desconto e fechamento",
-    permissions: ["vendas", "estoque", "eventos", "promoters", "financeiro", "portaria", "funcionarios"],
+    permissions: ["vendas", "estoque", "eventos", "promoters", "financeiro", "portaria", "funcionarios", "lojinha"],
     can_authorize: true, can_discount: true, max_discount_percent: 100, can_sell_cash: true },
   { key: "custom", label: "Personalizado", description: "Marque manualmente as permissões abaixo",
     permissions: [], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
@@ -73,6 +81,9 @@ const emptyForm = (): FormState => ({
   max_discount_percent: 0,
   can_sell_cash: true,
   can_authorize: false,
+  lojinha_can_sell: false,
+  lojinha_payment_methods: [],
+  lojinha_point_device_id: null,
 });
 
 export function TeamPanel() {
