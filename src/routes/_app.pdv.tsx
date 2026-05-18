@@ -426,10 +426,11 @@ export function PdvView() {
             .map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const isCombo = p.product_type === "combo";
-            const stockTotal = isCombo ? (comboStockMap[p.id] ?? 0) : (stockMap[p.id] ?? 0);
-            // Combos: sempre rastreados via componentes.
-            // Simples: só considera "sem estoque" se existe pelo menos uma row em product_stock e a soma é 0.
-            const tracked = isCombo || (p.track_stock && productsWithStockRows.has(p.id));
+            const comboStock = isCombo ? comboStockMap[p.id] : undefined;
+            // Combos: rastreados apenas se algum componente é rastreado efetivamente (comboStock !== null).
+            // Simples: só rastreado se track_stock E existe row em product_stock.
+            const tracked = isCombo ? (comboStock !== null && comboStock !== undefined) : (p.track_stock && productsWithStockRows.has(p.id));
+            const stockTotal = isCombo ? (comboStock ?? 0) : (stockMap[p.id] ?? 0);
             const outOfStock = tracked && stockTotal <= 0;
             const lowStock = tracked && !outOfStock && stockTotal <= 10;
             return (
