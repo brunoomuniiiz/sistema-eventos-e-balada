@@ -59,6 +59,8 @@ export function PdvView() {
   const [locationId, setLocationId] = useState<string | null>(null);
   const [eventId, setEventId] = useState<string>("none");
   const [discountInput, setDiscountInput] = useState<string>("");
+  const [discountMode, setDiscountMode] = useState<"percent" | "value">("percent");
+  const [discountValueInput, setDiscountValueInput] = useState<number>(0);
   const [openCash, setOpenCash] = useState(false);
   const [openWithdraw, setOpenWithdraw] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
