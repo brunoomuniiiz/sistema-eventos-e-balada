@@ -517,19 +517,52 @@ export function PdvView() {
                 {!canDiscount && <Lock className="h-3 w-3 ml-1" />}
               </Label>
               {canDiscount ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    max={maxDiscountPercent}
-                    step="0.1"
-                    placeholder="0"
-                    value={discountInput}
-                    onChange={(e) => setDiscountInput(e.target.value)}
-                    className="h-10"
-                  />
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">% (máx {maxDiscountPercent}%)</span>
+                <div className="space-y-2">
+                  <div className="flex gap-1 p-1 rounded-lg bg-muted w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setDiscountMode("percent")}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${discountMode === "percent" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                    >
+                      %
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDiscountMode("value")}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${discountMode === "value" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                    >
+                      R$
+                    </button>
+                  </div>
+                  {discountMode === "percent" ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={maxDiscountPercent}
+                        step="0.1"
+                        placeholder="0"
+                        value={discountInput}
+                        onChange={(e) => setDiscountInput(e.target.value)}
+                        className="h-10"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">% (máx {maxDiscountPercent}%)</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <CurrencyInput
+                        value={discountValueInput}
+                        onChange={setDiscountValueInput}
+                        className="h-10"
+                      />
+                      {subtotal > 0 && discountValueInput > 0 && (discountValueInput / subtotal) * 100 > maxDiscountPercent && (
+                        <p className="text-xs text-amber-600">
+                          Limitado a {maxDiscountPercent}% ({formatBRL(subtotal * maxDiscountPercent / 100)})
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground italic">Sem permissão para aplicar desconto</div>
