@@ -307,6 +307,7 @@ export function PdvView() {
       setCart([]);
       setPayments([]);
       setDiscountInput("");
+      setDiscountValueInput(0);
       qc.invalidateQueries({ queryKey: ["pdv-stock-total"] });
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
