@@ -148,21 +148,23 @@ function PortariaPage() {
 
   const addPaying = async () => {
     if (!ownerId || !eventId) return;
+    if (!session?.id) return toast.error("Abra o caixa antes de registrar entradas");
     const amount = Number((payAmount || "0").replace(",", "."));
     if (!Number.isFinite(amount) || amount < 0) return toast.error("Valor inválido");
-    const { error } = await supabase.from("event_entries").insert({
-      user_id: ownerId,
-      event_id: eventId,
-      amount_paid: amount,
-      gender: payGender || null,
-      created_by: user?.id ?? null,
-      created_by_name: user?.email ?? null,
+    const { error } = await supabase.rpc("register_event_entry", {
+      _event_id: eventId,
+      _ticket_type_id: null as unknown as string,
+      _gender: payGender || null as unknown as string,
+      _amount: amount,
+      _payment_method: payMethod,
+      _notes: null as unknown as string,
     });
     if (error) return toast.error(error.message);
     toast.success(`+1 pagante (${formatBRL(amount)})`);
     setPayAmount("");
     setPayGender("");
     refetchSummary();
+    qc.invalidateQueries({ queryKey: ["session-withdrawals", session.id] });
   };
 
   if (loading) return null;
