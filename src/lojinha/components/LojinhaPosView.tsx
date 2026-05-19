@@ -18,6 +18,7 @@ type Product = {
   online_price: number | null;
   photo_url: string | null;
   category_id: string | null;
+  category_name: string | null;
   sell_online: boolean;
   is_available: boolean;
 };
@@ -32,6 +33,7 @@ export function LojinhaPosView() {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("__all__");
   const [step, setStep] = useState<Step>("cart");
   const [method, setMethod] = useState<"pix" | "card" | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
@@ -44,12 +46,15 @@ export function LojinhaPosView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, online_price, photo_url, category_id, sell_online, is_available")
+        .select("id, name, price, online_price, photo_url, category_id, sell_online, is_available, category:product_categories(name)")
         .eq("sell_online", true)
         .eq("is_available", true)
         .order("name");
       if (error) throw error;
-      return data as Product[];
+      return (data ?? []).map((p) => ({
+        ...p,
+        category_name: (p as { category?: { name?: string } | null }).category?.name ?? null,
+      })) as Product[];
     },
   });
 
@@ -72,11 +77,25 @@ export function LojinhaPosView() {
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.unit_price * i.quantity, 0), [cart]);
   const totalItems = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
 
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    products.forEach((p) => {
+      const name = p.category_name ?? "Outros";
+      if (!seen.has(name)) { seen.add(name); out.push(name); }
+    });
+    return out.sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [products]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) => p.name.toLowerCase().includes(q));
-  }, [products, search]);
+    return products.filter((p) => {
+      const cat = p.category_name ?? "Outros";
+      if (activeCategory !== "__all__" && cat !== activeCategory) return false;
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q);
+    });
+  }, [products, search, activeCategory]);
 
   const addToCart = (p: Product) => {
     const price = Number(p.online_price ?? p.price);
@@ -275,6 +294,28 @@ export function LojinhaPosView() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Buscar produto…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-10" />
       </div>
+
+      {categories.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none snap-x">
+          <button
+            type="button"
+            onClick={() => setActiveCategory("__all__")}
+            className={`snap-start whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${activeCategory === "__all__" ? "bg-primary text-primary-foreground border-transparent" : "bg-card text-foreground border-border hover:bg-secondary"}`}
+          >
+            Todos
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setActiveCategory(c)}
+              className={`snap-start whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${activeCategory === c ? "bg-primary text-primary-foreground border-transparent" : "bg-card text-foreground border-border hover:bg-secondary"}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">

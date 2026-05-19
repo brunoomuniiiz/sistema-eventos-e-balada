@@ -23,9 +23,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon, EyeOff, Store } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { toggleProductOnline } from "@/lojinha/api";
 
 import { EstoqueView } from "./_app.estoque";
 import { CategoriasManager } from "@/components/produtos/CategoriasManager";
@@ -100,7 +101,7 @@ function ProdutosPage() {
     unit: "un",
     category_id: "none" as string,
     is_available: true,
-    sell_online: false,
+    sell_online: true,
     online_price: 0,
   });
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
@@ -168,7 +169,7 @@ function ProdutosPage() {
       product_type: type, track_stock: type === "simple",
       description: "", pickup_description: "", photo_url: "", unit: "un",
       category_id: "none", is_available: true,
-      sell_online: false, online_price: 0,
+      sell_online: true, online_price: 0,
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -350,6 +351,20 @@ function ProdutosPage() {
     setCascadeAsk(null);
   };
 
+  const toggleOnline = async (p: Product) => {
+    // Otimista
+    qc.setQueryData<Product[]>(["products-full", ownerId], (old) =>
+      old?.map((x) => x.id === p.id ? { ...x, sell_online: !x.sell_online } : x) ?? old
+    );
+    try {
+      await toggleProductOnline(p.id);
+      toast.success(p.sell_online ? "Removido da lojinha" : "Adicionado à lojinha");
+    } catch (e) {
+      qc.invalidateQueries({ queryKey: ["products-full"] });
+      toast.error(e instanceof Error ? e.message : "Erro");
+    }
+  };
+
   const renderCard = (p: Product) => {
     const items = comboItems.filter((c) => c.combo_product_id === p.id);
     const margin = p.price > 0 ? ((p.price - Number(p.cost_price)) / p.price) * 100 : 0;
@@ -386,11 +401,26 @@ function ProdutosPage() {
               {p.description && <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{p.description}</div>}
             </div>
             <div className="flex flex-col items-end gap-1 self-start">
-              <Switch
-                checked={p.is_available !== false}
-                onCheckedChange={(v) => toggleAvailable(p, v)}
-                aria-label="Disponível"
-              />
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => toggleOnline(p)}
+                  title={p.sell_online ? "Na lojinha — clique para esconder" : "Fora da lojinha — clique para mostrar. Quando o estoque acabar, some sozinho."}
+                  className={`grid place-items-center h-8 w-8 rounded-md border transition-colors ${
+                    p.sell_online
+                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/25"
+                      : "bg-muted border-border text-muted-foreground hover:bg-muted/70"
+                  }`}
+                  aria-label="Vender na lojinha"
+                >
+                  <Store className="h-4 w-4" />
+                </button>
+                <Switch
+                  checked={p.is_available !== false}
+                  onCheckedChange={(v) => toggleAvailable(p, v)}
+                  aria-label="Disponível no PDV"
+                />
+              </div>
               <div className="flex">
                 <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="icon" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
@@ -412,6 +442,7 @@ function ProdutosPage() {
   };
 
   const list = tab === "simple" ? simpleProducts : comboProducts;
+  const onlineCount = list.filter((p) => p.sell_online !== false).length;
 
   return (
     <div>
@@ -433,6 +464,14 @@ function ProdutosPage() {
         <TabsContent value="simple" />
         <TabsContent value="combo" />
       </Tabs>
+
+      <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <Store className="h-3.5 w-3.5 text-emerald-500" />
+        <span>
+          <strong className="text-foreground">{onlineCount}</strong> de {list.length} na lojinha
+        </span>
+        <span className="opacity-60">· clique no <Store className="inline h-3 w-3" /> de cada produto para ligar/desligar</span>
+      </div>
 
       {list.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
