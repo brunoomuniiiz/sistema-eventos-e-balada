@@ -1096,6 +1096,74 @@ export type Database = {
         }
         Relationships: []
       }
+      pix_charges: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          expires_at: string | null
+          id: string
+          mp_payment_id: string | null
+          order_id: string | null
+          origin: string
+          paid_at: string | null
+          qr_code: string | null
+          qr_code_base64: string | null
+          sale_payload: Json | null
+          sector: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          mp_payment_id?: string | null
+          order_id?: string | null
+          origin: string
+          paid_at?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          sale_payload?: Json | null
+          sector: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          mp_payment_id?: string | null
+          order_id?: string | null
+          origin?: string
+          paid_at?: string | null
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          sale_payload?: Json | null
+          sector?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pix_charges_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lojinha_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_categories: {
         Row: {
           created_at: string
@@ -1851,6 +1919,7 @@ export type Database = {
       }
       confirm_close_sector: { Args: { _sector: string }; Returns: string }
       consume_grant: { Args: { _scope: string; _token: string }; Returns: Json }
+      finalize_sale_from_pix: { Args: { _charge_id: string }; Returns: string }
       force_close_sector: { Args: { _sector: string }; Returns: string }
       force_open_sector: {
         Args: { _opening_amount: number; _sector: string }
