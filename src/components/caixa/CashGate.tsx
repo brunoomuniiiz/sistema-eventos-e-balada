@@ -15,14 +15,29 @@ type Props = {
 };
 
 export function CashGate({ sector, sectorLabel, children }: Props) {
-  const { row, isLoading } = useSectorStatus(sector);
+  const { row, isLoading, error, refetch } = useSectorStatus(sector);
   const [busy, setBusy] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
 
-  if (isLoading || !row) {
+  if (isLoading && !row) {
     return (
       <Card className="p-10 text-center text-muted-foreground">
         Carregando estado do caixa…
+      </Card>
+    );
+  }
+
+  if (error || !row) {
+    return (
+      <Card className="p-8 text-center space-y-4 max-w-md mx-auto mt-8 border-destructive/40">
+        <Lock className="h-12 w-12 mx-auto text-destructive" />
+        <div>
+          <h2 className="text-xl font-display font-bold">Não foi possível carregar o caixa</h2>
+          <p className="text-sm text-muted-foreground mt-1 break-words">
+            {error instanceof Error ? error.message : "Estado do caixa indisponível."}
+          </p>
+        </div>
+        <Button onClick={() => refetch()} className="w-full">Tentar novamente</Button>
       </Card>
     );
   }
