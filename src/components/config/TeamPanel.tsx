@@ -111,7 +111,7 @@ export function TeamPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id")
+        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
