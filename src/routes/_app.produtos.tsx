@@ -351,6 +351,20 @@ function ProdutosPage() {
     setCascadeAsk(null);
   };
 
+  const toggleOnline = async (p: Product) => {
+    // Otimista
+    qc.setQueryData<Product[]>(["products-full", ownerId], (old) =>
+      old?.map((x) => x.id === p.id ? { ...x, sell_online: !x.sell_online } : x) ?? old
+    );
+    try {
+      await toggleProductOnline(p.id);
+      toast.success(p.sell_online ? "Removido da lojinha" : "Adicionado à lojinha");
+    } catch (e) {
+      qc.invalidateQueries({ queryKey: ["products-full"] });
+      toast.error(e instanceof Error ? e.message : "Erro");
+    }
+  };
+
   const renderCard = (p: Product) => {
     const items = comboItems.filter((c) => c.combo_product_id === p.id);
     const margin = p.price > 0 ? ((p.price - Number(p.cost_price)) / p.price) * 100 : 0;
