@@ -515,6 +515,9 @@ export type Database = {
           gender: string | null
           id: string
           notes: string | null
+          payment_method: string | null
+          sale_id: string | null
+          session_id: string | null
           ticket_type_id: string | null
           user_id: string
         }
@@ -527,6 +530,9 @@ export type Database = {
           gender?: string | null
           id?: string
           notes?: string | null
+          payment_method?: string | null
+          sale_id?: string | null
+          session_id?: string | null
           ticket_type_id?: string | null
           user_id: string
         }
@@ -539,6 +545,9 @@ export type Database = {
           gender?: string | null
           id?: string
           notes?: string | null
+          payment_method?: string | null
+          sale_id?: string | null
+          session_id?: string | null
           ticket_type_id?: string | null
           user_id?: string
         }
@@ -1632,6 +1641,9 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          aceita_cartao: boolean
+          aceita_dinheiro: boolean
+          aceita_pix: boolean
           can_authorize: boolean
           can_discount: boolean
           can_sell_cash: boolean
@@ -1645,12 +1657,16 @@ export type Database = {
           max_discount_percent: number
           owner_id: string
           permissions: string[]
+          pode_adicionar_bebidas: boolean
           role: Database["public"]["Enums"]["app_role"]
           role_preset: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          aceita_cartao?: boolean
+          aceita_dinheiro?: boolean
+          aceita_pix?: boolean
           can_authorize?: boolean
           can_discount?: boolean
           can_sell_cash?: boolean
@@ -1664,12 +1680,16 @@ export type Database = {
           max_discount_percent?: number
           owner_id: string
           permissions?: string[]
+          pode_adicionar_bebidas?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           role_preset?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          aceita_cartao?: boolean
+          aceita_dinheiro?: boolean
+          aceita_pix?: boolean
           can_authorize?: boolean
           can_discount?: boolean
           can_sell_cash?: boolean
@@ -1683,6 +1703,7 @@ export type Database = {
           max_discount_percent?: number
           owner_id?: string
           permissions?: string[]
+          pode_adicionar_bebidas?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           role_preset?: string | null
           updated_at?: string
@@ -1820,6 +1841,17 @@ export type Database = {
       lojinha_validate_qr: { Args: { _token: string }; Returns: Json }
       open_cash_session: {
         Args: { _event_id?: string; _notes?: string; _opening: number }
+        Returns: string
+      }
+      register_event_entry: {
+        Args: {
+          _amount: number
+          _event_id: string
+          _gender: string
+          _notes?: string
+          _payment_method: string
+          _ticket_type_id: string
+        }
         Returns: string
       }
       register_withdrawal: {
