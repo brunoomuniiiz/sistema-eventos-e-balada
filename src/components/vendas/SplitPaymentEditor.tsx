@@ -23,9 +23,10 @@ interface Props {
   payments: PaymentLine[];
   onChange: (next: PaymentLine[]) => void;
   canSellCash: boolean;
+  acceptedMethods?: PaymentMethod[];
 }
 
-export function SplitPaymentEditor({ total, payments, onChange, canSellCash }: Props) {
+export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acceptedMethods }: Props) {
   const paid = payments.reduce((s, p) => s + p.amount, 0);
   const dinheiroPaid = payments
     .filter((p) => p.method === "dinheiro")
@@ -65,7 +66,11 @@ export function SplitPaymentEditor({ total, payments, onChange, canSellCash }: P
     onChange(payments.filter((_, i) => i !== idx));
   };
 
-  const availableMethods = METHODS.filter((m) => m.key !== "dinheiro" || canSellCash);
+  const availableMethods = METHODS.filter((m) => {
+    if (m.key === "dinheiro" && !canSellCash) return false;
+    if (acceptedMethods && !acceptedMethods.includes(m.key)) return false;
+    return true;
+  });
 
   // ---------- Wizard overlay ----------
   if (wizardStep) {
