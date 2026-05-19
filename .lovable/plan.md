@@ -1,68 +1,61 @@
-## Objetivo
+## Decisão: estoque único por bar
 
-1. Tornar a visibilidade na lojinha o **padrão** de todo produto, com toggle rápido na lista de produtos.
-2. Produtos sem estoque no local da lojinha **somem automaticamente** do storefront.
-3. Storefront público mobile-first: **categorias no topo** (com "Todos" inicial) + **busca por lupa**.
+Acabamos com a ideia de múltiplos locais. Cada owner passa a ter **um único `stock_location`** ("Estoque"). Lojinha, PDV e inventário leem/escrevem nesse local sempre. Some o seletor de local da UI.
 
----
+## Migração de dados (idempotente, por owner)
 
-## 1. Banco de dados (migração)
+Para cada `user_id` em `stock_locations`:
+1. Escolher um local "canônico" — o mais antigo (`MIN(created_at)`); renomear para "Estoque".
+2. `UPDATE product_stock` consolidar: somar `quantity` e `lojinha_reserved_qty` de todos os locais do owner no canônico. Inserir linha para produtos que só existiam nos outros locais.
+3. `UPDATE sales SET location_id = canônico` para todas vendas desse owner.
+4. `UPDATE lojinha_settings SET stock_location_id = canônico`.
+5. `UPDATE stock_inventories SET location_id = canônico`.
+6. `UPDATE lojinha_stock_reservations SET location_id = canônico`.
+7. `DELETE FROM product_stock` das linhas dos locais não-canônicos.
+8. `DELETE FROM stock_locations` dos não-canônicos.
 
-- `products.sell_online` → default `true`.
-- Backfill: `UPDATE products SET sell_online = true` (todos passam a aparecer; owner desliga manualmente quando precisar).
-- Ajustar `lojinha_get_storefront` para:
-  - Filtrar `available_qty > 0` (sem estoque = não aparece).
-  - Retornar também `category_name` junto de cada produto (pra renderizar abas de categoria sem nova query).
-- Nova RPC `lojinha_toggle_sell_online(_product_id uuid)` — flip atômico do flag, respeita RLS de `estoque`.
+Resultado: cada owner fica com 1 só local, com soma de todos os estoques.
 
-## 2. Página de produtos (`/_app/produtos`)
+## Schema / RPCs
 
-- Adicionar **toggle inline "Na lojinha"** em cada card/linha:
-  - Ícone `Store` + switch verde/cinza, 1 clique.
-  - Tooltip: *"Quando o estoque acabar no local da lojinha, some sozinho do site"*.
-- Pequeno contador no topo: *"X de Y produtos na lojinha"*.
+- **Não removo** a coluna `location_id` (mantém histórico em sales/inventários). Apenas paro de oferecer escolha.
+- **`lojinha_get_storefront`**: recriar para listar **todos** produtos com `sell_online = true`, e calcular `available_qty`:
+  - Produto simples (`track_stock = true`): `product_stock.quantity − lojinha_reserved_qty` no único local do owner.
+  - Produto simples sem track_stock: `available_qty = 9999` (sempre disponível).
+  - Combo (`product_type = 'combo'`): `MIN(floor(componente.quantity / item.quantity))` sobre `combo_items`. Se sem componentes definidos, `0`.
+- Não filtrar por estoque — esgotados aparecem com badge "Esgotado".
 
-## 3. Storefront público (`/loja/$slug`) — mobile-first
+## UI
 
-Layout reescrito pensando em celular primeiro (viewport ~375px) e escalando bem pra desktop:
+- **`src/lojinha/components/LojinhaSettingsPanel.tsx`**: remover o seletor "Local da lojinha". Mostrar apenas "Estoque: <nome do local>" como info (ou esconder a linha).
+- **`src/routes/_app.estoque.tsx`**: remover abas/seleção de local; sempre opera no único local. Esconder gestão de locais.
+- **`src/routes/_app.pdv.tsx`**: remover seletor de local; usa o único do owner.
+- **`src/routes/loja.$slug.tsx`** e **`LojinhaPosView.tsx`**: produto esgotado fica visível com opacidade reduzida + "Esgotado" + botão desabilitado. Ordenar disponíveis primeiro.
 
-- **Header compacto** com nome da loja + cor de destaque (já existe).
-- **Barra de busca com lupa** logo abaixo do header:
-  - Input com ícone `Search` à esquerda, filtra produtos por nome/descrição em tempo real (client-side).
-  - Em mobile: largura total. Em desktop (md+): max-width centralizado.
-- **Tabs de categorias horizontais** logo abaixo da busca:
-  - Primeira aba sempre **"Todos"** (selecionada por padrão).
-  - Demais abas geradas dinamicamente a partir das categorias dos produtos disponíveis.
-  - Scroll horizontal em mobile (`overflow-x-auto`, sem barra visível, snap suave).
-  - Chips arredondados, cor ativa = `accent_color` da loja.
-- **Grid de produtos**:
-  - Mobile: 1 coluna (cards full-width, foto à esquerda, info à direita — como está hoje).
-  - Tablet (md): 2 colunas.
-  - Desktop (lg): 3 colunas.
-- **Estado vazio**: quando busca/categoria não retorna nada → mensagem amigável com ícone.
-- **Barra inferior fixa do carrinho**: já existe, manter, garantir que não sobrepõe último item (padding-bottom já está em 32).
+## Checkout — copy sobre cookies
 
-## 4. PDV do garçom (`LojinhaPosView`)
+Acima dos campos do `Sheet` de finalização adicionar:
+> "Preencha só na primeira compra — salvamos no seu navegador para a próxima ser num toque. Para apagar, limpe os cookies deste site."
 
-- Aplicar mesmo padrão: lupa + tabs de categoria + "Todos" inicial (já é mobile-first por natureza). Ajustar pra usar os mesmos dados que o storefront retorna.
+## Redirect pós-login por permissão (`src/routes/index.tsx`)
 
-## 5. Regras de preço e estoque
-
-- `online_price` continua opcional. Se `NULL`, usa `price` normal.
-- Estoque acabou no local da lojinha → produto some automaticamente (regra na RPC, sem precisar de cron).
-
----
+1. Owner → `/dashboard`.
+2. `can("vendas")` → `/pdv`.
+3. `lojinhaCanSell` ou `can("lojinha")` → `/lojinha`.
+4. Senão, primeira permissão: `portaria → /portaria`, `estoque → /estoque`, `eventos → /eventos`, `financeiro → /financeiro`, `funcionarios → /funcionarios`, `promoters → /promoters`.
+5. Fallback `/dashboard`.
 
 ## Arquivos a tocar
 
-- `supabase/migrations/<novo>.sql` — default, backfill, RPC toggle, ajuste `lojinha_get_storefront`.
-- `src/lojinha/api.ts` — `toggleProductOnline(productId)` + atualizar tipo `StorefrontProduct` com `category_name`.
-- `src/routes/_app.produtos.tsx` — toggle inline + contador.
-- `src/routes/loja.$slug.tsx` — reescrever a área de listagem com busca + tabs de categoria + grid responsivo.
-- `src/lojinha/components/LojinhaPosView.tsx` — espelhar busca + tabs.
+- `supabase/migrations/<nova>.sql` — consolidação + nova `lojinha_get_storefront`.
+- `src/lojinha/components/LojinhaSettingsPanel.tsx`
+- `src/routes/_app.estoque.tsx`
+- `src/routes/_app.pdv.tsx`
+- `src/routes/loja.$slug.tsx`
+- `src/lojinha/components/LojinhaPosView.tsx`
+- `src/routes/index.tsx`
 
 ## Fora do escopo
 
-- Ordenação manual de produtos no storefront.
-- Edição em massa de preço online.
-- Imagens de capa por categoria.
+- Reintroduzir multi-estoque depois (se mudar de ideia, recriamos locais e a coluna continua lá).
+- Reservar combos com explosão de componentes no carrinho online — combo aparece, mas a reserva continua tentando subtrair como item; ajuste fino fica para próxima.

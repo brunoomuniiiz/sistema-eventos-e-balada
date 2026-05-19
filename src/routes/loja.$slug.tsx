@@ -61,7 +61,7 @@ function StorefrontPage() {
 
   const visibleProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (data?.products ?? []).filter((p) => {
+    const list = (data?.products ?? []).filter((p) => {
       const cat = p.category_name ?? "Outros";
       if (activeCategory !== "__all__" && cat !== activeCategory) return false;
       if (!q) return true;
@@ -69,6 +69,12 @@ function StorefrontPage() {
         p.name.toLowerCase().includes(q) ||
         (p.description?.toLowerCase().includes(q) ?? false)
       );
+    });
+    // Disponíveis primeiro, esgotados no fim
+    return [...list].sort((a, b) => {
+      const ao = a.available_qty > 0 ? 0 : 1;
+      const bo = b.available_qty > 0 ? 0 : 1;
+      return ao - bo;
     });
   }, [data, search, activeCategory]);
 
@@ -217,7 +223,7 @@ function StorefrontPage() {
               const inCart = cart.find((c) => c.product_id === p.id)?.quantity ?? 0;
               const soldOut = p.available_qty <= 0 && inCart === 0;
               return (
-                <Card key={p.id} className="overflow-hidden">
+                <Card key={p.id} className={`overflow-hidden ${soldOut ? "opacity-60" : ""}`}>
                   <CardContent className="p-3 flex gap-3">
                     {p.photo_url ? (
                       <img src={p.photo_url} alt={p.name} className="h-20 w-20 rounded-lg object-cover shrink-0" />
@@ -233,7 +239,7 @@ function StorefrontPage() {
                     </div>
                     <div className="flex flex-col items-center justify-center gap-1 shrink-0">
                       {soldOut ? (
-                        <span className="text-xs text-destructive">Esgotado</span>
+                        <span className="text-xs font-medium text-destructive whitespace-nowrap">Esgotado</span>
                       ) : inCart === 0 ? (
                         <Button size="sm" onClick={() => changeQty(p.id, 1)} style={{ background: accent }}>
                           <Plus className="h-4 w-4" />
@@ -288,6 +294,9 @@ function StorefrontPage() {
                 </div>
               </div>
               <div className="space-y-3 pb-4">
+                <p className="text-xs text-muted-foreground bg-secondary/50 rounded-md px-3 py-2">
+                  Preencha só na primeira compra — salvamos no seu navegador para a próxima ser num toque. Para apagar, limpe os cookies deste site.
+                </p>
                 <div>
                   <Label>Nome *</Label>
                   <Input value={customer.name} onChange={(e) => setCustomerState({ ...customer, name: e.target.value })} placeholder="Seu nome" />

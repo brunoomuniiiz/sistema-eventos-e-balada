@@ -9,7 +9,7 @@ export const Route = createFileRoute("/")({
 
 function RootRedirect() {
   const { user, loading: authLoading } = useAuth();
-  const { isOwner, can, loading: permsLoading } = usePermissions();
+  const { isOwner, can, lojinhaCanSell, loading: permsLoading } = usePermissions();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,18 +19,28 @@ function RootRedirect() {
       return;
     }
     if (permsLoading) return;
-    if (isOwner || can("financeiro")) {
+    if (isOwner) {
       navigate({ to: "/dashboard", replace: true });
     } else if (can("vendas")) {
       navigate({ to: "/pdv", replace: true });
+    } else if (lojinhaCanSell || can("lojinha")) {
+      navigate({ to: "/lojinha", replace: true });
     } else if (can("portaria")) {
       navigate({ to: "/portaria", replace: true });
     } else if (can("estoque")) {
       navigate({ to: "/estoque", replace: true });
+    } else if (can("eventos")) {
+      navigate({ to: "/eventos", replace: true });
+    } else if (can("financeiro")) {
+      navigate({ to: "/financeiro", replace: true });
+    } else if (can("funcionarios")) {
+      navigate({ to: "/funcionarios", replace: true });
+    } else if (can("promoters")) {
+      navigate({ to: "/promoters", replace: true });
     } else {
       navigate({ to: "/dashboard", replace: true });
     }
-  }, [user, authLoading, permsLoading, isOwner, can, navigate]);
+  }, [user, authLoading, permsLoading, isOwner, can, lojinhaCanSell, navigate]);
 
   return (
     <div className="min-h-screen grid place-items-center">

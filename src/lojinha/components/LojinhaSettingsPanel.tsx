@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { toast } from "sonner";
 
 type Settings = {
@@ -71,8 +71,14 @@ export function LojinhaSettingsPanel() {
 
   async function save() {
     if (!user) return;
-    if (form.enabled && (!form.slug.trim() || !form.stock_location_id)) {
-      toast.error("Para ativar a loja informe slug e localização de estoque");
+    // Estoque único: usa o primeiro local automaticamente
+    const stockLocId = form.stock_location_id ?? locations[0]?.id ?? null;
+    if (form.enabled && !form.slug.trim()) {
+      toast.error("Informe o slug para ativar a loja");
+      return;
+    }
+    if (form.enabled && !stockLocId) {
+      toast.error("Crie um local de estoque em Estoque antes de ativar a loja");
       return;
     }
     setSaving(true);
@@ -82,7 +88,7 @@ export function LojinhaSettingsPanel() {
         enabled: form.enabled,
         slug: form.slug.trim().toLowerCase() || null,
         store_name: form.store_name.trim() || null,
-        stock_location_id: form.stock_location_id,
+        stock_location_id: stockLocId,
         pickup_message: form.pickup_message,
         accent_color: form.accent_color,
       };
@@ -131,16 +137,7 @@ export function LojinhaSettingsPanel() {
           </div>
         </div>
 
-        <div>
-          <Label>Localização de estoque</Label>
-          <Select value={form.stock_location_id ?? ""} onValueChange={(v) => setForm({ ...form, stock_location_id: v })}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground mt-1">Estoque usado para validar disponibilidade e baixa.</p>
-        </div>
+        {/* Estoque único — auto-selecionado, sem escolha */}
 
         <div>
           <Label>Mensagem de retirada</Label>
