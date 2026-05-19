@@ -450,9 +450,11 @@ function ProdutosPage() {
         title="Produtos"
         subtitle="Cadastro de bebidas, comidas e combos"
         actions={
-          <Button onClick={() => openNew(tab)}>
-            <Plus className="h-4 w-4" /> Novo {tab === "combo" ? "combo" : "produto"}
-          </Button>
+          canAddProducts ? (
+            <Button onClick={() => openNew(tab)}>
+              <Plus className="h-4 w-4" /> Novo {tab === "combo" ? "combo" : "produto"}
+            </Button>
+          ) : null
         }
       />
 
