@@ -442,6 +442,7 @@ function ProdutosPage() {
   };
 
   const list = tab === "simple" ? simpleProducts : comboProducts;
+  const onlineCount = list.filter((p) => p.sell_online !== false).length;
 
   return (
     <div>
