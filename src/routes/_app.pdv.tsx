@@ -404,7 +404,17 @@ export function PdvView() {
         />
       </div>
 
-      {products.length === 0 ? (
+      {productsError ? (
+        <Card className="p-8 text-center text-destructive">
+          <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          <div className="font-semibold mb-1">Erro ao carregar produtos</div>
+          <div className="text-xs opacity-80">{productsError.message}</div>
+        </Card>
+      ) : productsLoading ? (
+        <Card className="p-8 text-center text-muted-foreground">
+          Carregando produtos…
+        </Card>
+      ) : products.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
           <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
           Nenhum produto cadastrado
