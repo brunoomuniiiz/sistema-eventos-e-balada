@@ -256,6 +256,7 @@ function PortariaPage() {
         <TabsList>
           <TabsTrigger value="lista" className="gap-1"><Users className="h-4 w-4" />Lista VIP</TabsTrigger>
           <TabsTrigger value="pagante" className="gap-1"><Ticket className="h-4 w-4" />Pagante</TabsTrigger>
+          <TabsTrigger value="caixa" className="gap-1"><Wallet className="h-4 w-4" />Caixa</TabsTrigger>
           <TabsTrigger value="relatorio" className="gap-1"><BarChart3 className="h-4 w-4" />Relatório</TabsTrigger>
         </TabsList>
 
