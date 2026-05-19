@@ -81,7 +81,7 @@ type ComboItem = {
 type DraftComponent = { component_product_id: string; quantity: number };
 
 function ProdutosPage() {
-  const { ownerId, can, loading } = usePermissions();
+  const { ownerId, can, canAddProducts, loading } = usePermissions();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
