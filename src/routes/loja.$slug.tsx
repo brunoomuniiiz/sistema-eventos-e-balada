@@ -294,6 +294,9 @@ function StorefrontPage() {
                 </div>
               </div>
               <div className="space-y-3 pb-4">
+                <p className="text-xs text-muted-foreground bg-secondary/50 rounded-md px-3 py-2">
+                  Preencha só na primeira compra — salvamos no seu navegador para a próxima ser num toque. Para apagar, limpe os cookies deste site.
+                </p>
                 <div>
                   <Label>Nome *</Label>
                   <Input value={customer.name} onChange={(e) => setCustomerState({ ...customer, name: e.target.value })} placeholder="Seu nome" />
