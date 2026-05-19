@@ -10,6 +10,7 @@ import { PdvView } from "./_app.pdv";
 import { SalesHistory } from "@/components/vendas/SalesHistory";
 import { CashClosingDialog } from "@/components/vendas/CashClosingDialog";
 import { SessionWithdrawalsCard } from "@/components/vendas/SessionWithdrawalsCard";
+import { CashGate } from "@/components/caixa/CashGate";
 
 export const Route = createFileRoute("/_app/vendas")({
   component: VendasPage,
@@ -31,7 +32,7 @@ function VendasPage() {
         <TabsTrigger value="historico">Histórico</TabsTrigger>
         <TabsTrigger value="fechamento">Fechamento</TabsTrigger>
       </TabsList>
-      <TabsContent value="pdv"><PdvView /></TabsContent>
+      <TabsContent value="pdv"><CashGate sector="bar" sectorLabel="Bar"><PdvView /></CashGate></TabsContent>
       <TabsContent value="historico"><SalesHistory ownerId={ownerId} /></TabsContent>
       <TabsContent value="fechamento" className="space-y-4">
         <Card>

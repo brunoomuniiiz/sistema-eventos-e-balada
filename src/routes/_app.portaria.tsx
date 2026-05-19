@@ -21,6 +21,7 @@ import { formatBRL } from "@/lib/format";
 import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
 import { CashClosingDialog } from "@/components/vendas/CashClosingDialog";
 import { SessionWithdrawalsCard } from "@/components/vendas/SessionWithdrawalsCard";
+import { CashGate } from "@/components/caixa/CashGate";
 
 export const Route = createFileRoute("/_app/portaria")({
   component: PortariaPage,
@@ -193,6 +194,8 @@ function PortariaPage() {
   return (
     <div className="pb-8">
       <PageHeader title="Portaria" subtitle="Check-in da lista, entradas pagantes e relatório ao vivo" />
+      <CashGate sector="portaria" sectorLabel="Portaria">
+
 
       {/* Evento ativo */}
       <div className="mb-4">
@@ -441,6 +444,7 @@ function PortariaPage() {
         onOpenChange={setClosingCash}
         onDone={() => { setClosingCash(false); refetchSession(); }}
       />
+      </CashGate>
     </div>
   );
 }

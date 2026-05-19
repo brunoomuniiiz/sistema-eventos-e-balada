@@ -257,6 +257,60 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_register_sectors: {
+        Row: {
+          authorized_at: string | null
+          authorized_by: string | null
+          authorized_by_name: string | null
+          close_declared: Json | null
+          created_at: string
+          id: string
+          notes: string | null
+          opening_amount: number
+          requested_at: string | null
+          requested_by: string | null
+          requested_by_name: string | null
+          sector: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          authorized_at?: string | null
+          authorized_by?: string | null
+          authorized_by_name?: string | null
+          close_declared?: Json | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opening_amount?: number
+          requested_at?: string | null
+          requested_by?: string | null
+          requested_by_name?: string | null
+          sector: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          authorized_at?: string | null
+          authorized_by?: string | null
+          authorized_by_name?: string | null
+          close_declared?: Json | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opening_amount?: number
+          requested_at?: string | null
+          requested_by?: string | null
+          requested_by_name?: string | null
+          sector?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cash_sessions: {
         Row: {
           closed_at: string | null
@@ -1716,6 +1770,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _can_authorize_cash: {
+        Args: { _owner: string; _uid: string }
+        Returns: boolean
+      }
+      _ensure_sector_row: {
+        Args: { _owner: string; _sector: string }
+        Returns: {
+          authorized_at: string | null
+          authorized_by: string | null
+          authorized_by_name: string | null
+          close_declared: Json | null
+          created_at: string
+          id: string
+          notes: string | null
+          opening_amount: number
+          requested_at: string | null
+          requested_by: string | null
+          requested_by_name: string | null
+          sector: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cash_register_sectors"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _sector_permission: { Args: { _sector: string }; Returns: string }
       add_guest_to_event: {
         Args: {
           _companions?: Json
@@ -1741,6 +1826,10 @@ export type Database = {
         }
         Returns: Json
       }
+      authorize_open_sector: {
+        Args: { _notes?: string; _opening_amount: number; _sector: string }
+        Returns: string
+      }
       checkin_guest: {
         Args: { _checked: boolean; _entry_id: string }
         Returns: undefined
@@ -1760,7 +1849,13 @@ export type Database = {
         Args: { _adjust_stock?: boolean; _inventory_id: string }
         Returns: undefined
       }
+      confirm_close_sector: { Args: { _sector: string }; Returns: string }
       consume_grant: { Args: { _scope: string; _token: string }; Returns: Json }
+      force_close_sector: { Args: { _sector: string }; Returns: string }
+      force_open_sector: {
+        Args: { _opening_amount: number; _sector: string }
+        Returns: string
+      }
       get_combo_items_for_sales: {
         Args: never
         Returns: {
@@ -1787,6 +1882,32 @@ export type Database = {
       get_my_open_session: { Args: never; Returns: Json }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
       get_portaria_summary: { Args: { _event_id: string }; Returns: Json }
+      get_sector_statuses: {
+        Args: never
+        Returns: {
+          authorized_at: string | null
+          authorized_by: string | null
+          authorized_by_name: string | null
+          close_declared: Json | null
+          created_at: string
+          id: string
+          notes: string | null
+          opening_amount: number
+          requested_at: string | null
+          requested_by: string | null
+          requested_by_name: string | null
+          sector: string
+          status: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "cash_register_sectors"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_session_expected_totals: { Args: never; Returns: Json }
       has_permission: {
         Args: { _owner_id: string; _permission: string; _user_id: string }
@@ -1858,6 +1979,11 @@ export type Database = {
         Args: { _amount: number; _grant_token: string; _reason: string }
         Returns: string
       }
+      request_close_sector: {
+        Args: { _declared?: Json; _sector: string }
+        Returns: string
+      }
+      request_open_sector: { Args: { _sector: string }; Returns: string }
       seed_default_bar_expense_categories: {
         Args: { _user_id: string }
         Returns: undefined
