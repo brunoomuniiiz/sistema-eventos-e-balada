@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { display_name: display_name ?? email.split("@")[0] },
+      user_metadata: { display_name: display_name ?? email.split("@")[0], invited_by: ownerId },
     });
     if (createErr || !created.user) return json({ error: createErr?.message ?? "Falha ao criar" }, 400);
 
