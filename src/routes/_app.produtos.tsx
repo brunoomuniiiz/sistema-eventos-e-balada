@@ -101,7 +101,7 @@ function ProdutosPage() {
     unit: "un",
     category_id: "none" as string,
     is_available: true,
-    sell_online: false,
+    sell_online: true,
     online_price: 0,
   });
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
