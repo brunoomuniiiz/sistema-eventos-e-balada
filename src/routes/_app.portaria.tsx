@@ -207,6 +207,31 @@ function PortariaPage() {
         </Select>
       </div>
 
+      {/* Status do caixa */}
+      <Card className="mb-4">
+        <CardContent className="p-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-sm">
+            <Wallet className="h-4 w-4 text-primary" />
+            {session ? (
+              <span>
+                Caixa <strong className="text-emerald-500">aberto</strong> · troco {formatBRL(Number(session.opening_amount))}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Caixa fechado — abra para registrar entradas pagantes</span>
+            )}
+          </div>
+          {!session ? (
+            <Button size="sm" onClick={() => setOpenCash(true)}>
+              <Wallet className="h-4 w-4" /> Abrir caixa
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => setClosingCash(true)}>
+              <LockKeyhole className="h-4 w-4" /> Fechar caixa
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Resumo ao vivo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <Card><CardContent className="p-3">
