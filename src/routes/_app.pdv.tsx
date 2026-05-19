@@ -589,6 +589,7 @@ export function PdvView() {
               payments={payments}
               onChange={setPayments}
               canSellCash={canSellCash}
+              acceptedMethods={acceptedMethods}
             />
           </div>
 
