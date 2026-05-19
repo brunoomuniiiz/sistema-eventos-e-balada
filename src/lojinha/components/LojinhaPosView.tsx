@@ -46,12 +46,15 @@ export function LojinhaPosView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, online_price, photo_url, category_id, sell_online, is_available")
+        .select("id, name, price, online_price, photo_url, category_id, sell_online, is_available, category:product_categories(name)")
         .eq("sell_online", true)
         .eq("is_available", true)
         .order("name");
       if (error) throw error;
-      return data as Product[];
+      return (data ?? []).map((p) => ({
+        ...p,
+        category_name: (p as { category?: { name?: string } | null }).category?.name ?? null,
+      })) as Product[];
     },
   });
 
