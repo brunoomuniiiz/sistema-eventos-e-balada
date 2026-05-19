@@ -16,10 +16,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
+    let prevUserId: string | null | undefined = undefined;
     // Set up listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      const newUserId = newSession?.user?.id ?? null;
+      // Sempre que o usuário mudar (login, logout, troca de conta), limpa caches
+      // para evitar que dados de outro usuário fiquem visíveis até a próxima navegação.
+      if (prevUserId !== undefined && prevUserId !== newUserId) {
+        queryClient.clear();
+      }
+      prevUserId = newUserId;
       setSession(newSession);
       setUser(newSession?.user ?? null);
       setLoading(false);
@@ -27,13 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // THEN check existing session
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
+      prevUserId = existing?.user?.id ?? null;
       setSession(existing);
       setUser(existing?.user ?? null);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
