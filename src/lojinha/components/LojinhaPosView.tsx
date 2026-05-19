@@ -77,11 +77,25 @@ export function LojinhaPosView() {
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.unit_price * i.quantity, 0), [cart]);
   const totalItems = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
 
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    products.forEach((p) => {
+      const name = p.category_name ?? "Outros";
+      if (!seen.has(name)) { seen.add(name); out.push(name); }
+    });
+    return out.sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [products]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) => p.name.toLowerCase().includes(q));
-  }, [products, search]);
+    return products.filter((p) => {
+      const cat = p.category_name ?? "Outros";
+      if (activeCategory !== "__all__" && cat !== activeCategory) return false;
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q);
+    });
+  }, [products, search, activeCategory]);
 
   const addToCart = (p: Product) => {
     const price = Number(p.online_price ?? p.price);
