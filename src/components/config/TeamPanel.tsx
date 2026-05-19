@@ -29,6 +29,10 @@ type TeamMember = {
   lojinha_can_sell: boolean;
   lojinha_payment_methods: string[];
   lojinha_point_device_id: string | null;
+  pode_adicionar_bebidas: boolean;
+  aceita_dinheiro: boolean;
+  aceita_pix: boolean;
+  aceita_cartao: boolean;
 };
 
 type FormState = {
@@ -39,11 +43,14 @@ type FormState = {
   permissions: Permission[];
   can_discount: boolean;
   max_discount_percent: number;
-  can_sell_cash: boolean;
   can_authorize: boolean;
   lojinha_can_sell: boolean;
   lojinha_payment_methods: string[];
   lojinha_point_device_id: string | null;
+  pode_adicionar_bebidas: boolean;
+  aceita_dinheiro: boolean;
+  aceita_pix: boolean;
+  aceita_cartao: boolean;
 };
 
 type Preset = {
@@ -54,21 +61,22 @@ type Preset = {
   can_authorize: boolean;
   can_discount: boolean;
   max_discount_percent: number;
-  can_sell_cash: boolean;
 };
 
 const PRESETS: Preset[] = [
-  { key: "caixa_bar", label: "Caixa do Bar", description: "Vende no PDV; sangria/desconto extra precisa de autorização",
-    permissions: ["vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
-  { key: "caixa_portaria", label: "Caixa da Portaria", description: "Só acessa a aba Portaria (check-in e cobrança de entrada)",
-    permissions: ["portaria"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
-  { key: "garcom_lojinha", label: "Garçom da Lojinha", description: "Valida QR de pedidos online e (opcional) vende no balcão",
-    permissions: ["lojinha"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+  { key: "garcom", label: "Garçom", description: "Só valida QR de pedidos online e vê a fila de entregas",
+    permissions: ["lojinha"], can_authorize: false, can_discount: false, max_discount_percent: 0 },
+  { key: "garcom_caixa", label: "Garçom Caixa", description: "Valida QR + vende no PDV",
+    permissions: ["lojinha", "vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0 },
+  { key: "caixa_bar", label: "Caixa do Bar (fixo)", description: "Vende no PDV; pode escanear QR se precisar",
+    permissions: ["vendas", "lojinha"], can_authorize: false, can_discount: false, max_discount_percent: 0 },
+  { key: "caixa_portaria", label: "Caixa da Portaria", description: "Abre caixa na portaria, vende entradas (dinheiro/pix/cartão), faz sangria e fechamento com autorização",
+    permissions: ["portaria", "vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0 },
   { key: "gerente", label: "Gerente", description: "Acesso amplo + pode autorizar sangria, desconto e fechamento",
     permissions: ["vendas", "estoque", "eventos", "promoters", "financeiro", "portaria", "funcionarios", "lojinha"],
-    can_authorize: true, can_discount: true, max_discount_percent: 100, can_sell_cash: true },
+    can_authorize: true, can_discount: true, max_discount_percent: 100 },
   { key: "custom", label: "Personalizado", description: "Marque manualmente as permissões abaixo",
-    permissions: [], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+    permissions: [], can_authorize: false, can_discount: false, max_discount_percent: 0 },
 ];
 
 const emptyForm = (): FormState => ({
@@ -76,14 +84,17 @@ const emptyForm = (): FormState => ({
   password: "",
   display_name: "",
   role_preset: "caixa_bar",
-  permissions: ["vendas"],
+  permissions: ["vendas", "lojinha"],
   can_discount: false,
   max_discount_percent: 0,
-  can_sell_cash: true,
   can_authorize: false,
   lojinha_can_sell: false,
   lojinha_payment_methods: [],
   lojinha_point_device_id: null,
+  pode_adicionar_bebidas: false,
+  aceita_dinheiro: true,
+  aceita_pix: true,
+  aceita_cartao: true,
 });
 
 export function TeamPanel() {
