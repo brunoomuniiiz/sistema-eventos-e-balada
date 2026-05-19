@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+
 import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   CalendarDays, Search, UserCheck, UserX, Crown, Users,
-  Ticket, BarChart3, Plus,
+  Ticket, BarChart3, Plus, Wallet, LockKeyhole,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
+import { CashClosingDialog } from "@/components/vendas/CashClosingDialog";
+import { SessionWithdrawalsCard } from "@/components/vendas/SessionWithdrawalsCard";
 
 export const Route = createFileRoute("/_app/portaria")({
   component: PortariaPage,
@@ -36,7 +39,7 @@ type Guest = {
 type Promoter = { id: string; name: string };
 
 function PortariaPage() {
-  const { user } = useAuth();
+  
   const { ownerId, isOwner, can, acceptedMethods, loading } = usePermissions();
   const allowed = isOwner || can("portaria");
   const qc = useQueryClient();
@@ -46,8 +49,20 @@ function PortariaPage() {
   const [payAmount, setPayAmount] = useState<string>("");
   const [payGender, setPayGender] = useState<string>("");
   const [payMethod, setPayMethod] = useState<"dinheiro" | "debito" | "credito" | "pix">(
-    acceptedMethods[0] ?? "dinheiro",
+    (acceptedMethods[0] as "dinheiro" | "debito" | "credito" | "pix") ?? "dinheiro",
   );
+  const [openCash, setOpenCash] = useState(false);
+  const [closingCash, setClosingCash] = useState(false);
+
+  const { data: session, refetch: refetchSession } = useQuery({
+    queryKey: ["portaria-cash-session"],
+    enabled: allowed,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_my_open_session");
+      if (error) throw error;
+      return data as null | { id: string; opening_amount: number; opened_at: string };
+    },
+  });
 
   const { data: events = [] } = useQuery({
     queryKey: ["portaria-events", ownerId],
@@ -133,21 +148,23 @@ function PortariaPage() {
 
   const addPaying = async () => {
     if (!ownerId || !eventId) return;
+    if (!session?.id) return toast.error("Abra o caixa antes de registrar entradas");
     const amount = Number((payAmount || "0").replace(",", "."));
     if (!Number.isFinite(amount) || amount < 0) return toast.error("Valor inválido");
-    const { error } = await supabase.from("event_entries").insert({
-      user_id: ownerId,
-      event_id: eventId,
-      amount_paid: amount,
-      gender: payGender || null,
-      created_by: user?.id ?? null,
-      created_by_name: user?.email ?? null,
+    const { error } = await supabase.rpc("register_event_entry", {
+      _event_id: eventId,
+      _ticket_type_id: null as unknown as string,
+      _gender: payGender || null as unknown as string,
+      _amount: amount,
+      _payment_method: payMethod,
+      _notes: null as unknown as string,
     });
     if (error) return toast.error(error.message);
     toast.success(`+1 pagante (${formatBRL(amount)})`);
     setPayAmount("");
     setPayGender("");
     refetchSummary();
+    qc.invalidateQueries({ queryKey: ["session-withdrawals", session.id] });
   };
 
   if (loading) return null;
@@ -190,6 +207,31 @@ function PortariaPage() {
         </Select>
       </div>
 
+      {/* Status do caixa */}
+      <Card className="mb-4">
+        <CardContent className="p-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-sm">
+            <Wallet className="h-4 w-4 text-primary" />
+            {session ? (
+              <span>
+                Caixa <strong className="text-emerald-500">aberto</strong> · troco {formatBRL(Number(session.opening_amount))}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Caixa fechado — abra para registrar entradas pagantes</span>
+            )}
+          </div>
+          {!session ? (
+            <Button size="sm" onClick={() => setOpenCash(true)}>
+              <Wallet className="h-4 w-4" /> Abrir caixa
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => setClosingCash(true)}>
+              <LockKeyhole className="h-4 w-4" /> Fechar caixa
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Resumo ao vivo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <Card><CardContent className="p-3">
@@ -214,6 +256,7 @@ function PortariaPage() {
         <TabsList>
           <TabsTrigger value="lista" className="gap-1"><Users className="h-4 w-4" />Lista VIP</TabsTrigger>
           <TabsTrigger value="pagante" className="gap-1"><Ticket className="h-4 w-4" />Pagante</TabsTrigger>
+          <TabsTrigger value="caixa" className="gap-1"><Wallet className="h-4 w-4" />Caixa</TabsTrigger>
           <TabsTrigger value="relatorio" className="gap-1"><BarChart3 className="h-4 w-4" />Relatório</TabsTrigger>
         </TabsList>
 
@@ -297,13 +340,64 @@ function PortariaPage() {
                 ))}
               </div>
             </div>
-            <Button size="lg" className="w-full h-14 text-base font-bold" onClick={addPaying}>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {([
+                  { k: "dinheiro", l: "Dinheiro" },
+                  { k: "pix", l: "Pix" },
+                  { k: "debito", l: "Débito" },
+                  { k: "credito", l: "Crédito" },
+                ] as const).filter((m) => acceptedMethods.includes(m.k)).map((m) => (
+                  <Button
+                    key={m.k}
+                    type="button"
+                    variant={payMethod === m.k ? "default" : "outline"}
+                    onClick={() => setPayMethod(m.k)}
+                  >{m.l}</Button>
+                ))}
+              </div>
+            </div>
+            <Button size="lg" className="w-full h-14 text-base font-bold" onClick={addPaying} disabled={!session}>
               <Plus className="h-5 w-5" /> Registrar entrada pagante
             </Button>
+            {!session && (
+              <p className="text-xs text-amber-500 text-center">Abra o caixa para registrar entradas pagantes.</p>
+            )}
           </CardContent></Card>
           <p className="text-xs text-muted-foreground text-center">
             As entradas pagantes contam no total da portaria e somam à receita do evento.
           </p>
+        </TabsContent>
+
+        {/* CAIXA */}
+        <TabsContent value="caixa" className="space-y-3">
+          {!session ? (
+            <Card><CardContent className="p-6 text-center space-y-3">
+              <Wallet className="h-10 w-10 mx-auto text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Abra o caixa com autorização para começar a vender entradas e registrar sangrias.
+              </p>
+              <Button onClick={() => setOpenCash(true)}>
+                <Wallet className="h-4 w-4" /> Abrir caixa
+              </Button>
+            </CardContent></Card>
+          ) : (
+            <>
+              <SessionWithdrawalsCard />
+              <Card><CardContent className="p-4 space-y-3">
+                <div>
+                  <h3 className="font-display font-bold">Fechamento da portaria</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Declare os totais de cada forma de pagamento. Requer autorização do responsável.
+                  </p>
+                </div>
+                <Button onClick={() => setClosingCash(true)} className="w-full md:w-auto">
+                  <LockKeyhole className="h-4 w-4" /> Iniciar fechamento
+                </Button>
+              </CardContent></Card>
+            </>
+          )}
         </TabsContent>
 
         {/* RELATÓRIO */}
@@ -336,6 +430,17 @@ function PortariaPage() {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      <OpenCashDialog
+        open={openCash}
+        onOpenChange={setOpenCash}
+        onOpened={() => { refetchSession(); }}
+      />
+      <CashClosingDialog
+        open={closingCash}
+        onOpenChange={setClosingCash}
+        onDone={() => { setClosingCash(false); refetchSession(); }}
+      />
     </div>
   );
 }
