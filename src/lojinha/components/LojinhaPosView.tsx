@@ -18,6 +18,7 @@ type Product = {
   online_price: number | null;
   photo_url: string | null;
   category_id: string | null;
+  category_name: string | null;
   sell_online: boolean;
   is_available: boolean;
 };
