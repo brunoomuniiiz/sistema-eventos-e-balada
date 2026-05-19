@@ -39,7 +39,7 @@ type Guest = {
 type Promoter = { id: string; name: string };
 
 function PortariaPage() {
-  const { user } = useAuth();
+  
   const { ownerId, isOwner, can, acceptedMethods, loading } = usePermissions();
   const allowed = isOwner || can("portaria");
   const qc = useQueryClient();
