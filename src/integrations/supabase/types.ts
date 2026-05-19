@@ -1813,6 +1813,10 @@ export type Database = {
         }
         Returns: Json
       }
+      lojinha_toggle_sell_online: {
+        Args: { _product_id: string }
+        Returns: boolean
+      }
       lojinha_validate_qr: { Args: { _token: string }; Returns: Json }
       open_cash_session: {
         Args: { _event_id?: string; _notes?: string; _opening: number }
