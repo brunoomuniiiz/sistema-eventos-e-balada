@@ -430,6 +430,17 @@ function PortariaPage() {
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      <OpenCashDialog
+        open={openCash}
+        onOpenChange={setOpenCash}
+        onOpened={() => { refetchSession(); }}
+      />
+      <CashClosingDialog
+        open={closingCash}
+        onOpenChange={setClosingCash}
+        onDone={() => { setClosingCash(false); refetchSession(); }}
+      />
     </div>
   );
 }
