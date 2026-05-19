@@ -295,6 +295,28 @@ export function LojinhaPosView() {
         <Input placeholder="Buscar produto…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-10" />
       </div>
 
+      {categories.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none snap-x">
+          <button
+            type="button"
+            onClick={() => setActiveCategory("__all__")}
+            className={`snap-start whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${activeCategory === "__all__" ? "bg-primary text-primary-foreground border-transparent" : "bg-card text-foreground border-border hover:bg-secondary"}`}
+          >
+            Todos
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setActiveCategory(c)}
+              className={`snap-start whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${activeCategory === c ? "bg-primary text-primary-foreground border-transparent" : "bg-card text-foreground border-border hover:bg-secondary"}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">
           <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
