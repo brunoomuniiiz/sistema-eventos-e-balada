@@ -24,6 +24,8 @@ function StorefrontPage() {
   const [customer, setCustomerState] = useState({ name: "", email: "", phone: "" });
   const [creating, setCreating] = useState(false);
   const [token, setToken] = useState("");
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("__all__");
 
   useEffect(() => {
     setCartState(getCart(slug));
