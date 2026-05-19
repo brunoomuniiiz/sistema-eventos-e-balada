@@ -71,8 +71,14 @@ export function LojinhaSettingsPanel() {
 
   async function save() {
     if (!user) return;
-    if (form.enabled && (!form.slug.trim() || !form.stock_location_id)) {
-      toast.error("Para ativar a loja informe slug e localização de estoque");
+    // Estoque único: usa o primeiro local automaticamente
+    const stockLocId = form.stock_location_id ?? locations[0]?.id ?? null;
+    if (form.enabled && !form.slug.trim()) {
+      toast.error("Informe o slug para ativar a loja");
+      return;
+    }
+    if (form.enabled && !stockLocId) {
+      toast.error("Crie um local de estoque em Estoque antes de ativar a loja");
       return;
     }
     setSaving(true);
@@ -82,7 +88,7 @@ export function LojinhaSettingsPanel() {
         enabled: form.enabled,
         slug: form.slug.trim().toLowerCase() || null,
         store_name: form.store_name.trim() || null,
-        stock_location_id: form.stock_location_id,
+        stock_location_id: stockLocId,
         pickup_message: form.pickup_message,
         accent_color: form.accent_color,
       };
