@@ -15,9 +15,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   CalendarDays, Search, UserCheck, UserX, Crown, Users,
-  Ticket, BarChart3, Plus,
+  Ticket, BarChart3, Plus, Wallet, LockKeyhole,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
+import { CashClosingDialog } from "@/components/vendas/CashClosingDialog";
+import { SessionWithdrawalsCard } from "@/components/vendas/SessionWithdrawalsCard";
 
 export const Route = createFileRoute("/_app/portaria")({
   component: PortariaPage,
