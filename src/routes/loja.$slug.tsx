@@ -320,3 +320,18 @@ function StorefrontPage() {
     </div>
   );
 }
+
+function CategoryChip({ label, active, onClick, accent }: { label: string; active: boolean; onClick: () => void; accent: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`snap-start whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${
+        active ? "text-white border-transparent" : "bg-card text-foreground border-border hover:bg-secondary"
+      }`}
+      style={active ? { background: accent } : undefined}
+    >
+      {label}
+    </button>
+  );
+}
