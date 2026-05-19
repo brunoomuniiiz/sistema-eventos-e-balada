@@ -61,7 +61,7 @@ function StorefrontPage() {
 
   const visibleProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return (data?.products ?? []).filter((p) => {
+    const list = (data?.products ?? []).filter((p) => {
       const cat = p.category_name ?? "Outros";
       if (activeCategory !== "__all__" && cat !== activeCategory) return false;
       if (!q) return true;
@@ -69,6 +69,12 @@ function StorefrontPage() {
         p.name.toLowerCase().includes(q) ||
         (p.description?.toLowerCase().includes(q) ?? false)
       );
+    });
+    // Disponíveis primeiro, esgotados no fim
+    return [...list].sort((a, b) => {
+      const ao = a.available_qty > 0 ? 0 : 1;
+      const bo = b.available_qty > 0 ? 0 : 1;
+      return ao - bo;
     });
   }, [data, search, activeCategory]);
 
