@@ -33,6 +33,7 @@ export function LojinhaPosView() {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("__all__");
   const [step, setStep] = useState<Step>("cart");
   const [method, setMethod] = useState<"pix" | "card" | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
