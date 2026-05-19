@@ -58,10 +58,11 @@ function SectorCard({ row, label }: { row: SectorRow; label: string }) {
   const [opening, setOpening] = useState(0);
   const [busy, setBusy] = useState(false);
 
-  const call = async (fn: string, args: Record<string, unknown>) => {
+  const call = async (fn: "authorize_open_sector" | "force_open_sector" | "force_close_sector" | "confirm_close_sector", args: Record<string, unknown>) => {
     setBusy(true);
     try {
-      const { error } = await supabase.rpc(fn, args);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.rpc as any)(fn, args);
       if (error) throw error;
       toast.success("Atualizado");
     } catch (e) {
