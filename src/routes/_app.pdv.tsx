@@ -124,7 +124,7 @@ export function PdvView() {
     },
   });
 
-  const { data: products = [] } = useQuery({
+  const { data: products = [], error: productsError, isLoading: productsLoading } = useQuery({
     queryKey: ["pdv-products", ownerId],
     queryFn: async () => {
       const { data, error } = await supabase
