@@ -42,10 +42,12 @@ Deno.serve(async (req) => {
       email, password, display_name, role_preset, permissions,
       can_discount, max_discount_percent, can_sell_cash, can_authorize,
       lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id,
+      pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao,
     } = body as {
       email: string; password: string; display_name?: string; role_preset?: string; permissions: string[];
       can_discount?: boolean; max_discount_percent?: number; can_sell_cash?: boolean; can_authorize?: boolean;
       lojinha_can_sell?: boolean; lojinha_payment_methods?: string[]; lojinha_point_device_id?: string | null;
+      pode_adicionar_bebidas?: boolean; aceita_dinheiro?: boolean; aceita_pix?: boolean; aceita_cartao?: boolean;
     };
     if (!email || !password) return json({ error: "Email e senha obrigatórios" }, 400);
     if (password.length < 6) return json({ error: "Senha mínima de 6 caracteres" }, 400);
@@ -58,6 +60,8 @@ Deno.serve(async (req) => {
     });
     if (createErr || !created.user) return json({ error: createErr?.message ?? "Falha ao criar" }, 400);
 
+    const aceita_dinheiro_final = aceita_dinheiro ?? (can_sell_cash !== false);
+
     const { error: roleErr } = await admin.from("user_roles").insert({
       user_id: created.user.id,
       owner_id: ownerId,
@@ -68,11 +72,15 @@ Deno.serve(async (req) => {
       email,
       can_discount: !!can_discount,
       max_discount_percent: Math.max(0, Math.min(100, Number(max_discount_percent ?? 0))),
-      can_sell_cash: can_sell_cash !== false,
+      can_sell_cash: aceita_dinheiro_final,
       can_authorize: !!can_authorize,
       lojinha_can_sell: !!lojinha_can_sell,
       lojinha_payment_methods: lojinha_payment_methods ?? [],
       lojinha_point_device_id: lojinha_point_device_id ?? null,
+      pode_adicionar_bebidas: !!pode_adicionar_bebidas,
+      aceita_dinheiro: aceita_dinheiro_final,
+      aceita_pix: aceita_pix !== false,
+      aceita_cartao: aceita_cartao !== false,
     });
     if (roleErr) {
       await admin.auth.admin.deleteUser(created.user.id);

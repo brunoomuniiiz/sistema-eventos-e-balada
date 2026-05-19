@@ -37,7 +37,7 @@ type Promoter = { id: string; name: string };
 
 function PortariaPage() {
   const { user } = useAuth();
-  const { ownerId, isOwner, can, loading } = usePermissions();
+  const { ownerId, isOwner, can, acceptedMethods, loading } = usePermissions();
   const allowed = isOwner || can("portaria");
   const qc = useQueryClient();
 
@@ -45,6 +45,9 @@ function PortariaPage() {
   const [search, setSearch] = useState("");
   const [payAmount, setPayAmount] = useState<string>("");
   const [payGender, setPayGender] = useState<string>("");
+  const [payMethod, setPayMethod] = useState<"dinheiro" | "debito" | "credito" | "pix">(
+    acceptedMethods[0] ?? "dinheiro",
+  );
 
   const { data: events = [] } = useQuery({
     queryKey: ["portaria-events", ownerId],

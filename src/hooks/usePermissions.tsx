@@ -23,6 +23,8 @@ export const ALL_PERMISSIONS: { key: Permission; label: string }[] = [
   { key: "lojinha", label: "Lojinha (venda online)" },
 ];
 
+export type AcceptedMethod = "dinheiro" | "debito" | "credito" | "pix";
+
 export function usePermissions() {
   const { user } = useAuth();
   const { data, isLoading } = useQuery({
@@ -31,7 +33,7 @@ export function usePermissions() {
       if (!user) return null;
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id")
+        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash, can_authorize, role_preset, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao")
         .eq("user_id", user.id)
         .maybeSingle();
       if (error) throw error;
@@ -43,12 +45,34 @@ export function usePermissions() {
   const isOwner = data?.role === "owner";
   const ownerId = data?.owner_id ?? user?.id ?? null;
   const permissions = (data?.permissions ?? []) as Permission[];
+  const rolePreset = (data?.role_preset ?? null) as string | null;
 
   const can = (p: Permission) => isOwner || permissions.includes(p);
 
   const canDiscount = isOwner || !!data?.can_discount;
   const maxDiscountPercent = isOwner ? 100 : Number(data?.max_discount_percent ?? 0);
-  const canSellCash = isOwner || data?.can_sell_cash !== false;
+  const canAuthorize = isOwner || !!data?.can_authorize;
+
+  // Métodos de pagamento aceitos (configuráveis por funcionário)
+  const row = data as null | {
+    aceita_dinheiro?: boolean;
+    aceita_pix?: boolean;
+    aceita_cartao?: boolean;
+    pode_adicionar_bebidas?: boolean;
+    can_sell_cash?: boolean;
+  };
+  const aceitaDinheiro = isOwner || row?.aceita_dinheiro !== false;
+  const aceitaPix = isOwner || row?.aceita_pix !== false;
+  const aceitaCartao = isOwner || row?.aceita_cartao !== false;
+  const acceptedMethods: AcceptedMethod[] = [];
+  if (aceitaDinheiro) acceptedMethods.push("dinheiro");
+  if (aceitaCartao) acceptedMethods.push("debito", "credito");
+  if (aceitaPix) acceptedMethods.push("pix");
+  // Compat: canSellCash continua refletindo dinheiro
+  const canSellCash = aceitaDinheiro;
+
+  // Permissão de cadastrar bebidas novas (sub-permissão de estoque)
+  const canAddProducts = isOwner || (!!row?.pode_adicionar_bebidas && can("estoque"));
 
   // Lojinha — modo caixa
   const lojinhaCanSell = isOwner || !!(data as { lojinha_can_sell?: boolean } | null)?.lojinha_can_sell;
@@ -61,10 +85,17 @@ export function usePermissions() {
     isOwner,
     ownerId,
     permissions,
+    rolePreset,
     can,
     canDiscount,
     maxDiscountPercent,
     canSellCash,
+    canAuthorize,
+    acceptedMethods,
+    aceitaDinheiro,
+    aceitaPix,
+    aceitaCartao,
+    canAddProducts,
     lojinhaCanSell,
     lojinhaPaymentMethods,
     lojinhaPointDeviceId,

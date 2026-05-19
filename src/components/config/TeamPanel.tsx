@@ -29,6 +29,10 @@ type TeamMember = {
   lojinha_can_sell: boolean;
   lojinha_payment_methods: string[];
   lojinha_point_device_id: string | null;
+  pode_adicionar_bebidas: boolean;
+  aceita_dinheiro: boolean;
+  aceita_pix: boolean;
+  aceita_cartao: boolean;
 };
 
 type FormState = {
@@ -39,11 +43,14 @@ type FormState = {
   permissions: Permission[];
   can_discount: boolean;
   max_discount_percent: number;
-  can_sell_cash: boolean;
   can_authorize: boolean;
   lojinha_can_sell: boolean;
   lojinha_payment_methods: string[];
   lojinha_point_device_id: string | null;
+  pode_adicionar_bebidas: boolean;
+  aceita_dinheiro: boolean;
+  aceita_pix: boolean;
+  aceita_cartao: boolean;
 };
 
 type Preset = {
@@ -54,21 +61,22 @@ type Preset = {
   can_authorize: boolean;
   can_discount: boolean;
   max_discount_percent: number;
-  can_sell_cash: boolean;
 };
 
 const PRESETS: Preset[] = [
-  { key: "caixa_bar", label: "Caixa do Bar", description: "Vende no PDV; sangria/desconto extra precisa de autorização",
-    permissions: ["vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
-  { key: "caixa_portaria", label: "Caixa da Portaria", description: "Só acessa a aba Portaria (check-in e cobrança de entrada)",
-    permissions: ["portaria"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
-  { key: "garcom_lojinha", label: "Garçom da Lojinha", description: "Valida QR de pedidos online e (opcional) vende no balcão",
-    permissions: ["lojinha"], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+  { key: "garcom", label: "Garçom", description: "Só valida QR de pedidos online e vê a fila de entregas",
+    permissions: ["lojinha"], can_authorize: false, can_discount: false, max_discount_percent: 0 },
+  { key: "garcom_caixa", label: "Garçom Caixa", description: "Valida QR + vende no PDV",
+    permissions: ["lojinha", "vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0 },
+  { key: "caixa_bar", label: "Caixa do Bar (fixo)", description: "Vende no PDV; pode escanear QR se precisar",
+    permissions: ["vendas", "lojinha"], can_authorize: false, can_discount: false, max_discount_percent: 0 },
+  { key: "caixa_portaria", label: "Caixa da Portaria", description: "Abre caixa na portaria, vende entradas (dinheiro/pix/cartão), faz sangria e fechamento com autorização",
+    permissions: ["portaria", "vendas"], can_authorize: false, can_discount: false, max_discount_percent: 0 },
   { key: "gerente", label: "Gerente", description: "Acesso amplo + pode autorizar sangria, desconto e fechamento",
     permissions: ["vendas", "estoque", "eventos", "promoters", "financeiro", "portaria", "funcionarios", "lojinha"],
-    can_authorize: true, can_discount: true, max_discount_percent: 100, can_sell_cash: true },
+    can_authorize: true, can_discount: true, max_discount_percent: 100 },
   { key: "custom", label: "Personalizado", description: "Marque manualmente as permissões abaixo",
-    permissions: [], can_authorize: false, can_discount: false, max_discount_percent: 0, can_sell_cash: true },
+    permissions: [], can_authorize: false, can_discount: false, max_discount_percent: 0 },
 ];
 
 const emptyForm = (): FormState => ({
@@ -76,14 +84,17 @@ const emptyForm = (): FormState => ({
   password: "",
   display_name: "",
   role_preset: "caixa_bar",
-  permissions: ["vendas"],
+  permissions: ["vendas", "lojinha"],
   can_discount: false,
   max_discount_percent: 0,
-  can_sell_cash: true,
   can_authorize: false,
   lojinha_can_sell: false,
   lojinha_payment_methods: [],
   lojinha_point_device_id: null,
+  pode_adicionar_bebidas: false,
+  aceita_dinheiro: true,
+  aceita_pix: true,
+  aceita_cartao: true,
 });
 
 export function TeamPanel() {
@@ -100,7 +111,7 @@ export function TeamPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id")
+        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_sell_cash, can_authorize, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
@@ -138,11 +149,14 @@ export function TeamPanel() {
       permissions: m.permissions ?? [],
       can_discount: !!m.can_discount,
       max_discount_percent: Number(m.max_discount_percent ?? 0),
-      can_sell_cash: m.can_sell_cash !== false,
       can_authorize: !!m.can_authorize,
       lojinha_can_sell: !!m.lojinha_can_sell,
       lojinha_payment_methods: m.lojinha_payment_methods ?? [],
       lojinha_point_device_id: m.lojinha_point_device_id ?? null,
+      pode_adicionar_bebidas: !!m.pode_adicionar_bebidas,
+      aceita_dinheiro: m.aceita_dinheiro !== false,
+      aceita_pix: m.aceita_pix !== false,
+      aceita_cartao: m.aceita_cartao !== false,
     });
     setOpen(true);
   };
@@ -157,7 +171,6 @@ export function TeamPanel() {
       can_authorize: key === "custom" ? f.can_authorize : p.can_authorize,
       can_discount: key === "custom" ? f.can_discount : p.can_discount,
       max_discount_percent: key === "custom" ? f.max_discount_percent : p.max_discount_percent,
-      can_sell_cash: key === "custom" ? f.can_sell_cash : p.can_sell_cash,
     }));
   };
 
@@ -197,11 +210,15 @@ export function TeamPanel() {
             permissions: permsToSave,
             can_discount: form.can_discount,
             max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
-            can_sell_cash: form.can_sell_cash,
+            can_sell_cash: form.aceita_dinheiro,
             can_authorize: form.can_authorize,
             lojinha_can_sell: form.lojinha_can_sell,
             lojinha_payment_methods: form.lojinha_payment_methods,
             lojinha_point_device_id: form.lojinha_point_device_id,
+            pode_adicionar_bebidas: form.pode_adicionar_bebidas,
+            aceita_dinheiro: form.aceita_dinheiro,
+            aceita_pix: form.aceita_pix,
+            aceita_cartao: form.aceita_cartao,
           })
           .eq("id", editing.id);
         if (error) throw error;
@@ -217,11 +234,15 @@ export function TeamPanel() {
             permissions: permsToSave,
             can_discount: form.can_discount,
             max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
-            can_sell_cash: form.can_sell_cash,
+            can_sell_cash: form.aceita_dinheiro,
             can_authorize: form.can_authorize,
             lojinha_can_sell: form.lojinha_can_sell,
             lojinha_payment_methods: form.lojinha_payment_methods,
             lojinha_point_device_id: form.lojinha_point_device_id,
+            pode_adicionar_bebidas: form.pode_adicionar_bebidas,
+            aceita_dinheiro: form.aceita_dinheiro,
+            aceita_pix: form.aceita_pix,
+            aceita_cartao: form.aceita_cartao,
           },
         });
         if (error) throw error;
@@ -315,10 +336,26 @@ export function TeamPanel() {
                 </div>
 
                 <div className="space-y-2 rounded-md border p-3 bg-muted/30">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Caixa & Autorização</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Formas de pagamento que aceita no PDV/Portaria</div>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox checked={form.can_sell_cash} onCheckedChange={(v) => setForm({ ...form, can_sell_cash: !!v })} />
-                    <span className="text-sm">Pode receber em dinheiro</span>
+                    <Checkbox checked={form.aceita_dinheiro} onCheckedChange={(v) => setForm({ ...form, aceita_dinheiro: !!v })} />
+                    <span className="text-sm">Dinheiro</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={form.aceita_pix} onCheckedChange={(v) => setForm({ ...form, aceita_pix: !!v })} />
+                    <span className="text-sm">Pix</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={form.aceita_cartao} onCheckedChange={(v) => setForm({ ...form, aceita_cartao: !!v })} />
+                    <span className="text-sm">Cartão (débito e crédito)</span>
+                  </label>
+                </div>
+
+                <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Outras permissões</div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={form.pode_adicionar_bebidas} onCheckedChange={(v) => setForm({ ...form, pode_adicionar_bebidas: !!v })} />
+                    <span className="text-sm">Pode cadastrar novas bebidas/produtos</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox checked={form.can_discount} onCheckedChange={(v) => setForm({ ...form, can_discount: !!v })} />

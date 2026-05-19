@@ -81,7 +81,7 @@ type ComboItem = {
 type DraftComponent = { component_product_id: string; quantity: number };
 
 function ProdutosPage() {
-  const { ownerId, can, loading } = usePermissions();
+  const { ownerId, can, canAddProducts, loading } = usePermissions();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -450,9 +450,11 @@ function ProdutosPage() {
         title="Produtos"
         subtitle="Cadastro de bebidas, comidas e combos"
         actions={
-          <Button onClick={() => openNew(tab)}>
-            <Plus className="h-4 w-4" /> Novo {tab === "combo" ? "combo" : "produto"}
-          </Button>
+          canAddProducts ? (
+            <Button onClick={() => openNew(tab)}>
+              <Plus className="h-4 w-4" /> Novo {tab === "combo" ? "combo" : "produto"}
+            </Button>
+          ) : null
         }
       />
 
