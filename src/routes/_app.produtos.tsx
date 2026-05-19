@@ -169,7 +169,7 @@ function ProdutosPage() {
       product_type: type, track_stock: type === "simple",
       description: "", pickup_description: "", photo_url: "", unit: "un",
       category_id: "none", is_available: true,
-      sell_online: false, online_price: 0,
+      sell_online: true, online_price: 0,
     });
     setDraftComponents([]);
     setPickComponentId("");
