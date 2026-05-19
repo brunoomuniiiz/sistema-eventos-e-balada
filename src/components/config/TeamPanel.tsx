@@ -234,11 +234,15 @@ export function TeamPanel() {
             permissions: permsToSave,
             can_discount: form.can_discount,
             max_discount_percent: Math.max(0, Math.min(100, Number(form.max_discount_percent) || 0)),
-            can_sell_cash: form.can_sell_cash,
+            can_sell_cash: form.aceita_dinheiro,
             can_authorize: form.can_authorize,
             lojinha_can_sell: form.lojinha_can_sell,
             lojinha_payment_methods: form.lojinha_payment_methods,
             lojinha_point_device_id: form.lojinha_point_device_id,
+            pode_adicionar_bebidas: form.pode_adicionar_bebidas,
+            aceita_dinheiro: form.aceita_dinheiro,
+            aceita_pix: form.aceita_pix,
+            aceita_cartao: form.aceita_cartao,
           },
         });
         if (error) throw error;
