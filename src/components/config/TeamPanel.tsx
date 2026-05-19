@@ -149,11 +149,14 @@ export function TeamPanel() {
       permissions: m.permissions ?? [],
       can_discount: !!m.can_discount,
       max_discount_percent: Number(m.max_discount_percent ?? 0),
-      can_sell_cash: m.can_sell_cash !== false,
       can_authorize: !!m.can_authorize,
       lojinha_can_sell: !!m.lojinha_can_sell,
       lojinha_payment_methods: m.lojinha_payment_methods ?? [],
       lojinha_point_device_id: m.lojinha_point_device_id ?? null,
+      pode_adicionar_bebidas: !!m.pode_adicionar_bebidas,
+      aceita_dinheiro: m.aceita_dinheiro !== false,
+      aceita_pix: m.aceita_pix !== false,
+      aceita_cartao: m.aceita_cartao !== false,
     });
     setOpen(true);
   };
@@ -168,7 +171,6 @@ export function TeamPanel() {
       can_authorize: key === "custom" ? f.can_authorize : p.can_authorize,
       can_discount: key === "custom" ? f.can_discount : p.can_discount,
       max_discount_percent: key === "custom" ? f.max_discount_percent : p.max_discount_percent,
-      can_sell_cash: key === "custom" ? f.can_sell_cash : p.can_sell_cash,
     }));
   };
 
