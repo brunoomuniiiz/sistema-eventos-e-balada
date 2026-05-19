@@ -46,6 +46,32 @@ function StorefrontPage() {
     return m;
   }, [data]);
 
+  const categories = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    (data?.products ?? []).forEach((p) => {
+      const name = p.category_name ?? "Outros";
+      if (!seen.has(name)) {
+        seen.add(name);
+        out.push(name);
+      }
+    });
+    return out.sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [data]);
+
+  const visibleProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (data?.products ?? []).filter((p) => {
+      const cat = p.category_name ?? "Outros";
+      if (activeCategory !== "__all__" && cat !== activeCategory) return false;
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) ||
+        (p.description?.toLowerCase().includes(q) ?? false)
+      );
+    });
+  }, [data, search, activeCategory]);
+
   const cartTotal = useMemo(
     () => cart.reduce((s, it) => s + (productsById.get(it.product_id)?.price ?? 0) * it.quantity, 0),
     [cart, productsById]
