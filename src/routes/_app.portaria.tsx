@@ -340,13 +340,64 @@ function PortariaPage() {
                 ))}
               </div>
             </div>
-            <Button size="lg" className="w-full h-14 text-base font-bold" onClick={addPaying}>
+            <div>
+              <Label>Forma de pagamento</Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {([
+                  { k: "dinheiro", l: "Dinheiro" },
+                  { k: "pix", l: "Pix" },
+                  { k: "debito", l: "Débito" },
+                  { k: "credito", l: "Crédito" },
+                ] as const).filter((m) => acceptedMethods.includes(m.k)).map((m) => (
+                  <Button
+                    key={m.k}
+                    type="button"
+                    variant={payMethod === m.k ? "default" : "outline"}
+                    onClick={() => setPayMethod(m.k)}
+                  >{m.l}</Button>
+                ))}
+              </div>
+            </div>
+            <Button size="lg" className="w-full h-14 text-base font-bold" onClick={addPaying} disabled={!session}>
               <Plus className="h-5 w-5" /> Registrar entrada pagante
             </Button>
+            {!session && (
+              <p className="text-xs text-amber-500 text-center">Abra o caixa para registrar entradas pagantes.</p>
+            )}
           </CardContent></Card>
           <p className="text-xs text-muted-foreground text-center">
             As entradas pagantes contam no total da portaria e somam à receita do evento.
           </p>
+        </TabsContent>
+
+        {/* CAIXA */}
+        <TabsContent value="caixa" className="space-y-3">
+          {!session ? (
+            <Card><CardContent className="p-6 text-center space-y-3">
+              <Wallet className="h-10 w-10 mx-auto text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Abra o caixa com autorização para começar a vender entradas e registrar sangrias.
+              </p>
+              <Button onClick={() => setOpenCash(true)}>
+                <Wallet className="h-4 w-4" /> Abrir caixa
+              </Button>
+            </CardContent></Card>
+          ) : (
+            <>
+              <SessionWithdrawalsCard />
+              <Card><CardContent className="p-4 space-y-3">
+                <div>
+                  <h3 className="font-display font-bold">Fechamento da portaria</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Declare os totais de cada forma de pagamento. Requer autorização do responsável.
+                  </p>
+                </div>
+                <Button onClick={() => setClosingCash(true)} className="w-full md:w-auto">
+                  <LockKeyhole className="h-4 w-4" /> Iniciar fechamento
+                </Button>
+              </CardContent></Card>
+            </>
+          )}
         </TabsContent>
 
         {/* RELATÓRIO */}
