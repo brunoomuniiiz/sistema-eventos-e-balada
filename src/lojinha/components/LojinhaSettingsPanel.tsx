@@ -131,16 +131,7 @@ export function LojinhaSettingsPanel() {
           </div>
         </div>
 
-        <div>
-          <Label>Localização de estoque</Label>
-          <Select value={form.stock_location_id ?? ""} onValueChange={(v) => setForm({ ...form, stock_location_id: v })}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground mt-1">Estoque usado para validar disponibilidade e baixa.</p>
-        </div>
+        {/* Estoque único — auto-selecionado, sem escolha */}
 
         <div>
           <Label>Mensagem de retirada</Label>
