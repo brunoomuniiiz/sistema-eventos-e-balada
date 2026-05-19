@@ -336,10 +336,26 @@ export function TeamPanel() {
                 </div>
 
                 <div className="space-y-2 rounded-md border p-3 bg-muted/30">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Caixa & Autorização</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Formas de pagamento que aceita no PDV/Portaria</div>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox checked={form.can_sell_cash} onCheckedChange={(v) => setForm({ ...form, can_sell_cash: !!v })} />
-                    <span className="text-sm">Pode receber em dinheiro</span>
+                    <Checkbox checked={form.aceita_dinheiro} onCheckedChange={(v) => setForm({ ...form, aceita_dinheiro: !!v })} />
+                    <span className="text-sm">Dinheiro</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={form.aceita_pix} onCheckedChange={(v) => setForm({ ...form, aceita_pix: !!v })} />
+                    <span className="text-sm">Pix</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={form.aceita_cartao} onCheckedChange={(v) => setForm({ ...form, aceita_cartao: !!v })} />
+                    <span className="text-sm">Cartão (débito e crédito)</span>
+                  </label>
+                </div>
+
+                <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Outras permissões</div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={form.pode_adicionar_bebidas} onCheckedChange={(v) => setForm({ ...form, pode_adicionar_bebidas: !!v })} />
+                    <span className="text-sm">Pode cadastrar novas bebidas/produtos</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <Checkbox checked={form.can_discount} onCheckedChange={(v) => setForm({ ...form, can_discount: !!v })} />
