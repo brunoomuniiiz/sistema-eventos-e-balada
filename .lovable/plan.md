@@ -1,53 +1,122 @@
-## O que já confirmei
+## Sistema de Caixas Independentes com Autorização Remota
 
-Pelo banco + logs de rede da sua sessão atual:
+Sistema de controle de turnos (caixas) separados por setor (Bar / Portaria), com fluxo de autorização em tempo real pelo administrador.
 
-- A política RLS de `products` já permite quem tem `vendas` **ou** `lojinha` ver os produtos do dono — então Marilia e bruno-happybeer (ambos `caixa_bar`, owner = `d51c…`) **deveriam** ver os 6 produtos cadastrados.
-- A query do PDV (`src/routes/_app.pdv.tsx` linhas 127-138) é só `select` em `products`, sem filtro de `user_id` — confia no RLS.
-- A requisição que está aparecendo no Network agora é da conta **owner** (`brunoeduardosantos3@gmail.com`, sub `d51c…`) e ela retorna os 6 produtos corretamente (HTTP 200). Ou seja, com o owner está tudo OK.
+---
 
-Logo, o "0 produtos" só acontece quando você loga como **staff** (happybeer.adm ou Marilia). E como o RLS, o `get_owner_id` e o `has_permission` estão corretos para esses usuários no banco, sobrou uma das seguintes causas:
+### 1. Modelo de dados
 
-1. O navegador ainda está com cache do react-query / sessão antiga onde a RLS antiga (que exigia `estoque`) negava — o hard refresh com staff pode não ter limpado o cache do Supabase Auth.
-2. Algum gating do `usePermissions` ou da `PdvView` está rodando antes do `ownerId`/`can("vendas")` resolverem.
-3. Alguma outra query (categorias, estoque, combo_items) está dando erro e mascarando a lista (improvável, mas vale instrumentar).
+Nova tabela `cash_register_requests` (controle de turnos / solicitações):
 
-## Plano de diagnóstico (sem mexer em RLS — ela está correta)
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `id` | uuid | PK |
+| `user_id` (owner) | uuid | dono do bar |
+| `sector` | text | `'bar'` ou `'portaria'` |
+| `status` | text | `closed`, `awaiting_open`, `open`, `awaiting_close` |
+| `requested_by` | uuid | funcionário que pediu |
+| `requested_by_name` | text | |
+| `authorized_by` | uuid | admin |
+| `opening_amount` | numeric | definido pelo admin na autorização |
+| `session_id` | uuid | FK → `cash_sessions` (criado ao autorizar abertura) |
+| `requested_at`, `authorized_at`, `closed_at` | timestamptz | |
+| `close_declared_*` | numeric | valores declarados pelo funcionário ao solicitar fechamento (dinheiro/débito/crédito/pix) |
 
-### Passo 1 — Logar de fato como o staff e capturar o erro real
+Regra: no máximo **um** registro por `(owner, sector)` em status ≠ `closed`. Constraint via índice único parcial.
 
-Quero ver o JWT do staff e a resposta de `GET /rest/v1/products` para esse usuário. Você precisa:
+**Ajustes em `cash_sessions`:** adicionar coluna `sector` (`bar`/`portaria`) para isolar caixas — vendas do bar e entradas da portaria passam a buscar a sessão correta pelo setor, não mais pelo `opened_by`.
 
-1. **Logout total** do bruno-owner.
-2. **Login como `happybeer.adm@gmail.com`** (o "bruno caixa fixo").
-3. Abrir `/vendas` e me dizer "ok, abri".
+**Ajuste em `sales` / `event_entries`:** continuam usando `session_id`, mas a lookup passa por `sector`.
 
-Eu então leio Network/Console e confirmo: o JWT está com `sub = 6ae3002e…`? A resposta de `products` veio `[]` ou 4xx? Se vier `[]` mesmo com JWT correto, é bug de RLS que não pegamos. Se vier 4xx (`401/403`), é outra coisa (token, cliente).
+---
 
-### Passo 2 — Instrumentar o PDV temporariamente
+### 2. Funções RPC (security definer)
 
-Se o Passo 1 não esclarecer, adiciono logs temporários em `src/routes/_app.pdv.tsx` para imprimir:
+- `request_cash_open(_sector text)` — funcionário cria request em `awaiting_open`.
+- `authorize_cash_open(_request_id uuid, _opening_amount numeric, _notes text)` — admin (owner ou permissão `financeiro`) cria `cash_sessions` com `sector` e marca request como `open`.
+- `request_cash_close(_sector text, _declared_din/_deb/_cre/_pix numeric)` — funcionário marca request como `awaiting_close` e grava valores declarados.
+- `confirm_cash_close(_request_id uuid)` — admin chama o fluxo existente `close_cash_blind` adaptado e marca request como `closed`.
+- `admin_force_open(_sector, _opening_amount)` / `admin_force_close(_sector)` — admin abre/fecha direto sem solicitação prévia.
+- `get_sector_cash_status(_sector)` — retorna estado atual para gating de UI.
 
-- `user?.id`, `ownerId`, `can("vendas")`, `loading` do `usePermissions`
-- O `error` retornado pela query `pdv-products` (hoje o código faz `throw error` mas se acontecer silenciosamente o array volta vazio)
-- O `data.length` recebido
+Todas as RPCs validam `has_permission` (`vendas` para funcionário; `financeiro` ou owner para admin).
 
-Esses logs são removidos depois do diagnóstico.
+---
 
-### Passo 3 — Corrigir a causa raiz
+### 3. Bloqueio de vendas
 
-A correção depende do que o Passo 1/2 mostrar. Cenários prováveis e ações:
+Adicionar guard nas RPCs/inserts:
+- `sales` insert (bar) → exige request `open` em `sector='bar'`.
+- `register_event_entry` (portaria) → exige request `open` em `sector='portaria'`.
+- Trigger `BEFORE INSERT` em `sales` que rejeita se não houver sessão aberta no setor correspondente (sector inferido por `category`: `bar`/`online` → bar; `entrada` → portaria).
 
-- **JWT do staff vem certo e produtos vêm `[]`** → criar uma migration extra que também garante `SELECT` em `product_stock` e `product_categories` para `lojinha` (hoje `product_stock` só libera para `estoque` ou `vendas`; se a staff fosse só `lojinha`, faltaria). Não é o caso aqui (ambas as contas têm `vendas`), mas conferimos.
-- **`ownerId` ou `can("vendas")` ficam `false` no front** → ajustar `usePermissions` para não retornar `null` em caso de múltiplas linhas e para garantir que o `loading` esteja respeitado antes do `enabled` da query.
-- **Erro silencioso na query** → tratar e mostrar no toast/UI em vez de cair no "Nenhum produto cadastrado".
+---
 
-## Arquivos potencialmente afetados (só se necessário, após Passo 1)
+### 4. UI — Funcionário (mobile)
 
-- `src/routes/_app.pdv.tsx` — logs temporários e/ou mostrar erro real.
-- `src/hooks/usePermissions.tsx` — apenas se o `ownerId` vier errado.
-- `supabase/migrations/<nova>.sql` — apenas se descobrirmos um RLS faltando em `product_stock` / `product_categories` para o caso `lojinha`-only.
+**`/vendas` (Bar) e `/portaria`:**
+- Hook `useSectorCashStatus(sector)` com `useQuery` + Supabase Realtime em `cash_register_requests`.
+- Estados:
+  - `closed` → tela cheia "Caixa fechado" + botão **Solicitar abertura**.
+  - `awaiting_open` → tela bloqueada "⏳ Aguardando autorização do gerente" (spinner, polling realtime).
+  - `open` → libera PDV normalmente; mostra botão **Solicitar fechamento** (abre modal com contagem declarada).
+  - `awaiting_close` → tela bloqueada "Aguardando gerente confirmar fechamento".
 
-## Próximo passo concreto
+---
 
-Faz o **Passo 1**: deslogar do bruno-owner, logar como `happybeer.adm@gmail.com`, abrir `/vendas` e me avisar — sem essa amostra de rede com o staff logado, qualquer "correção" agora seria chute.
+### 5. UI — Administrador (desktop)
+
+Nova rota **`/admin/caixas`** (apenas owner / `financeiro`):
+- Painel com 2 cards: **Caixa do Bar** e **Caixa da Portaria**, status atual de cada um.
+- Lista de solicitações pendentes em tempo real (Realtime subscription).
+- Notificação visual + sonora ao chegar `awaiting_open` ou `awaiting_close`.
+- Para `awaiting_open`: input de fundo de caixa + botão **Autorizar abertura**.
+- Para `awaiting_close`: mostra declarado vs esperado (usa `get_session_expected_totals` adaptado por setor) + botão **Confirmar e fechar**.
+- Botões sempre disponíveis: **Abrir caixa agora** / **Fechar caixa agora** (force open/close) por setor.
+- Sino de notificações no header do `/admin` global apontando pra esta página.
+
+---
+
+### 6. Realtime
+
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.cash_register_requests;
+ALTER TABLE public.cash_register_requests REPLICA IDENTITY FULL;
+```
+
+Funcionário escuta seu setor; admin escuta tudo do `owner_id`.
+
+---
+
+### 7. Migração de dados existentes
+
+- Sessões `cash_sessions` abertas hoje → atribuir `sector='bar'` por padrão (única em uso).
+- Criar request `open` correspondente para cada sessão aberta para não quebrar caixas em uso.
+
+---
+
+### 8. Arquivos afetados
+
+**Backend (migration):**
+- `supabase/migrations/<novo>.sql` — tabela, RLS, RPCs, trigger de bloqueio, realtime, coluna `sector` em `cash_sessions`.
+
+**Frontend:**
+- `src/hooks/useSectorCashStatus.tsx` (novo)
+- `src/components/caixa/CashGate.tsx` (novo — tela bloqueada reutilizável)
+- `src/components/caixa/RequestCloseDialog.tsx` (novo)
+- `src/routes/_app.vendas.tsx` / `_app.pdv.tsx` — envolver com `<CashGate sector="bar">`
+- `src/routes/_app.portaria*.tsx` — envolver com `<CashGate sector="portaria">`
+- `src/routes/_app.admin.caixas.tsx` (novo painel)
+- `src/components/layout/AdminHeader.tsx` — sino de notificações
+
+**Ajustes em fluxos atuais:**
+- `open_cash_session` / `close_cash_blind` recebem `_sector`.
+- `register_event_entry` busca sessão por `sector='portaria'`.
+- PDV (bar) busca sessão por `sector='bar'`.
+
+---
+
+### Pergunta de escopo antes de implementar
+
+1. Hoje só existe um caixa por funcionário (`opened_by`). Confirma que quero migrar para **um caixa por setor por bar** (ou seja, vários vendedores do bar compartilham a mesma sessão do bar)? Ou cada vendedor mantém sua própria sessão e o "setor" só serve pra gating?
+2. A autorização de abertura/fechamento exige permissão `financeiro`, ou apenas o **owner** pode autorizar?
