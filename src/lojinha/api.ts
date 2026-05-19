@@ -8,8 +8,15 @@ export type StorefrontProduct = {
   price: number;
   unit: string;
   category_id: string | null;
+  category_name: string | null;
   available_qty: number;
 };
+
+export async function toggleProductOnline(productId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("lojinha_toggle_sell_online", { _product_id: productId });
+  if (error) throw error;
+  return data as boolean;
+}
 
 export type StorefrontSettings = {
   id: string;
