@@ -401,11 +401,26 @@ function ProdutosPage() {
               {p.description && <div className="text-xs text-muted-foreground mt-1 line-clamp-1">{p.description}</div>}
             </div>
             <div className="flex flex-col items-end gap-1 self-start">
-              <Switch
-                checked={p.is_available !== false}
-                onCheckedChange={(v) => toggleAvailable(p, v)}
-                aria-label="Disponível"
-              />
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => toggleOnline(p)}
+                  title={p.sell_online ? "Na lojinha — clique para esconder" : "Fora da lojinha — clique para mostrar. Quando o estoque acabar, some sozinho."}
+                  className={`grid place-items-center h-8 w-8 rounded-md border transition-colors ${
+                    p.sell_online
+                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/25"
+                      : "bg-muted border-border text-muted-foreground hover:bg-muted/70"
+                  }`}
+                  aria-label="Vender na lojinha"
+                >
+                  <Store className="h-4 w-4" />
+                </button>
+                <Switch
+                  checked={p.is_available !== false}
+                  onCheckedChange={(v) => toggleAvailable(p, v)}
+                  aria-label="Disponível no PDV"
+                />
+              </div>
               <div className="flex">
                 <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                 <Button variant="ghost" size="icon" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
