@@ -465,6 +465,14 @@ function ProdutosPage() {
         <TabsContent value="combo" />
       </Tabs>
 
+      <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <Store className="h-3.5 w-3.5 text-emerald-500" />
+        <span>
+          <strong className="text-foreground">{onlineCount}</strong> de {list.length} na lojinha
+        </span>
+        <span className="opacity-60">· clique no <Store className="inline h-3 w-3" /> de cada produto para ligar/desligar</span>
+      </div>
+
       {list.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
           <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
