@@ -34,10 +34,12 @@ export function usePermissions() {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash, can_authorize, role_preset, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .eq("user_id", user.id);
       if (error) throw error;
-      return data;
+      if (!data || data.length === 0) return null;
+      // Se houver múltiplas linhas (ex.: também é staff em outro bar), prioriza staff
+      const staffRow = data.find((r) => r.role === "staff");
+      return staffRow ?? data[0];
     },
     enabled: !!user,
   });
