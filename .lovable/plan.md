@@ -1,62 +1,65 @@
-
 ## Diagnóstico
 
-Olhando o banco, todos os funcionários convidados como `caixa_bar` têm **duas linhas** em `user_roles`:
+### 1. Produtos não aparecem para o vendedor
 
-```text
-user_id  | role  | role_preset | owner_id
----------+-------+-------------+----------
-<vendor> | owner |             | <vendor>    ← criada pelo trigger handle_new_user
-<vendor> | staff | caixa_bar   | <dono>      ← criada pelo invite-staff
+Olhando as políticas RLS da tabela `products`:
+
+```sql
+USING ((user_id = get_owner_id(auth.uid())) AND has_permission(auth.uid(), user_id, 'estoque'))
 ```
 
-O que acontece no login:
-1. `usePermissions` faz `.eq("user_id", user.id).maybeSingle()`.
-2. Com 2 linhas, `maybeSingle()` retorna erro → `data` = null.
-3. `rolePreset`=null, `isOwner`=false, `can("vendas")`=false.
-4. O `src/routes/index.tsx` cai no fallback final → `/dashboard`.
+O `SELECT` exige permissão `estoque`. A Marilia (`caixa_bar`) só tem `[vendas, lojinha]` → a query retorna 0 linhas mesmo com o estoque global do dono `d51c4fd1` tendo 4 produtos / 159 unidades.
 
-Ou seja: o redirect está certo, mas a permissão chega vazia porque há linhas duplicadas e a query rejeita.
+`product_stock` e `product_categories` já liberam `vendas` no SELECT. Só `products` (e por tabela, `combo_items`, mas esse já é lido via RPC `get_combo_items_for_sales`) está bloqueando.
 
-Causa raiz: o trigger `handle_new_user` cria automaticamente uma linha `owner` para QUALQUER usuário novo no `auth.users`, inclusive os criados pela função `invite-staff`.
+Os queries do PDV/Lojinha **não** filtram por `user_id` no client — quem filtra é a RLS via `get_owner_id`. Ou seja, todos os funcionários do mesmo dono já compartilham a mesma lista global de produtos e o mesmo `product_stock`. Não precisa "remover filtros de user_id" do código — precisa **liberar SELECT em `products` para quem tem `vendas` ou `lojinha`**.
+
+### 2. Histórico de vendas mostrando valores para o vendedor
+
+`SalesHistory.tsx` mostra `total`, soma R$ e desconto para qualquer um com permissão de `vendas`. Não há diferenciação por papel.
 
 ## O que vou corrigir
 
-### 1. Trigger `handle_new_user` — não criar owner para convidados
-Atualizar o trigger para olhar `raw_user_meta_data->>'invited_by'` (ou flag equivalente que o `invite-staff` setar) e, se for um convite, pular a criação do owner row e dos seeds de categorias padrão.
+### A. Migration — liberar leitura global de produtos para vendedores
 
-### 2. `invite-staff` edge function — marcar o convite
-Passar `user_metadata: { invited_by: <ownerId> }` no `admin.auth.admin.inviteUserByEmail` / `createUser` para que o trigger reconheça.
-
-### 3. Limpeza dos dados existentes
-Migração que apaga a linha `owner` redundante de cada `user_id` que também é `staff` de outro `owner_id`:
+Trocar a policy `View products`:
 
 ```sql
-DELETE FROM public.user_roles a
-WHERE a.role = 'owner'
-  AND EXISTS (
-    SELECT 1 FROM public.user_roles b
-    WHERE b.user_id = a.user_id
-      AND b.role = 'staff'
-      AND b.owner_id <> a.user_id
-  );
+DROP POLICY "View products" ON public.products;
+CREATE POLICY "View products" ON public.products FOR SELECT
+USING (
+  user_id = public.get_owner_id(auth.uid())
+  AND (
+    public.has_permission(auth.uid(), user_id, 'estoque')
+    OR public.has_permission(auth.uid(), user_id, 'vendas')
+    OR public.has_permission(auth.uid(), user_id, 'lojinha')
+  )
+);
 ```
 
-### 4. `usePermissions` — robustez contra múltiplas linhas
-Trocar `.maybeSingle()` por `.limit(2)` e escolher: se houver linha `staff`, ela ganha; caso contrário usar a linha `owner`. Assim, mesmo se sobrar algum duplicado no futuro o app continua funcionando.
+Mesma coisa para `combo_items` (caso o vendedor precise ler direto), por segurança: liberar SELECT para `vendas` também.
 
-## Resultado esperado
+### B. `SalesHistory.tsx` — linha do tempo operacional para vendedor
 
-- Caixa fixo (`caixa_bar`) logando → `/pdv`.
-- Caixa portaria → `/portaria`.
-- Garçom → `/lojinha`.
-- Owner / gerente → `/dashboard`.
-- Convites novos não criam mais bar paralelo para o funcionário.
+Reformular a tela usando `usePermissions`:
+
+- **Se `isOwner || can('financeiro')`** → mantém a tela atual: total, soma do período, forma de pagamento, desconto.
+- **Caso contrário** (vendedor/caixa_bar/garcom) → vira **Linha do Tempo Operacional**:
+  - Busca `sale_items` com `created_at`, `product_name`, `quantity` (com join leve em `sales` apenas para pegar `created_at` e `employee_name`).
+  - Renderiza lista cronológica: "1x Combo Orloff — 23:15 — Marilia".
+  - Sem totais, sem somatório de R$, sem coluna de pagamento, sem desconto.
+
+A policy SELECT atual de `sale_items` já permite quem tem `vendas` — não precisa mudar RLS aqui.
+
+Pequeno detalhe: a tela `vendas` (que renderiza `SalesHistory` na aba "Histórico") fica acessível só para quem tem `vendas`; o split por `financeiro` é puramente visual dentro do componente.
 
 ## Arquivos afetados
 
-- `supabase/migrations/<nova>.sql` (atualiza `handle_new_user`, limpa duplicados).
-- `supabase/functions/invite-staff/index.ts` (passa `invited_by` no metadata).
-- `src/hooks/usePermissions.tsx` (preferir staff quando houver múltiplas linhas).
+- `supabase/migrations/<nova>.sql` — relaxa SELECT em `products` (e `combo_items`).
+- `src/components/vendas/SalesHistory.tsx` — divide em dois modos (financeiro vs. operacional) usando `usePermissions`.
 
-Fora do escopo: mudar RLS, criar tela de troca de tenant, mexer em outras telas.
+## Fora do escopo
+
+- Não vou remover `user_id` das tabelas (a multi-tenancy continua sã — o "global" é dentro do mesmo dono, como o sistema já é desenhado).
+- Não vou mexer em policies de outras tabelas além de `products`/`combo_items`.
+- Não vou criar tela nova nem alterar rotas/permissões existentes.
