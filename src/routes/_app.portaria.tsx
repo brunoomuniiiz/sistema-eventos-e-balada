@@ -49,8 +49,20 @@ function PortariaPage() {
   const [payAmount, setPayAmount] = useState<string>("");
   const [payGender, setPayGender] = useState<string>("");
   const [payMethod, setPayMethod] = useState<"dinheiro" | "debito" | "credito" | "pix">(
-    acceptedMethods[0] ?? "dinheiro",
+    (acceptedMethods[0] as "dinheiro" | "debito" | "credito" | "pix") ?? "dinheiro",
   );
+  const [openCash, setOpenCash] = useState(false);
+  const [closingCash, setClosingCash] = useState(false);
+
+  const { data: session, refetch: refetchSession } = useQuery({
+    queryKey: ["portaria-cash-session"],
+    enabled: allowed,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_my_open_session");
+      if (error) throw error;
+      return data as null | { id: string; opening_amount: number; opened_at: string };
+    },
+  });
 
   const { data: events = [] } = useQuery({
     queryKey: ["portaria-events", ownerId],
