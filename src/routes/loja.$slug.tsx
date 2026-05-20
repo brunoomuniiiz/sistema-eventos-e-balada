@@ -117,7 +117,7 @@ function StorefrontPage() {
     saveCustomer(customer);
     setCreating(true);
     try {
-      const res = await createOrder(slug, token, customer);
+      const res = await createOrder(slug, token, customer, cart);
       // Limpa carrinho local (reserva fica até pagar; aqui simplificamos)
       resetCart(slug);
       navigate({ to: "/loja/$slug/pedido/$orderId", params: { slug, orderId: res.order_id } });
