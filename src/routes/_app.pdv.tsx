@@ -362,7 +362,7 @@ export function PdvView() {
         amount={total}
         description={`Venda PDV · ${cart.length} ${cart.length === 1 ? "item" : "itens"}`}
         origin="pdv"
-        sector="pdv"
+        sector="bar"
         onApproved={async () => { await recordSale(); }}
       />
 
