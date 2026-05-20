@@ -56,6 +56,9 @@ function OrderPage() {
   const { order, items, units } = data;
   const isPaid = order.status === "paid" || order.status === "delivered";
   const isPending = order.status === "pending";
+  const dailyNo = (order as unknown as { daily_number?: number | null }).daily_number ?? null;
+  const pickupToken = (order as unknown as { pickup_token?: string | null }).pickup_token ?? null;
+  const orderNoLabel = dailyNo != null ? "#" + String(dailyNo).padStart(3, "0") : null;
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -64,7 +67,7 @@ function OrderPage() {
           <Link to="/loja/$slug" params={{ slug }} className="text-xs opacity-80 hover:underline flex items-center gap-1">
             <Store className="h-3 w-3" /> Voltar à loja
           </Link>
-          <h1 className="text-2xl font-bold mt-2">Pedido</h1>
+          <h1 className="text-2xl font-bold mt-2">Pedido {orderNoLabel ?? ""}</h1>
           <p className="text-sm opacity-80">{order.customer_name}</p>
         </div>
       </header>
@@ -72,15 +75,28 @@ function OrderPage() {
       <main className="max-w-xl mx-auto px-4 py-6 space-y-4">
         {isPending && <PixCheckoutPanel orderId={orderId} onPaid={() => refetch()} />}
 
-        {isPaid && (
+        {isPaid && pickupToken && (
+          <Card className="border-success/40 bg-success/5">
+            <CardContent className="p-4 flex flex-col items-center gap-3 text-center">
+              <CheckCircle2 className="h-6 w-6 text-success" />
+              <div>
+                <div className="font-bold text-success text-lg">Pagamento confirmado</div>
+                <div className="text-xs text-muted-foreground">Mostre este QR ao garçom para retirar.</div>
+              </div>
+              {orderNoLabel && <div className="text-3xl font-black tracking-widest">{orderNoLabel}</div>}
+              <div className="bg-white p-3 rounded-lg">
+                <QRCodeSVG value={pickupToken} size={200} level="M" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {isPaid && !pickupToken && (
           <Card className="border-success/40 bg-success/5">
             <CardContent className="p-4 flex items-center gap-3">
               <CheckCircle2 className="h-6 w-6 text-success" />
               <div>
                 <div className="font-medium">Pagamento confirmado</div>
-                <div className="text-xs text-muted-foreground">
-                  Apresente cada QR code abaixo no balcão para retirar.
-                </div>
+                <div className="text-xs text-muted-foreground">Apresente cada QR code abaixo no balcão para retirar.</div>
               </div>
             </CardContent>
           </Card>

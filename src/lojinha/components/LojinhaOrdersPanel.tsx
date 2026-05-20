@@ -63,7 +63,12 @@ export function LojinhaOrdersPanel() {
             <Card key={o.id}>
               <CardContent className="p-3 flex items-center justify-between">
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{o.customer_name}</div>
+                  <div className="font-medium truncate">
+                    {o.daily_number != null && (
+                      <span className="text-primary font-bold mr-2">#{String(o.daily_number).padStart(3, "0")}</span>
+                    )}
+                    {o.customer_name}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {format(new Date(o.created_at), "dd/MM HH:mm", { locale: ptBR })} · {o.customer_phone || "—"}
                   </div>

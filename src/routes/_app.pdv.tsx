@@ -311,7 +311,15 @@ export function PdvView() {
         if (payErr) throw payErr;
       }
 
-      toast.success(`Venda de ${formatBRL(total)} registrada!`);
+      const dailyNo = (sale as { daily_number?: number | null }).daily_number ?? null;
+      toast.success(
+        `Venda ${dailyNo != null ? "#" + String(dailyNo).padStart(3, "0") : ""} de ${formatBRL(total)} registrada!`,
+      );
+      // Abre cupom imprimível em nova aba
+      try {
+        window.open(`/pdv/cupom/${sale.id}`, "_blank");
+      } catch { /* ignore popup block */ }
+
       setCart([]);
       setPayments([]);
       setDiscountInput("");

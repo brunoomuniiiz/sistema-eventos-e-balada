@@ -13,6 +13,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PdvCupomSaleIdRouteImport } from './routes/pdv-cupom.$saleId'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as ListaSlugRouteImport } from './routes/lista.$slug'
 import { Route as ESlugRouteImport } from './routes/e.$slug'
@@ -20,6 +21,7 @@ import { Route as AppVendasRouteImport } from './routes/_app.vendas'
 import { Route as AppPromotersRouteImport } from './routes/_app.promoters'
 import { Route as AppProdutosRouteImport } from './routes/_app.produtos'
 import { Route as AppPortariaRouteImport } from './routes/_app.portaria'
+import { Route as AppPedidosLiberarRouteImport } from './routes/_app.pedidos-liberar'
 import { Route as AppPdvRouteImport } from './routes/_app.pdv'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
 import { Route as AppLojinhaRouteImport } from './routes/_app.lojinha'
@@ -52,6 +54,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdvCupomSaleIdRoute = PdvCupomSaleIdRouteImport.update({
+  id: '/pdv-cupom/$saleId',
+  path: '/pdv-cupom/$saleId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaSlugRoute = LojaSlugRouteImport.update({
@@ -87,6 +94,11 @@ const AppProdutosRoute = AppProdutosRouteImport.update({
 const AppPortariaRoute = AppPortariaRouteImport.update({
   id: '/portaria',
   path: '/portaria',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPedidosLiberarRoute = AppPedidosLiberarRouteImport.update({
+  id: '/pedidos-liberar',
+  path: '/pedidos-liberar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPdvRoute = AppPdvRouteImport.update({
@@ -174,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/lojinha': typeof AppLojinhaRoute
   '/mensal': typeof AppMensalRoute
   '/pdv': typeof AppPdvRoute
+  '/pedidos-liberar': typeof AppPedidosLiberarRoute
   '/portaria': typeof AppPortariaRoute
   '/produtos': typeof AppProdutosRoute
   '/promoters': typeof AppPromotersRoute
@@ -181,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/pdv-cupom/$saleId': typeof PdvCupomSaleIdRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/api/public/mp-webhook': typeof ApiPublicMpWebhookRoute
   '/eventos/': typeof AppEventosIndexRoute
@@ -200,6 +214,7 @@ export interface FileRoutesByTo {
   '/lojinha': typeof AppLojinhaRoute
   '/mensal': typeof AppMensalRoute
   '/pdv': typeof AppPdvRoute
+  '/pedidos-liberar': typeof AppPedidosLiberarRoute
   '/portaria': typeof AppPortariaRoute
   '/produtos': typeof AppProdutosRoute
   '/promoters': typeof AppPromotersRoute
@@ -207,6 +222,7 @@ export interface FileRoutesByTo {
   '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/pdv-cupom/$saleId': typeof PdvCupomSaleIdRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/api/public/mp-webhook': typeof ApiPublicMpWebhookRoute
   '/eventos': typeof AppEventosIndexRoute
@@ -228,6 +244,7 @@ export interface FileRoutesById {
   '/_app/lojinha': typeof AppLojinhaRoute
   '/_app/mensal': typeof AppMensalRoute
   '/_app/pdv': typeof AppPdvRoute
+  '/_app/pedidos-liberar': typeof AppPedidosLiberarRoute
   '/_app/portaria': typeof AppPortariaRoute
   '/_app/produtos': typeof AppProdutosRoute
   '/_app/promoters': typeof AppPromotersRoute
@@ -235,6 +252,7 @@ export interface FileRoutesById {
   '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/pdv-cupom/$saleId': typeof PdvCupomSaleIdRoute
   '/_app/eventos/$eventId': typeof AppEventosEventIdRoute
   '/api/public/mp-webhook': typeof ApiPublicMpWebhookRoute
   '/_app/eventos/': typeof AppEventosIndexRoute
@@ -256,6 +274,7 @@ export interface FileRouteTypes {
     | '/lojinha'
     | '/mensal'
     | '/pdv'
+    | '/pedidos-liberar'
     | '/portaria'
     | '/produtos'
     | '/promoters'
@@ -263,6 +282,7 @@ export interface FileRouteTypes {
     | '/e/$slug'
     | '/lista/$slug'
     | '/loja/$slug'
+    | '/pdv-cupom/$saleId'
     | '/eventos/$eventId'
     | '/api/public/mp-webhook'
     | '/eventos/'
@@ -282,6 +302,7 @@ export interface FileRouteTypes {
     | '/lojinha'
     | '/mensal'
     | '/pdv'
+    | '/pedidos-liberar'
     | '/portaria'
     | '/produtos'
     | '/promoters'
@@ -289,6 +310,7 @@ export interface FileRouteTypes {
     | '/e/$slug'
     | '/lista/$slug'
     | '/loja/$slug'
+    | '/pdv-cupom/$saleId'
     | '/eventos/$eventId'
     | '/api/public/mp-webhook'
     | '/eventos'
@@ -309,6 +331,7 @@ export interface FileRouteTypes {
     | '/_app/lojinha'
     | '/_app/mensal'
     | '/_app/pdv'
+    | '/_app/pedidos-liberar'
     | '/_app/portaria'
     | '/_app/produtos'
     | '/_app/promoters'
@@ -316,6 +339,7 @@ export interface FileRouteTypes {
     | '/e/$slug'
     | '/lista/$slug'
     | '/loja/$slug'
+    | '/pdv-cupom/$saleId'
     | '/_app/eventos/$eventId'
     | '/api/public/mp-webhook'
     | '/_app/eventos/'
@@ -330,6 +354,7 @@ export interface RootRouteChildren {
   ESlugRoute: typeof ESlugRoute
   ListaSlugRoute: typeof ListaSlugRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
+  PdvCupomSaleIdRoute: typeof PdvCupomSaleIdRoute
   ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
 }
 
@@ -361,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdv-cupom/$saleId': {
+      id: '/pdv-cupom/$saleId'
+      path: '/pdv-cupom/$saleId'
+      fullPath: '/pdv-cupom/$saleId'
+      preLoaderRoute: typeof PdvCupomSaleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loja/$slug': {
@@ -410,6 +442,13 @@ declare module '@tanstack/react-router' {
       path: '/portaria'
       fullPath: '/portaria'
       preLoaderRoute: typeof AppPortariaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pedidos-liberar': {
+      id: '/_app/pedidos-liberar'
+      path: '/pedidos-liberar'
+      fullPath: '/pedidos-liberar'
+      preLoaderRoute: typeof AppPedidosLiberarRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pdv': {
@@ -524,6 +563,7 @@ interface AppRouteChildren {
   AppLojinhaRoute: typeof AppLojinhaRoute
   AppMensalRoute: typeof AppMensalRoute
   AppPdvRoute: typeof AppPdvRoute
+  AppPedidosLiberarRoute: typeof AppPedidosLiberarRoute
   AppPortariaRoute: typeof AppPortariaRoute
   AppProdutosRoute: typeof AppProdutosRoute
   AppPromotersRoute: typeof AppPromotersRoute
@@ -543,6 +583,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLojinhaRoute: AppLojinhaRoute,
   AppMensalRoute: AppMensalRoute,
   AppPdvRoute: AppPdvRoute,
+  AppPedidosLiberarRoute: AppPedidosLiberarRoute,
   AppPortariaRoute: AppPortariaRoute,
   AppProdutosRoute: AppProdutosRoute,
   AppPromotersRoute: AppPromotersRoute,
@@ -573,18 +614,9 @@ const rootRouteChildren: RootRouteChildren = {
   ESlugRoute: ESlugRoute,
   ListaSlugRoute: ListaSlugRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
+  PdvCupomSaleIdRoute: PdvCupomSaleIdRoute,
   ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

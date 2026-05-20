@@ -481,6 +481,27 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_order_counter: {
+        Row: {
+          daily_date: string
+          last_number: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          daily_date: string
+          last_number?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          daily_date?: string
+          last_number?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           created_at: string
@@ -897,6 +918,8 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
+          daily_date: string | null
+          daily_number: number | null
           delivered_at: string | null
           id: string
           init_point: string | null
@@ -904,6 +927,7 @@ export type Database = {
           mp_point_intent_id: string | null
           mp_preference_id: string | null
           paid_at: string | null
+          pickup_token: string | null
           point_device_id: string | null
           seller_name: string | null
           seller_user_id: string | null
@@ -920,6 +944,8 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
+          daily_date?: string | null
+          daily_number?: number | null
           delivered_at?: string | null
           id?: string
           init_point?: string | null
@@ -927,6 +953,7 @@ export type Database = {
           mp_point_intent_id?: string | null
           mp_preference_id?: string | null
           paid_at?: string | null
+          pickup_token?: string | null
           point_device_id?: string | null
           seller_name?: string | null
           seller_user_id?: string | null
@@ -943,6 +970,8 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
+          daily_date?: string | null
+          daily_number?: number | null
           delivered_at?: string | null
           id?: string
           init_point?: string | null
@@ -950,6 +979,7 @@ export type Database = {
           mp_point_intent_id?: string | null
           mp_preference_id?: string | null
           paid_at?: string | null
+          pickup_token?: string | null
           point_device_id?: string | null
           seller_name?: string | null
           seller_user_id?: string | null
@@ -1473,6 +1503,8 @@ export type Database = {
           category: string
           closing_id: string | null
           created_at: string
+          daily_date: string | null
+          daily_number: number | null
           discount_by: string | null
           discount_percent: number
           discount_value: number
@@ -1484,6 +1516,8 @@ export type Database = {
           location_id: string | null
           notes: string | null
           payment_method: string
+          pickup_token: string | null
+          released_at: string | null
           session_id: string | null
           total: number
           updated_at: string
@@ -1493,6 +1527,8 @@ export type Database = {
           category?: string
           closing_id?: string | null
           created_at?: string
+          daily_date?: string | null
+          daily_number?: number | null
           discount_by?: string | null
           discount_percent?: number
           discount_value?: number
@@ -1504,6 +1540,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           payment_method: string
+          pickup_token?: string | null
+          released_at?: string | null
           session_id?: string | null
           total?: number
           updated_at?: string
@@ -1513,6 +1551,8 @@ export type Database = {
           category?: string
           closing_id?: string | null
           created_at?: string
+          daily_date?: string | null
+          daily_number?: number | null
           discount_by?: string | null
           discount_percent?: number
           discount_value?: number
@@ -1524,6 +1564,8 @@ export type Database = {
           location_id?: string | null
           notes?: string | null
           payment_method?: string
+          pickup_token?: string | null
+          released_at?: string | null
           session_id?: string | null
           total?: number
           updated_at?: string
@@ -2058,10 +2100,13 @@ export type Database = {
         Returns: boolean
       }
       lojinha_validate_qr: { Args: { _token: string }; Returns: Json }
+      next_daily_order_number: { Args: { _owner: string }; Returns: number }
       open_cash_session: {
         Args: { _event_id?: string; _notes?: string; _opening: number }
         Returns: string
       }
+      order_lookup_by_token: { Args: { _token: string }; Returns: Json }
+      order_release: { Args: { _id: string; _source: string }; Returns: Json }
       register_event_entry: {
         Args: {
           _amount: number
