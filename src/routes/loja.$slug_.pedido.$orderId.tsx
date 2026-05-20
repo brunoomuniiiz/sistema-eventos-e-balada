@@ -121,23 +121,45 @@ function OrderPage() {
         {units.length > 0 && (
           <div className="space-y-3">
             <h2 className="font-bold mt-4">Seus QR codes ({units.length})</h2>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Câmera não leu? Toque em "Copiar código" e peça ao garçom para colar.
+            </p>
             {units.map((u, idx) => {
               const delivered = u.status === "delivered";
               return (
                 <Card key={u.id} className={delivered ? "opacity-60" : ""}>
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className="bg-white p-2 rounded-lg">
-                      <QRCodeSVG value={u.qr_token} size={104} />
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start gap-4">
+                      <div className="bg-white p-2 rounded-lg shrink-0">
+                        <QRCodeSVG value={u.qr_token} size={180} level="M" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-muted-foreground">Unidade {idx + 1} de {units.length}</div>
+                        <div className="font-medium">{u.product_name}</div>
+                        {delivered ? (
+                          <Badge variant="secondary" className="mt-1">Entregue</Badge>
+                        ) : (
+                          <Badge className="mt-1 bg-success text-success-foreground">Pronto p/ retirar</Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs text-muted-foreground">Unidade {idx + 1} de {units.length}</div>
-                      <div className="font-medium">{u.product_name}</div>
-                      {delivered ? (
-                        <Badge variant="secondary" className="mt-1">Entregue</Badge>
-                      ) : (
-                        <Badge className="mt-1 bg-success text-success-foreground">Pronto p/ retirar</Badge>
-                      )}
-                    </div>
+                    {!delivered && (
+                      <div className="border-t pt-3 space-y-2">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Código de retirada</div>
+                        <div className="font-mono text-xs break-all bg-muted rounded p-2">{u.qr_token}</div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={async () => {
+                            await navigator.clipboard.writeText(u.qr_token);
+                            toast.success("Código copiado");
+                          }}
+                        >
+                          Copiar código
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
