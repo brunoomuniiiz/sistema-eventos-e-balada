@@ -180,6 +180,10 @@ function ProdutosPage() {
       description: "", pickup_description: "", photo_url: "", unit: "un",
       category_id: "none", is_available: true,
       sell_online: true, online_price: 0,
+      ativo_geral: true,
+      visivel_pdv_caixa: true,
+      visivel_mobile_garcom: true,
+      visivel_lojinha_cliente: true,
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -203,7 +207,12 @@ function ProdutosPage() {
       is_available: p.is_available ?? true,
       sell_online: p.sell_online ?? false,
       online_price: Number(p.online_price ?? 0),
+      ativo_geral: p.ativo_geral ?? true,
+      visivel_pdv_caixa: p.visivel_pdv_caixa ?? true,
+      visivel_mobile_garcom: p.visivel_mobile_garcom ?? true,
+      visivel_lojinha_cliente: p.visivel_lojinha_cliente ?? (p.sell_online ?? true),
     });
+
     if (p.product_type === "combo") {
       const items = comboItems.filter((c) => c.combo_product_id === p.id);
       setDraftComponents(items.map((i) => ({
