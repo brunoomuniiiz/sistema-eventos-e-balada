@@ -42,6 +42,8 @@ export function PixQrDialog({
   const create = useServerFn(createPixCharge);
   const checkStatus = useServerFn(getPixChargeStatus);
   const cancel = useServerFn(cancelPixCharge);
+  const simulate = useServerFn(simulatePixApproval);
+  const [simulating, setSimulating] = useState(false);
 
   const [charge, setCharge] = useState<Charge | null>(null);
   const [creating, setCreating] = useState(false);
