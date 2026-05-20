@@ -154,7 +154,7 @@ export function LojinhaPosView() {
               amount: Number(res.total),
               description: `Lojinha — pedido ${res.order_id.slice(0, 8)}`,
               origin: "lojinha",
-              sector: "lojinha-pdv",
+              sector: "lojinha",
               orderId: res.order_id,
             },
           });
