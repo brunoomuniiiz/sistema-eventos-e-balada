@@ -252,16 +252,9 @@ export function PdvView() {
 
   const removeItem = (id: string) => setCart((prev) => prev.filter((i) => i.product_id !== id));
 
-  const finalize = async () => {
+  const recordSale = async () => {
     if (!user || !ownerId) return;
-    if (cart.length === 0) return toast.error("Adicione pelo menos um produto");
-    if (payments.length === 0) return toast.error("Adicione formas de pagamento");
-    if (!isSplitValid(total, payments)) return toast.error("Pagamento não confere com o total");
-    if (!locationId) return toast.error("Selecione um local");
-    if (!session) return toast.error("Abra o caixa antes de vender");
-    const hasCash = payments.some((p) => p.method === "dinheiro");
-    if (hasCash && !canSellCash) return toast.error("Você não tem permissão para vender em dinheiro");
-
+    if (!locationId || !session) return;
     setSubmitting(true);
     try {
       const dominant = dominantMethod(payments);
@@ -298,11 +291,8 @@ export function PdvView() {
       const { error: itemsErr } = await supabase.from("sale_items").insert(items);
       if (itemsErr) throw itemsErr;
 
-      // Split payments: registra cada linha
-      // Para dinheiro, registra o valor efetivo (não inclui troco) limitado ao restante.
       let remaining = total;
       const payRows: { user_id: string; sale_id: string; method: string; amount: number }[] = [];
-      // primeiro não-dinheiro
       const ordered = [...payments].sort((a, b) =>
         a.method === "dinheiro" ? 1 : b.method === "dinheiro" ? -1 : 0
       );
@@ -327,11 +317,32 @@ export function PdvView() {
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
       refetchSession();
+      setCartOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao registrar venda");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const finalize = async () => {
+    if (!user || !ownerId) return;
+    if (cart.length === 0) return toast.error("Adicione pelo menos um produto");
+    if (payments.length === 0) return toast.error("Adicione formas de pagamento");
+    if (!isSplitValid(total, payments)) return toast.error("Pagamento não confere com o total");
+    if (!locationId) return toast.error("Selecione um local");
+    if (!session) return toast.error("Abra o caixa antes de vender");
+    const hasCash = payments.some((p) => p.method === "dinheiro");
+    if (hasCash && !canSellCash) return toast.error("Você não tem permissão para vender em dinheiro");
+
+    // Se o pagamento for 100% PIX, dispara cobrança Mercado Pago e só registra a venda após aprovação
+    const onlyPix = payments.length > 0 && payments.every((p) => p.method === "pix");
+    if (onlyPix) {
+      setPixOpen(true);
+      return;
+    }
+
+    await recordSale();
   };
 
   if (loading) return null;
