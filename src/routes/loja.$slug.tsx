@@ -120,7 +120,7 @@ function StorefrontPage() {
       const res = await createOrder(slug, token, customer, cart);
       // Limpa carrinho local (reserva fica até pagar; aqui simplificamos)
       resetCart(slug);
-      navigate({ to: "/loja/$slug/pedido/$orderId", params: { slug, orderId: res.order_id } });
+      navigate({ to: "/loja/$slug_/pedido/$orderId", params: { slug, orderId: res.order_id } });
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message ?? "Erro ao criar pedido");
