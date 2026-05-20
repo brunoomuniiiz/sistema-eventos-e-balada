@@ -66,7 +66,12 @@ type Product = {
   is_available: boolean;
   sell_online?: boolean;
   online_price?: number | null;
+  ativo_geral?: boolean;
+  visivel_pdv_caixa?: boolean;
+  visivel_mobile_garcom?: boolean;
+  visivel_lojinha_cliente?: boolean;
 };
+
 
 type Category = { id: string; name: string };
 
