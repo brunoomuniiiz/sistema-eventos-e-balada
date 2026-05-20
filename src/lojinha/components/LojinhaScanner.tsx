@@ -99,28 +99,6 @@ export function LojinhaScanner() {
         </CardContent>
       </Card>
 
-      {last && (
-        <Card className={last.ok ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"}>
-          <CardContent className="p-4 flex items-center gap-3">
-            {last.ok ? <CheckCircle2 className="h-8 w-8 text-success" /> : <XCircle className="h-8 w-8 text-destructive" />}
-            <div className="flex-1">
-              {last.ok ? (
-                <>
-                  <div className="font-bold text-success">Entregue!</div>
-                  <div className="text-sm">{last.product_name} · {last.customer_name}</div>
-                </>
-              ) : last.reason === "already_delivered" ? (
-                <>
-                  <div className="font-bold text-destructive">QR já utilizado</div>
-                  <div className="text-xs text-muted-foreground">{last.product_name} · {last.customer_name}</div>
-                </>
-              ) : (
-                <div className="font-bold text-destructive">QR inválido</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
