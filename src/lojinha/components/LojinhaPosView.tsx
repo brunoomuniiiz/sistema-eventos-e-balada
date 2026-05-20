@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import { createPosOrder, confirmDeliveryPos, markPosPaid } from "@/lojinha/api";
+import { createPixCharge } from "@/lib/pix.functions";
 
 type Product = {
   id: string;
@@ -30,6 +32,7 @@ type Step = "cart" | "method" | "waiting" | "delivered";
 export function LojinhaPosView() {
   const { ownerId, lojinhaCanSell, lojinhaPaymentMethods, lojinhaPointDeviceId, loading } = usePermissions();
   const qc = useQueryClient();
+  const createPix = useServerFn(createPixCharge);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
@@ -38,6 +41,8 @@ export function LojinhaPosView() {
   const [method, setMethod] = useState<"pix" | "card" | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderTotal, setOrderTotal] = useState<number>(0);
+  const [pixQrBase64, setPixQrBase64] = useState<string | null>(null);
+  const [pixCopyPaste, setPixCopyPaste] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const { data: products = [] } = useQuery({
@@ -121,6 +126,8 @@ export function LojinhaPosView() {
     setMethod(null);
     setOrderId(null);
     setOrderTotal(0);
+    setPixQrBase64(null);
+    setPixCopyPaste(null);
   };
 
   const startCharge = async (m: "pix" | "card") => {
@@ -136,14 +143,47 @@ export function LojinhaPosView() {
       setOrderId(res.order_id);
       setOrderTotal(Number(res.total));
       setMethod(m);
+      setPixQrBase64(null);
+      setPixCopyPaste(null);
       setStep("waiting");
-      toast.success(m === "pix" ? "Pedido criado — gerando QR Pix" : "Pedido criado — enviando para a maquininha");
+
+      if (m === "pix") {
+        try {
+          const charge = await createPix({
+            data: {
+              amount: Number(res.total),
+              description: `Lojinha — pedido ${res.order_id.slice(0, 8)}`,
+              origin: "lojinha",
+              sector: "lojinha-pdv",
+              orderId: res.order_id,
+            },
+          });
+          setPixQrBase64(charge.qr_code_base64 ?? null);
+          setPixCopyPaste(charge.qr_code ?? null);
+          toast.success("QR Pix gerado");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Falha ao gerar QR Pix");
+        }
+      } else {
+        toast.success("Pedido criado — enviando para a maquininha");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao criar pedido");
     } finally {
       setBusy(false);
     }
   };
+
+  const copyPix = async () => {
+    if (!pixCopyPaste) return;
+    try {
+      await navigator.clipboard.writeText(pixCopyPaste);
+      toast.success("Código Pix copiado");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
 
   // Simulação enquanto MP não está conectado: botão manual de "confirmar pagamento"
   const confirmPaymentManual = async () => {
@@ -219,15 +259,39 @@ export function LojinhaPosView() {
         {!isPaid ? (
           <Card>
             <CardContent className="p-6 text-center space-y-3">
-              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-              <div className="font-medium">
-                {method === "pix" ? "Aguardando pagamento Pix…" : "Aguardando cartão na maquininha…"}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {method === "pix"
-                  ? "Quando o Mercado Pago estiver conectado, o QR Pix aparece aqui para o cliente apontar a câmera."
-                  : "Quando o Mercado Pago estiver conectado, a maquininha acorda sozinha e mostra o valor para o cliente."}
-              </p>
+              {method === "pix" ? (
+                pixQrBase64 ? (
+                  <>
+                    <img
+                      src={`data:image/png;base64,${pixQrBase64}`}
+                      alt="QR Code Pix"
+                      className="mx-auto w-64 h-64 rounded-lg border bg-white p-2"
+                    />
+                    <div className="font-medium">Aponte a câmera no QR Pix</div>
+                    {pixCopyPaste && (
+                      <Button variant="outline" className="w-full" onClick={copyPix}>
+                        <Copy className="h-4 w-4 mr-2" /> Copiar Pix copia-e-cola
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Pagamento confirma automaticamente em alguns segundos.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+                    <div className="font-medium">Gerando QR Pix…</div>
+                  </>
+                )
+              ) : (
+                <>
+                  <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+                  <div className="font-medium">Aguardando cartão na maquininha…</div>
+                  <p className="text-xs text-muted-foreground">
+                    Quando o Mercado Pago estiver conectado, a maquininha acorda sozinha e mostra o valor para o cliente.
+                  </p>
+                </>
+              )}
               <Button variant="outline" className="w-full" onClick={confirmPaymentManual} disabled={busy}>
                 {busy ? "..." : "Confirmar pagamento manualmente (teste)"}
               </Button>
