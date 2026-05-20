@@ -141,7 +141,12 @@ export const simulatePixApproval = createServerFn({ method: "POST" })
         .eq("id", updated.order_id)
         .in("status", ["pending"]);
       if (orderErr) throw new Error(orderErr.message);
+
+      await supabaseAdmin.rpc("lojinha_release_order_reservation", {
+        _order_id: updated.order_id,
+      });
     }
+
 
     return { ok: true };
   });
