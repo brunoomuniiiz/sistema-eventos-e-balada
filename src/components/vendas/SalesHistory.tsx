@@ -22,7 +22,7 @@ function FinancialHistory({ ownerId }: { ownerId: string | null }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id, total, payment_method, created_at, employee_name, category, discount_value")
+        .select("id, total, payment_method, created_at, employee_name, category, discount_value, daily_number")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -48,10 +48,13 @@ function FinancialHistory({ ownerId }: { ownerId: string | null }) {
         <span className="text-xl font-bold text-gradient">{formatBRL(total)}</span>
       </CardContent></Card>
       <Card><CardContent className="p-0 divide-y">
-        {sales.map((s) => (
+        {sales.map((s) => {
+          const no = (s as { daily_number?: number | null }).daily_number;
+          const label = no != null ? "#" + String(no).padStart(3, "0") : "";
+          return (
           <div key={s.id} className="flex items-center gap-3 p-3 text-sm">
             <div className="flex-1 min-w-0">
-              <div className="font-medium">{s.employee_name ?? "—"}</div>
+              <div className="font-medium">{label} {s.employee_name ? `· ${s.employee_name}` : ""}</div>
               <div className="text-xs text-muted-foreground">
                 {format(new Date(s.created_at), "dd/MM HH:mm", { locale: ptBR })} · {s.payment_method} · {s.category}
               </div>
@@ -61,7 +64,7 @@ function FinancialHistory({ ownerId }: { ownerId: string | null }) {
             )}
             <span className="font-semibold">{formatBRL(Number(s.total))}</span>
           </div>
-        ))}
+        );})}
       </CardContent></Card>
     </div>
   );
