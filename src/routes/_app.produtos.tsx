@@ -108,7 +108,12 @@ function ProdutosPage() {
     is_available: true,
     sell_online: true,
     online_price: 0,
+    ativo_geral: true,
+    visivel_pdv_caixa: true,
+    visivel_mobile_garcom: true,
+    visivel_lojinha_cliente: true,
   });
+
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
   const [pickComponentId, setPickComponentId] = useState("");
   const [uploading, setUploading] = useState(false);
