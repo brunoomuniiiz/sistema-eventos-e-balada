@@ -263,6 +263,27 @@ function PixCheckoutPanel({ orderId, onPaid }: { orderId: string; onPaid: () => 
           </div>
           {remaining != null && <div>Expira em {mmss}</div>}
         </div>
+
+        <Button
+          variant="outline"
+          className="w-full border-dashed border-amber-500/60 text-amber-600 hover:bg-amber-500/10"
+          disabled={simulating}
+          onClick={async () => {
+            setSimulating(true);
+            try {
+              await simulate({ data: { chargeId: charge.id } });
+              toast.success("Pagamento simulado aprovado");
+              onPaid();
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Falha ao simular");
+            } finally {
+              setSimulating(false);
+            }
+          }}
+        >
+          {simulating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          [TESTE] Simular Pagamento Aprovado
+        </Button>
       </CardContent>
     </Card>
   );
