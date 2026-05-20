@@ -587,40 +587,62 @@ function ProdutosPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-card/40">
-              <div>
-                <Label className="cursor-pointer">Disponível para venda</Label>
-                <p className="text-[11px] text-muted-foreground">
-                  Desmarque para esconder do PDV (mesmo com estoque).
-                </p>
-              </div>
-              <Switch
-                checked={form.is_available}
-                onCheckedChange={(v) => setForm({ ...form, is_available: v })}
-              />
-            </div>
+            <div className="p-3 rounded-lg border bg-card/40 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Visibilidade</div>
 
-            <div className="p-3 rounded-lg border bg-card/40 space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div>
-                  <Label className="cursor-pointer">Vender online (Lojinha)</Label>
-                  <p className="text-[11px] text-muted-foreground">
-                    Aparece no catálogo público com QR code para retirada.
-                  </p>
+                  <Label className="cursor-pointer">Ativo geral</Label>
+                  <p className="text-[11px] text-muted-foreground">Desligado: some de todo o sistema.</p>
+                </div>
+                <Switch checked={form.ativo_geral} onCheckedChange={(v) => setForm({ ...form, ativo_geral: v })} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">Visível no PDV (caixa)</Label>
+                  <p className="text-[11px] text-muted-foreground">Tela do caixa fixo.</p>
                 </div>
                 <Switch
-                  checked={!!form.sell_online}
-                  onCheckedChange={(v) => setForm({ ...form, sell_online: v })}
+                  checked={form.visivel_pdv_caixa}
+                  disabled={!form.ativo_geral}
+                  onCheckedChange={(v) => setForm({ ...form, visivel_pdv_caixa: v })}
                 />
               </div>
-              {form.sell_online && (
+
+              <div className="flex items-center justify-between gap-3">
                 <div>
+                  <Label className="cursor-pointer">Visível no app do garçom</Label>
+                  <p className="text-[11px] text-muted-foreground">Interface mobile de vendas.</p>
+                </div>
+                <Switch
+                  checked={form.visivel_mobile_garcom}
+                  disabled={!form.ativo_geral}
+                  onCheckedChange={(v) => setForm({ ...form, visivel_mobile_garcom: v })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">Visível na lojinha pública</Label>
+                  <p className="text-[11px] text-muted-foreground">Catálogo do cliente final (PIX).</p>
+                </div>
+                <Switch
+                  checked={form.visivel_lojinha_cliente}
+                  disabled={!form.ativo_geral}
+                  onCheckedChange={(v) => setForm({ ...form, visivel_lojinha_cliente: v })}
+                />
+              </div>
+
+              {form.visivel_lojinha_cliente && (
+                <div className="pt-2 border-t">
                   <Label>Preço online (opcional)</Label>
                   <CurrencyInput value={form.online_price ?? 0} onChange={(v) => setForm({ ...form, online_price: v })} />
                   <p className="text-[11px] text-muted-foreground mt-1">Deixe vazio para usar o mesmo preço do PDV.</p>
                 </div>
               )}
             </div>
+
 
             {form.product_type === "simple" && (
               <div>
