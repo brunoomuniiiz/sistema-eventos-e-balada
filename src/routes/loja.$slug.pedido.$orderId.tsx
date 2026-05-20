@@ -75,15 +75,28 @@ function OrderPage() {
       <main className="max-w-xl mx-auto px-4 py-6 space-y-4">
         {isPending && <PixCheckoutPanel orderId={orderId} onPaid={() => refetch()} />}
 
-        {isPaid && (
+        {isPaid && pickupToken && (
+          <Card className="border-success/40 bg-success/5">
+            <CardContent className="p-4 flex flex-col items-center gap-3 text-center">
+              <CheckCircle2 className="h-6 w-6 text-success" />
+              <div>
+                <div className="font-bold text-success text-lg">Pagamento confirmado</div>
+                <div className="text-xs text-muted-foreground">Mostre este QR ao garçom para retirar.</div>
+              </div>
+              {orderNoLabel && <div className="text-3xl font-black tracking-widest">{orderNoLabel}</div>}
+              <div className="bg-white p-3 rounded-lg">
+                <QRCodeSVG value={pickupToken} size={200} level="M" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {isPaid && !pickupToken && (
           <Card className="border-success/40 bg-success/5">
             <CardContent className="p-4 flex items-center gap-3">
               <CheckCircle2 className="h-6 w-6 text-success" />
               <div>
                 <div className="font-medium">Pagamento confirmado</div>
-                <div className="text-xs text-muted-foreground">
-                  Apresente cada QR code abaixo no balcão para retirar.
-                </div>
+                <div className="text-xs text-muted-foreground">Apresente cada QR code abaixo no balcão para retirar.</div>
               </div>
             </CardContent>
           </Card>
