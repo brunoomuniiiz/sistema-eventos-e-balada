@@ -56,6 +56,9 @@ function OrderPage() {
   const { order, items, units } = data;
   const isPaid = order.status === "paid" || order.status === "delivered";
   const isPending = order.status === "pending";
+  const dailyNo = (order as unknown as { daily_number?: number | null }).daily_number ?? null;
+  const pickupToken = (order as unknown as { pickup_token?: string | null }).pickup_token ?? null;
+  const orderNoLabel = dailyNo != null ? "#" + String(dailyNo).padStart(3, "0") : null;
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -64,7 +67,7 @@ function OrderPage() {
           <Link to="/loja/$slug" params={{ slug }} className="text-xs opacity-80 hover:underline flex items-center gap-1">
             <Store className="h-3 w-3" /> Voltar à loja
           </Link>
-          <h1 className="text-2xl font-bold mt-2">Pedido</h1>
+          <h1 className="text-2xl font-bold mt-2">Pedido {orderNoLabel ?? ""}</h1>
           <p className="text-sm opacity-80">{order.customer_name}</p>
         </div>
       </header>
