@@ -13,7 +13,7 @@ import { formatBRL } from "@/lib/format";
 import { createPublicPixCharge, getPublicPixChargeStatus, simulatePixApproval } from "@/lib/pix-public.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/loja/$slug/pedido/$orderId")({
+export const Route = createFileRoute("/loja/$slug_/pedido/$orderId")({
   component: OrderPage,
 });
 

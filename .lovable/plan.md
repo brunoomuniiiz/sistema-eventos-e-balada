@@ -1,56 +1,42 @@
-## Problema
+## Diagnóstico
 
-Hoje, quando você (ou o garçom) clica em **Pix** dentro da Lojinha → aba **Vender**, o sistema:
+Confirmei via banco que o fluxo do cliente NÃO está quebrado no servidor:
+- `lojinha_create_order` executa com sucesso (várias ordens `channel=online` criadas hoje às 22:25–22:27).
+- Permissões e `gen_random_bytes` já estão OK.
+- A função retorna `{order_id, total}` normalmente.
 
-1. cria o pedido (`lojinha_create_pos_order`) ✅
-2. mostra um spinner com texto *"Quando o Mercado Pago estiver conectado, o QR Pix aparece aqui"* ❌
-3. **nunca chama o Mercado Pago** — não existe QR pra mostrar.
+O sintoma "clico em Pagar, nada acontece, não muda de tela" tem causa no **TanStack Router**, não no backend.
 
-Só funciona "no manual" via botão *Confirmar pagamento manualmente (teste)*.
+### Causa raiz
 
-No caixa físico (`/vendas`) o Pix funciona porque ele já usa `createPixCharge` (que fala com o Mercado Pago de verdade).
+Arquivos de rota atuais:
+- `src/routes/loja.$slug.tsx` → página da vitrine (`StorefrontPage`)
+- `src/routes/loja.$slug.pedido.$orderId.tsx` → página do pedido/PIX (`OrderPage`)
 
-## O que vou fazer
+No file-based routing do TanStack, pontos criam **aninhamento**. Como `loja.$slug.pedido.$orderId.tsx` começa com o mesmo segmento `loja.$slug`, ele é tratado como rota-filha de `loja.$slug.tsx`. Mas a `StorefrontPage` **não renderiza `<Outlet />`** (é uma página completa, não um layout). Resultado: ao navegar para `/loja/{slug}/pedido/{orderId}`, a rota casa, mas a filha não tem onde montar — a vitrine continua na tela, o cliente vê o carrinho do mesmo jeito e parece que "nada aconteceu". É também por isso que existem várias ordens duplicadas (cliente clica Pagar de novo achando que falhou).
 
-Reusar o mesmo motor de Pix que o caixa físico já usa, dentro da tela "Vender" da Lojinha. Sem mexer em backend novo, sem mexer em RPC, sem mexer em fluxo de cliente final.
+### Correção
 
-### Mudanças (1 arquivo só)
+Convenção TanStack para opt-out de nesting: sufixo `_` no segmento pai.
 
-**`src/lojinha/components/LojinhaPosView.tsx`**
+- Renomear `src/routes/loja.$slug.pedido.$orderId.tsx` → `src/routes/loja.$slug_.pedido.$orderId.tsx`
+- Atualizar dentro do arquivo: `createFileRoute("/loja/$slug/pedido/$orderId")` → `createFileRoute("/loja/$slug_/pedido/$orderId")`
+- Atualizar a chamada de `navigate` em `src/routes/loja.$slug.tsx` (linha 123):
+  ```ts
+  navigate({ to: "/loja/$slug_/pedido/$orderId", params: { slug, orderId: res.order_id } })
+  ```
+- Atualizar o `<Link to="/loja/$slug" …>` dentro de `loja.$slug_.pedido.$orderId.tsx` (header "Voltar à loja") — esse continua apontando para a vitrine `/loja/$slug`, sem mudança.
 
-1. Quando o garçom clicar em **Pix**:
-   - Continua chamando `createPosOrder(...)` pra criar o pedido (`lojinha_orders` com `status = pending`).
-   - **Imediatamente depois**, chama `createPixCharge` (servidor → Mercado Pago) com:
-     - `amount`: total do pedido
-     - `description`: "Lojinha — pedido #N"
-     - `origin: "lojinha"`
-     - `sector: "lojinha-pdv"`
-     - `orderId`: o id do pedido recém-criado
-   - Guarda o `qr_code` (copia/cola) e o `qr_code_base64` (imagem) que voltam.
+O TanStack regenera `routeTree.gen.ts` automaticamente.
 
-2. Tela de espera (`step = "waiting"`):
-   - Mostra a **imagem do QR Code** (do `qr_code_base64`) bem grande pra o cliente apontar a câmera.
-   - Mostra o **código Pix copia-e-cola** com botão *Copiar*.
-   - Mantém o polling atual em `lojinha_orders.status`. Quando o webhook do MP confirmar o pagamento, o pedido vai pra `paid` automaticamente (já implementado em `mp-webhook.ts`) e a tela troca pra "Entreguei o produto".
-   - Mantém o botão *Confirmar pagamento manualmente (teste)* como fallback (útil enquanto testa).
+### Validação
 
-3. Cartão (Point Smart) continua igual ao que já existe — sem mudança.
+1. Recriar fluxo como cliente: abrir `/loja/{slug}`, adicionar item, clicar **Pagar** → deve navegar para `/loja/{slug}/pedido/{orderId}` e exibir o QR PIX gerado por `createPublicPixCharge`.
+2. Clicar em **Voltar à loja** no cabeçalho do pedido — deve voltar para a vitrine.
+3. Conferir no banco que não há nova enxurrada de ordens duplicadas.
 
-### Marco zero / como reverter
+### Fora de escopo
 
-Antes de tocar no arquivo, esta mensagem fica registrada como ponto de restauração. Se algo der ruim, é só usar o botão de reverter em qualquer mensagem minha posterior — volta exatamente pro estado atual (placeholder do QR + botão manual).
-
-### O que NÃO vai mudar
-
-- Permissões, RLS, tabelas, RPCs — nada.
-- Caixa físico (`/vendas`) — segue funcionando igual.
-- Lojinha do cliente externo (link público) — segue igual.
-- PDV de balcão (`/pdv`) — segue igual.
-
-### Risco
-
-Baixo. O `createPixCharge` já é usado em produção pelo caixa físico há semanas, e o webhook já sabe atualizar `lojinha_orders` quando o `pix_charge.order_id` aponta pra um pedido da Lojinha — esse caminho está pronto e só não estava sendo acionado.
-
-### Pré-requisito
-
-A secret `MP_ACCESS_TOKEN` (Mercado Pago) já precisa estar configurada — ela é a mesma usada hoje no caixa físico. Se o Pix do caixa físico está funcionando, esse aqui também vai funcionar.
+- Não mexer em nenhuma função SQL, RLS ou server function — backend está saudável.
+- Não alterar a lógica de carrinho, Mercado Pago, ou trigger de daily_number.
+- Limpeza opcional das ordens `pending` duplicadas de hoje pode ser feita depois, caso o usuário queira.

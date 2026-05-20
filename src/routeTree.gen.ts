@@ -35,7 +35,7 @@ import { Route as AppAdminCaixasRouteImport } from './routes/_app.admin-caixas'
 import { Route as AppEventosIndexRouteImport } from './routes/_app.eventos.index'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp-webhook'
 import { Route as AppEventosEventIdRouteImport } from './routes/_app.eventos.$eventId'
-import { Route as LojaSlugPedidoOrderIdRouteImport } from './routes/loja.$slug.pedido.$orderId'
+import { Route as LojaSlugPedidoOrderIdRouteImport } from './routes/loja.$slug_.pedido.$orderId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -167,9 +167,9 @@ const AppEventosEventIdRoute = AppEventosEventIdRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any)
 const LojaSlugPedidoOrderIdRoute = LojaSlugPedidoOrderIdRouteImport.update({
-  id: '/pedido/$orderId',
-  path: '/pedido/$orderId',
-  getParentRoute: () => LojaSlugRoute,
+  id: '/loja/$slug_/pedido/$orderId',
+  path: '/loja/$slug/pedido/$orderId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -193,7 +193,7 @@ export interface FileRoutesByFullPath {
   '/vendas': typeof AppVendasRoute
   '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
-  '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/loja/$slug': typeof LojaSlugRoute
   '/pdv-cupom/$saleId': typeof PdvCupomSaleIdRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/api/public/mp-webhook': typeof ApiPublicMpWebhookRoute
@@ -221,7 +221,7 @@ export interface FileRoutesByTo {
   '/vendas': typeof AppVendasRoute
   '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
-  '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/loja/$slug': typeof LojaSlugRoute
   '/pdv-cupom/$saleId': typeof PdvCupomSaleIdRoute
   '/eventos/$eventId': typeof AppEventosEventIdRoute
   '/api/public/mp-webhook': typeof ApiPublicMpWebhookRoute
@@ -251,12 +251,12 @@ export interface FileRoutesById {
   '/_app/vendas': typeof AppVendasRoute
   '/e/$slug': typeof ESlugRoute
   '/lista/$slug': typeof ListaSlugRoute
-  '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/loja/$slug': typeof LojaSlugRoute
   '/pdv-cupom/$saleId': typeof PdvCupomSaleIdRoute
   '/_app/eventos/$eventId': typeof AppEventosEventIdRoute
   '/api/public/mp-webhook': typeof ApiPublicMpWebhookRoute
   '/_app/eventos/': typeof AppEventosIndexRoute
-  '/loja/$slug/pedido/$orderId': typeof LojaSlugPedidoOrderIdRoute
+  '/loja/$slug_/pedido/$orderId': typeof LojaSlugPedidoOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -343,7 +343,7 @@ export interface FileRouteTypes {
     | '/_app/eventos/$eventId'
     | '/api/public/mp-webhook'
     | '/_app/eventos/'
-    | '/loja/$slug/pedido/$orderId'
+    | '/loja/$slug_/pedido/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -353,9 +353,10 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ESlugRoute: typeof ESlugRoute
   ListaSlugRoute: typeof ListaSlugRoute
-  LojaSlugRoute: typeof LojaSlugRouteWithChildren
+  LojaSlugRoute: typeof LojaSlugRoute
   PdvCupomSaleIdRoute: typeof PdvCupomSaleIdRoute
   ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
+  LojaSlugPedidoOrderIdRoute: typeof LojaSlugPedidoOrderIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -542,12 +543,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEventosEventIdRouteImport
       parentRoute: typeof AppRoute
     }
-    '/loja/$slug/pedido/$orderId': {
-      id: '/loja/$slug/pedido/$orderId'
-      path: '/pedido/$orderId'
+    '/loja/$slug_/pedido/$orderId': {
+      id: '/loja/$slug_/pedido/$orderId'
+      path: '/loja/$slug/pedido/$orderId'
       fullPath: '/loja/$slug/pedido/$orderId'
       preLoaderRoute: typeof LojaSlugPedidoOrderIdRouteImport
-      parentRoute: typeof LojaSlugRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -594,18 +595,6 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
-interface LojaSlugRouteChildren {
-  LojaSlugPedidoOrderIdRoute: typeof LojaSlugPedidoOrderIdRoute
-}
-
-const LojaSlugRouteChildren: LojaSlugRouteChildren = {
-  LojaSlugPedidoOrderIdRoute: LojaSlugPedidoOrderIdRoute,
-}
-
-const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
-  LojaSlugRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
@@ -613,9 +602,10 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ESlugRoute: ESlugRoute,
   ListaSlugRoute: ListaSlugRoute,
-  LojaSlugRoute: LojaSlugRouteWithChildren,
+  LojaSlugRoute: LojaSlugRoute,
   PdvCupomSaleIdRoute: PdvCupomSaleIdRoute,
   ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
+  LojaSlugPedidoOrderIdRoute: LojaSlugPedidoOrderIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
