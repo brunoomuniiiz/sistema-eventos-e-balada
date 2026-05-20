@@ -284,10 +284,16 @@ function ProdutosPage() {
       photo_url: form.photo_url.trim() || null,
       unit: form.unit.trim() || "un",
       category_id: form.category_id === "none" ? null : form.category_id,
-      is_available: form.is_available,
-      sell_online: form.sell_online ?? false,
+      // Manter colunas legadas em sincronia com as novas flags por compatibilidade
+      is_available: form.ativo_geral,
+      sell_online: form.visivel_lojinha_cliente,
       online_price: form.online_price && form.online_price > 0 ? form.online_price : null,
+      ativo_geral: form.ativo_geral,
+      visivel_pdv_caixa: form.visivel_pdv_caixa,
+      visivel_mobile_garcom: form.visivel_mobile_garcom,
+      visivel_lojinha_cliente: form.visivel_lojinha_cliente,
     };
+
 
     let productId = editing?.id;
 
