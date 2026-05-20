@@ -73,7 +73,12 @@ export const Route = createFileRoute("/api/public/mp-webhook")({
         };
         const newStatus = mapStatus(mp.status);
 
-        const update: Record<string, unknown> = {
+        const update: {
+          status: string;
+          updated_at: string;
+          paid_at?: string;
+          error_message?: string;
+        } = {
           status: newStatus,
           updated_at: new Date().toISOString(),
         };
