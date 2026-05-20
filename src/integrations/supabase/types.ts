@@ -2020,6 +2020,7 @@ export type Database = {
           _customer_email: string
           _customer_name: string
           _customer_phone: string
+          _items: Json
           _slug: string
         }
         Returns: Json
