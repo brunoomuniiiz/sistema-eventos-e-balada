@@ -39,12 +39,19 @@ export const createPublicPixCharge = createServerFn({ method: "POST" })
     }
 
     // Cria nova no MP
-    const mp = await createMpPixPayment({
-      amount: Number(order.total),
-      description: `Pedido Lojinha · ${order.customer_name}`,
-      externalReference: `lojinha:${order.id}`,
-      payerEmail: order.customer_email || undefined,
-    });
+    let mp;
+    try {
+      mp = await createMpPixPayment({
+        amount: Number(order.total),
+        description: `Pedido Lojinha · ${order.customer_name}`.slice(0, 200),
+        externalReference: `lojinha:${order.id}`,
+        payerEmail: order.customer_email || "test_user_lojinha@testuser.com",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[createPublicPixCharge] MP fail:", msg);
+      throw new Error(`Falha ao gerar PIX: ${msg}`);
+    }
 
     const td = mp.point_of_interaction?.transaction_data;
     const { data: charge, error } = await supabaseAdmin
@@ -63,7 +70,10 @@ export const createPublicPixCharge = createServerFn({ method: "POST" })
       })
       .select("id, qr_code, qr_code_base64, expires_at, status, amount")
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("[createPublicPixCharge] insert fail:", error);
+      throw new Error(error.message);
+    }
     return charge;
   });
 
@@ -80,4 +90,46 @@ export const getPublicPixChargeStatus = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     return charge;
+  });
+
+/**
+ * [TESTE / sandbox] Simula a aprovação de uma cobrança PIX, replicando
+ * exatamente o que o webhook do Mercado Pago faz quando o pagamento é
+ * confirmado em produção. Útil porque QR codes de sandbox não podem ser
+ * pagos por um banco real.
+ */
+export const simulatePixApproval = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ chargeId: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    // Guarda: só permite simular quando o token MP é de sandbox (TEST-...).
+    const token = process.env.MP_ACCESS_TOKEN ?? "";
+    if (!token.startsWith("TEST-")) {
+      throw new Error("Simulação só disponível em ambiente de teste (MP sandbox)");
+    }
+
+    const nowIso = new Date().toISOString();
+
+    const { data: updated, error } = await supabaseAdmin
+      .from("pix_charges")
+      .update({ status: "approved", paid_at: nowIso, updated_at: nowIso })
+      .eq("id", data.chargeId)
+      .select("id, order_id, origin, mp_payment_id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error("Cobrança não encontrada");
+
+    if (updated.order_id && updated.origin === "lojinha") {
+      const { error: orderErr } = await supabaseAdmin
+        .from("lojinha_orders")
+        .update({
+          status: "paid",
+          paid_at: nowIso,
+          mp_payment_id: updated.mp_payment_id ?? null,
+        })
+        .eq("id", updated.order_id)
+        .in("status", ["pending"]);
+      if (orderErr) throw new Error(orderErr.message);
+    }
+
+    return { ok: true };
   });

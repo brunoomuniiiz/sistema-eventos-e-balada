@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createPixCharge, getPixChargeStatus, cancelPixCharge } from "@/lib/pix.functions";
+import { simulatePixApproval } from "@/lib/pix-public.functions";
 import { formatBRL } from "@/lib/format";
 
 type Props = {
@@ -41,6 +42,8 @@ export function PixQrDialog({
   const create = useServerFn(createPixCharge);
   const checkStatus = useServerFn(getPixChargeStatus);
   const cancel = useServerFn(cancelPixCharge);
+  const simulate = useServerFn(simulatePixApproval);
+  const [simulating, setSimulating] = useState(false);
 
   const [charge, setCharge] = useState<Charge | null>(null);
   const [creating, setCreating] = useState(false);
@@ -201,6 +204,28 @@ export function PixQrDialog({
             </div>
             <Button variant="outline" className="w-full" onClick={handleClose}>
               Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full border-dashed border-amber-500/60 text-amber-600 hover:bg-amber-500/10"
+              disabled={simulating}
+              onClick={async () => {
+                if (!charge) return;
+                setSimulating(true);
+                try {
+                  await simulate({ data: { chargeId: charge.id } });
+                  setStatus("approved");
+                  await onApproved(charge.id);
+                  setTimeout(() => onOpenChange(false), 1000);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Falha ao simular");
+                } finally {
+                  setSimulating(false);
+                }
+              }}
+            >
+              {simulating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              [TESTE] Simular Pagamento Aprovado
             </Button>
           </div>
         )}
