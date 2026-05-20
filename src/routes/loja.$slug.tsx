@@ -85,33 +85,29 @@ function StorefrontPage() {
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   async function changeQty(productId: string, nextQty: number) {
-    if (!token) return;
     const p = productsById.get(productId);
     if (!p) return;
     const current = cart.find((c) => c.product_id === productId)?.quantity ?? 0;
-    if (nextQty > 0 && nextQty > current + p.available_qty) {
+    if (nextQty > current && nextQty > p.available_qty) {
       toast.error("Estoque insuficiente");
       return;
     }
-    try {
-      const res = await reserveCartItem(slug, token, productId, nextQty);
-      if (!res.ok) {
-        toast.error(res.reason === "sem_estoque" ? "Estoque insuficiente" : "Não foi possível reservar");
-        return;
-      }
-      const next = nextQty <= 0
-        ? cart.filter((c) => c.product_id !== productId)
-        : cart.find((c) => c.product_id === productId)
-          ? cart.map((c) => (c.product_id === productId ? { ...c, quantity: nextQty } : c))
-          : [...cart, { product_id: productId, quantity: nextQty }];
-      setCartState(next);
-      setCart(slug, next);
-      refetch();
-    } catch (e) {
-      console.error(e);
-      toast.error("Erro ao atualizar carrinho");
+    const next = nextQty <= 0
+      ? cart.filter((c) => c.product_id !== productId)
+      : cart.find((c) => c.product_id === productId)
+        ? cart.map((c) => (c.product_id === productId ? { ...c, quantity: nextQty } : c))
+        : [...cart, { product_id: productId, quantity: nextQty }];
+    setCartState(next);
+    setCart(slug, next);
+    if (p.available_qty <= 2 && nextQty > current) {
+      toast.warning(
+        p.available_qty === 1
+          ? "Última unidade! Pague em até 5 min após gerar o PIX."
+          : "Restam só 2 — confirme no balcão antes de pagar.",
+      );
     }
   }
+
 
   async function handleCheckout() {
     if (!customer.name.trim() || !customer.phone.trim()) {
