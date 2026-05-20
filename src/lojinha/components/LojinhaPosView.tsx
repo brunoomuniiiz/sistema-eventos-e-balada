@@ -32,6 +32,7 @@ type Step = "cart" | "method" | "waiting" | "delivered";
 export function LojinhaPosView() {
   const { ownerId, lojinhaCanSell, lojinhaPaymentMethods, lojinhaPointDeviceId, loading } = usePermissions();
   const qc = useQueryClient();
+  const createPix = useServerFn(createPixCharge);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
@@ -40,6 +41,8 @@ export function LojinhaPosView() {
   const [method, setMethod] = useState<"pix" | "card" | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderTotal, setOrderTotal] = useState<number>(0);
+  const [pixQrBase64, setPixQrBase64] = useState<string | null>(null);
+  const [pixCopyPaste, setPixCopyPaste] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const { data: products = [] } = useQuery({
