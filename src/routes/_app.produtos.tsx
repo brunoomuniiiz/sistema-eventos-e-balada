@@ -137,7 +137,7 @@ function ProdutosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available, sell_online, online_price")
+        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available, sell_online, online_price, ativo_geral, visivel_pdv_caixa, visivel_mobile_garcom, visivel_lojinha_cliente")
         .order("name");
       if (error) throw error;
       return data as Product[];
