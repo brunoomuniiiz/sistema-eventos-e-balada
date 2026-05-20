@@ -356,6 +356,15 @@ export function PdvView() {
 
       <OpenCashDialog open={openCash} onOpenChange={setOpenCash} onOpened={() => refetchSession()} />
       <WithdrawalDialog open={openWithdraw} onOpenChange={setOpenWithdraw} onDone={() => refetchSession()} />
+      <PixQrDialog
+        open={pixOpen}
+        onOpenChange={setPixOpen}
+        amount={total}
+        description={`Venda PDV · ${cart.length} ${cart.length === 1 ? "item" : "itens"}`}
+        origin="pdv"
+        sector="pdv"
+        onApproved={async () => { await recordSale(); }}
+      />
 
       {session && (
         <div className="mb-3 flex flex-wrap items-center gap-2 p-3 rounded-xl border bg-card/60">
