@@ -1303,7 +1303,15 @@ export type Database = {
           visivel_mobile_garcom?: boolean
           visivel_pdv_caixa?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
