@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
-import { getStorefront, reserveCartItem, createOrder, type StorefrontProduct } from "@/lojinha/api";
+import { getStorefront, createOrder, type StorefrontProduct } from "@/lojinha/api";
 import { getCart, setCart, getCartToken, getCustomer, saveCustomer, resetCart, type CartItem } from "@/lojinha/lib/cart";
 
 export const Route = createFileRoute("/loja/$slug")({
@@ -85,33 +85,29 @@ function StorefrontPage() {
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   async function changeQty(productId: string, nextQty: number) {
-    if (!token) return;
     const p = productsById.get(productId);
     if (!p) return;
     const current = cart.find((c) => c.product_id === productId)?.quantity ?? 0;
-    if (nextQty > 0 && nextQty > current + p.available_qty) {
+    if (nextQty > current && nextQty > p.available_qty) {
       toast.error("Estoque insuficiente");
       return;
     }
-    try {
-      const res = await reserveCartItem(slug, token, productId, nextQty);
-      if (!res.ok) {
-        toast.error(res.reason === "sem_estoque" ? "Estoque insuficiente" : "Não foi possível reservar");
-        return;
-      }
-      const next = nextQty <= 0
-        ? cart.filter((c) => c.product_id !== productId)
-        : cart.find((c) => c.product_id === productId)
-          ? cart.map((c) => (c.product_id === productId ? { ...c, quantity: nextQty } : c))
-          : [...cart, { product_id: productId, quantity: nextQty }];
-      setCartState(next);
-      setCart(slug, next);
-      refetch();
-    } catch (e) {
-      console.error(e);
-      toast.error("Erro ao atualizar carrinho");
+    const next = nextQty <= 0
+      ? cart.filter((c) => c.product_id !== productId)
+      : cart.find((c) => c.product_id === productId)
+        ? cart.map((c) => (c.product_id === productId ? { ...c, quantity: nextQty } : c))
+        : [...cart, { product_id: productId, quantity: nextQty }];
+    setCartState(next);
+    setCart(slug, next);
+    if (p.available_qty <= 2 && nextQty > current) {
+      toast.warning(
+        p.available_qty === 1
+          ? "Última unidade! Pague em até 5 min após gerar o PIX."
+          : "Restam só 2 — confirme no balcão antes de pagar.",
+      );
     }
   }
+
 
   async function handleCheckout() {
     if (!customer.name.trim() || !customer.phone.trim()) {
@@ -236,7 +232,18 @@ function StorefrontPage() {
                       <div className="font-medium truncate">{p.name}</div>
                       {p.description && <div className="text-xs text-muted-foreground line-clamp-2">{p.description}</div>}
                       <div className="mt-1 font-bold" style={{ color: accent }}>{formatBRL(p.price)}</div>
+                      {!soldOut && p.available_qty === 1 && (
+                        <div className="mt-1 inline-flex items-center rounded-full bg-destructive/15 text-destructive px-2 py-0.5 text-[11px] font-medium">
+                          Última unidade
+                        </div>
+                      )}
+                      {!soldOut && p.available_qty === 2 && (
+                        <div className="mt-1 inline-flex items-center rounded-full bg-amber-500/15 text-amber-600 px-2 py-0.5 text-[11px] font-medium">
+                          Restam 2 — confirme no balcão
+                        </div>
+                      )}
                     </div>
+
                     <div className="flex flex-col items-center justify-center gap-1 shrink-0">
                       {soldOut ? (
                         <span className="text-xs font-medium text-destructive whitespace-nowrap">Esgotado</span>

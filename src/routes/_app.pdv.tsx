@@ -131,13 +131,16 @@ export function PdvView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, product_type, track_stock, cost_price, category_id, is_available")
+        .select("id, name, price, product_type, track_stock, cost_price, category_id, is_available, ativo_geral, visivel_pdv_caixa")
+        .eq("ativo_geral", true)
+        .eq("visivel_pdv_caixa", true)
         .order("name");
       if (error) throw error;
       return data as Product[];
     },
     enabled: !!ownerId && can("vendas"),
   });
+
 
   // Estoque agregado em todos os locais (vendedor é cego — não escolhe local)
   const { data: stockData = { map: {}, hasRows: new Set<string>() } } = useQuery({

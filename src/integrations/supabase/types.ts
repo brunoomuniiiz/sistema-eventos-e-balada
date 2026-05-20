@@ -1232,6 +1232,7 @@ export type Database = {
       }
       products: {
         Row: {
+          ativo_geral: boolean
           category_id: string | null
           cost_price: number
           created_at: string
@@ -1250,8 +1251,12 @@ export type Database = {
           unit: string
           updated_at: string
           user_id: string
+          visivel_lojinha_cliente: boolean
+          visivel_mobile_garcom: boolean
+          visivel_pdv_caixa: boolean
         }
         Insert: {
+          ativo_geral?: boolean
           category_id?: string | null
           cost_price?: number
           created_at?: string
@@ -1270,8 +1275,12 @@ export type Database = {
           unit?: string
           updated_at?: string
           user_id: string
+          visivel_lojinha_cliente?: boolean
+          visivel_mobile_garcom?: boolean
+          visivel_pdv_caixa?: boolean
         }
         Update: {
+          ativo_geral?: boolean
           category_id?: string | null
           cost_price?: number
           created_at?: string
@@ -1290,6 +1299,9 @@ export type Database = {
           unit?: string
           updated_at?: string
           user_id?: string
+          visivel_lojinha_cliente?: boolean
+          visivel_mobile_garcom?: boolean
+          visivel_pdv_caixa?: boolean
         }
         Relationships: []
       }
@@ -2015,6 +2027,10 @@ export type Database = {
         Returns: Json
       }
       lojinha_release_expired_reservations: { Args: never; Returns: undefined }
+      lojinha_release_order_reservation: {
+        Args: { _order_id: string }
+        Returns: undefined
+      }
       lojinha_reserve_cart_item: {
         Args: {
           _cart_token: string
@@ -2022,6 +2038,10 @@ export type Database = {
           _qty: number
           _slug: string
         }
+        Returns: Json
+      }
+      lojinha_reserve_for_checkout: {
+        Args: { _order_id: string }
         Returns: Json
       }
       lojinha_toggle_sell_online: {

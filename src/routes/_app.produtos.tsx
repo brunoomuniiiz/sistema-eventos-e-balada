@@ -66,7 +66,12 @@ type Product = {
   is_available: boolean;
   sell_online?: boolean;
   online_price?: number | null;
+  ativo_geral?: boolean;
+  visivel_pdv_caixa?: boolean;
+  visivel_mobile_garcom?: boolean;
+  visivel_lojinha_cliente?: boolean;
 };
+
 
 type Category = { id: string; name: string };
 
@@ -103,7 +108,12 @@ function ProdutosPage() {
     is_available: true,
     sell_online: true,
     online_price: 0,
+    ativo_geral: true,
+    visivel_pdv_caixa: true,
+    visivel_mobile_garcom: true,
+    visivel_lojinha_cliente: true,
   });
+
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
   const [pickComponentId, setPickComponentId] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -127,7 +137,7 @@ function ProdutosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available, sell_online, online_price")
+        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available, sell_online, online_price, ativo_geral, visivel_pdv_caixa, visivel_mobile_garcom, visivel_lojinha_cliente")
         .order("name");
       if (error) throw error;
       return data as Product[];
@@ -170,6 +180,10 @@ function ProdutosPage() {
       description: "", pickup_description: "", photo_url: "", unit: "un",
       category_id: "none", is_available: true,
       sell_online: true, online_price: 0,
+      ativo_geral: true,
+      visivel_pdv_caixa: true,
+      visivel_mobile_garcom: true,
+      visivel_lojinha_cliente: true,
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -193,7 +207,12 @@ function ProdutosPage() {
       is_available: p.is_available ?? true,
       sell_online: p.sell_online ?? false,
       online_price: Number(p.online_price ?? 0),
+      ativo_geral: p.ativo_geral ?? true,
+      visivel_pdv_caixa: p.visivel_pdv_caixa ?? true,
+      visivel_mobile_garcom: p.visivel_mobile_garcom ?? true,
+      visivel_lojinha_cliente: p.visivel_lojinha_cliente ?? (p.sell_online ?? true),
     });
+
     if (p.product_type === "combo") {
       const items = comboItems.filter((c) => c.combo_product_id === p.id);
       setDraftComponents(items.map((i) => ({
@@ -265,10 +284,16 @@ function ProdutosPage() {
       photo_url: form.photo_url.trim() || null,
       unit: form.unit.trim() || "un",
       category_id: form.category_id === "none" ? null : form.category_id,
-      is_available: form.is_available,
-      sell_online: form.sell_online ?? false,
+      // Manter colunas legadas em sincronia com as novas flags por compatibilidade
+      is_available: form.ativo_geral,
+      sell_online: form.visivel_lojinha_cliente,
       online_price: form.online_price && form.online_price > 0 ? form.online_price : null,
+      ativo_geral: form.ativo_geral,
+      visivel_pdv_caixa: form.visivel_pdv_caixa,
+      visivel_mobile_garcom: form.visivel_mobile_garcom,
+      visivel_lojinha_cliente: form.visivel_lojinha_cliente,
     };
+
 
     let productId = editing?.id;
 
@@ -562,40 +587,62 @@ function ProdutosPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-card/40">
-              <div>
-                <Label className="cursor-pointer">Disponível para venda</Label>
-                <p className="text-[11px] text-muted-foreground">
-                  Desmarque para esconder do PDV (mesmo com estoque).
-                </p>
-              </div>
-              <Switch
-                checked={form.is_available}
-                onCheckedChange={(v) => setForm({ ...form, is_available: v })}
-              />
-            </div>
+            <div className="p-3 rounded-lg border bg-card/40 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Visibilidade</div>
 
-            <div className="p-3 rounded-lg border bg-card/40 space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div>
-                  <Label className="cursor-pointer">Vender online (Lojinha)</Label>
-                  <p className="text-[11px] text-muted-foreground">
-                    Aparece no catálogo público com QR code para retirada.
-                  </p>
+                  <Label className="cursor-pointer">Ativo geral</Label>
+                  <p className="text-[11px] text-muted-foreground">Desligado: some de todo o sistema.</p>
+                </div>
+                <Switch checked={form.ativo_geral} onCheckedChange={(v) => setForm({ ...form, ativo_geral: v })} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">Visível no PDV (caixa)</Label>
+                  <p className="text-[11px] text-muted-foreground">Tela do caixa fixo.</p>
                 </div>
                 <Switch
-                  checked={!!form.sell_online}
-                  onCheckedChange={(v) => setForm({ ...form, sell_online: v })}
+                  checked={form.visivel_pdv_caixa}
+                  disabled={!form.ativo_geral}
+                  onCheckedChange={(v) => setForm({ ...form, visivel_pdv_caixa: v })}
                 />
               </div>
-              {form.sell_online && (
+
+              <div className="flex items-center justify-between gap-3">
                 <div>
+                  <Label className="cursor-pointer">Visível no app do garçom</Label>
+                  <p className="text-[11px] text-muted-foreground">Interface mobile de vendas.</p>
+                </div>
+                <Switch
+                  checked={form.visivel_mobile_garcom}
+                  disabled={!form.ativo_geral}
+                  onCheckedChange={(v) => setForm({ ...form, visivel_mobile_garcom: v })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">Visível na lojinha pública</Label>
+                  <p className="text-[11px] text-muted-foreground">Catálogo do cliente final (PIX).</p>
+                </div>
+                <Switch
+                  checked={form.visivel_lojinha_cliente}
+                  disabled={!form.ativo_geral}
+                  onCheckedChange={(v) => setForm({ ...form, visivel_lojinha_cliente: v })}
+                />
+              </div>
+
+              {form.visivel_lojinha_cliente && (
+                <div className="pt-2 border-t">
                   <Label>Preço online (opcional)</Label>
                   <CurrencyInput value={form.online_price ?? 0} onChange={(v) => setForm({ ...form, online_price: v })} />
                   <p className="text-[11px] text-muted-foreground mt-1">Deixe vazio para usar o mesmo preço do PDV.</p>
                 </div>
               )}
             </div>
+
 
             {form.product_type === "simple" && (
               <div>
