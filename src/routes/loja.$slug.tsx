@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
-import { getStorefront, reserveCartItem, createOrder, type StorefrontProduct } from "@/lojinha/api";
+import { getStorefront, createOrder, type StorefrontProduct } from "@/lojinha/api";
 import { getCart, setCart, getCartToken, getCustomer, saveCustomer, resetCart, type CartItem } from "@/lojinha/lib/cart";
 
 export const Route = createFileRoute("/loja/$slug")({
