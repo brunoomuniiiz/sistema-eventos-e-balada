@@ -74,8 +74,20 @@ export const createPublicPixCharge = createServerFn({ method: "POST" })
       console.error("[createPublicPixCharge] insert fail:", error);
       throw new Error(error.message);
     }
+
+    // Reserva itens em "última unidade" por 5 min enquanto cliente paga.
+    // Se algum item está esgotado, levanta erro para o cliente reabrir o carrinho.
+    const { error: resErr } = await supabaseAdmin.rpc("lojinha_reserve_for_checkout", {
+      _order_id: order.id,
+    });
+    if (resErr) {
+      console.error("[createPublicPixCharge] reserve fail:", resErr);
+      throw new Error(resErr.message);
+    }
+
     return charge;
   });
+
 
 /** Polling público pelo status (lê pelo orderId, devolve a última cobrança). */
 export const getPublicPixChargeStatus = createServerFn({ method: "POST" })
