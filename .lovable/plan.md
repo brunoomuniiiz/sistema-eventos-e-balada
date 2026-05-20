@@ -1,88 +1,56 @@
+## Problema
 
-# Fluxo de pedidos: numeração, QR e impressão de preparo
+Hoje, quando você (ou o garçom) clica em **Pix** dentro da Lojinha → aba **Vender**, o sistema:
 
-## 1. Numeração diária por bar (`#001`)
+1. cria o pedido (`lojinha_create_pos_order`) ✅
+2. mostra um spinner com texto *"Quando o Mercado Pago estiver conectado, o QR Pix aparece aqui"* ❌
+3. **nunca chama o Mercado Pago** — não existe QR pra mostrar.
 
-Banco:
-- Nova coluna `daily_number INTEGER` em `sales` e em `lojinha_orders`.
-- Nova coluna `daily_date DATE` em ambas (data local — usar `(now() AT TIME ZONE 'America/Sao_Paulo')::date`).
-- Trigger `BEFORE INSERT` em cada tabela atribui:
-  - `daily_date = hoje`
-  - `daily_number = COALESCE(MAX(daily_number),0)+1` filtrando por `user_id` (owner) **e** `daily_date = hoje`, somando os dois canais. Para garantir contador único entre PDV e lojinha, criamos tabela auxiliar `daily_order_counter(user_id, date, last_number)` com `UPDATE … RETURNING` dentro de uma função `SECURITY DEFINER` chamada pelo trigger. Isso evita corrida.
-- Helper SQL `format_order_no(n) → '#' || lpad(n::text,3,'0')`.
+Só funciona "no manual" via botão *Confirmar pagamento manualmente (teste)*.
 
-Front:
-- Exibir `#NNN` em:
-  - Histórico de vendas (`SalesHistory`) — substitui o `employee_name` como destaque principal da linha.
-  - Tela do cliente `loja.$slug.pedido.$orderId` — badge grande no topo.
-  - Painel `LojinhaOrdersPanel` (admin lojinha).
-  - PDV ao finalizar venda (toast + tela de cupom).
+No caixa físico (`/vendas`) o Pix funciona porque ele já usa `createPixCharge` (que fala com o Mercado Pago de verdade).
 
-## 2. QR code do pedido (PDV físico + lojinha online)
+## O que vou fazer
 
-Conteúdo do QR: token opaco `pos:<sale_id>` ou `loja:<order_id>` (já existe `qr_token` em `lojinha_order_units` para retirada; aqui é um QR **do pedido inteiro**, não por unidade).
+Reusar o mesmo motor de Pix que o caixa físico já usa, dentro da tela "Vender" da Lojinha. Sem mexer em backend novo, sem mexer em RPC, sem mexer em fluxo de cliente final.
 
-Banco:
-- Nova coluna `pickup_token TEXT UNIQUE` em `sales` e `lojinha_orders` (gerada por trigger, `encode(gen_random_bytes(12),'base64url')`).
-- Nova RPC `order_lookup_by_token(_token text)` (SECURITY DEFINER) usada pelo scanner do garçom. Verifica permissão `vendas` ou `lojinha` no owner do pedido e devolve `{ source, id, daily_number, items[], status }`.
+### Mudanças (1 arquivo só)
 
-Cupom impresso do PDV:
-- Nova rota `/_app/pdv/cupom/$saleId` (componente "print-only", layout 80 mm).
-- Conteúdo: nome do bar (logo opcional), `#NNN` enorme, data/hora, itens (qtd × nome), total, forma de pagamento, **QR code** (qrcode.react já está no projeto) com o `pickup_token`.
-- Botão "Finalizar venda" no PDV chama `window.open(url, '_blank')` que faz `window.print()` no `onload` e fecha. Configurável por preferência de bar (toggle "imprimir cupom automaticamente").
+**`src/lojinha/components/LojinhaPosView.tsx`**
 
-Tela do cliente (lojinha):
-- Após Pix aprovado, `loja.$slug.pedido.$orderId` mostra um único `<QRCodeSVG value={pickup_token} size={220} />` em destaque com texto "Mostre este código ao garçom" — substitui (ou complementa) a lista atual de QRs por unidade. Mantemos os QRs por unidade só se o usuário quiser uso por item; o padrão passa a ser **um QR por pedido**.
+1. Quando o garçom clicar em **Pix**:
+   - Continua chamando `createPosOrder(...)` pra criar o pedido (`lojinha_orders` com `status = pending`).
+   - **Imediatamente depois**, chama `createPixCharge` (servidor → Mercado Pago) com:
+     - `amount`: total do pedido
+     - `description`: "Lojinha — pedido #N"
+     - `origin: "lojinha"`
+     - `sector: "lojinha-pdv"`
+     - `orderId`: o id do pedido recém-criado
+   - Guarda o `qr_code` (copia/cola) e o `qr_code_base64` (imagem) que voltam.
 
-## 3. Scanner do garçom abre o pedido
+2. Tela de espera (`step = "waiting"`):
+   - Mostra a **imagem do QR Code** (do `qr_code_base64`) bem grande pra o cliente apontar a câmera.
+   - Mostra o **código Pix copia-e-cola** com botão *Copiar*.
+   - Mantém o polling atual em `lojinha_orders.status`. Quando o webhook do MP confirmar o pagamento, o pedido vai pra `paid` automaticamente (já implementado em `mp-webhook.ts`) e a tela troca pra "Entreguei o produto".
+   - Mantém o botão *Confirmar pagamento manualmente (teste)* como fallback (útil enquanto testa).
 
-- Já existe `LojinhaScanner.tsx`. Estender para reconhecer dois prefixos:
-  - `pos:<token>` → chama `order_lookup_by_token`, navega para nova rota `/_app/pedidos/$source/$id`.
-  - `loja:<token>` → mesma RPC, idem.
-  - Tokens antigos por unidade continuam funcionando (rota atual de baixa).
-- Nova rota `_app.pedidos.$source.$id.tsx` ("Tela de Liberação do Pedido"): mostra `#NNN`, itens com checkbox "entregue", botão **"Liberar pedido"** no rodapé.
-- Permissão: `vendas` ou `lojinha`.
+3. Cartão (Point Smart) continua igual ao que já existe — sem mudança.
 
-## 4. Impressão de preparo no botão "Liberar"
+### Marco zero / como reverter
 
-Ao clicar em **Liberar pedido**, o front:
-1. Chama RPC `order_release(_source, _id)` que:
-   - Marca o pedido como entregue/baixado conforme a origem.
-   - Devolve `prep_slips: [{ slip_id, daily_number, bar_name, item_name, quantity, components: [{name, qty}], created_at }]` — **um item por combo** no pedido (`product_type='combo'`). Itens `simple` ficam fora.
-2. Para cada `prep_slip`, abre uma janela imprimível: nova rota `/_app/preparo/$slipId` (ou query string com payload base64 para evitar persistência). Layout 80 mm: topo grande com **`#NNN`**, nome do combo, componentes do combo (vêm de `combo_items`), hora, garçom.
-3. Estratégia "uma impressão por slip": iteração `for slip of slips → window.open(url,'_blank')` com pequeno `await` entre eles para o navegador respeitar o popup. Cada janela auto-executa `print()` no load e fecha.
-4. Se não houver nenhum combo no pedido, nada imprime — só feedback "Pedido liberado" e baixa digital.
+Antes de tocar no arquivo, esta mensagem fica registrada como ponto de restauração. Se algo der ruim, é só usar o botão de reverter em qualquer mensagem minha posterior — volta exatamente pro estado atual (placeholder do QR + botão manual).
 
-Observação sobre popup blocker: o botão "Liberar" é gesto direto do usuário, então a primeira abertura é permitida. Para múltiplos combos, abrimos em sequência dentro do mesmo handler — alguns navegadores podem pedir liberação de popups; mostramos aviso na primeira vez.
+### O que NÃO vai mudar
 
-## 5. Recapitulando o que muda em código
+- Permissões, RLS, tabelas, RPCs — nada.
+- Caixa físico (`/vendas`) — segue funcionando igual.
+- Lojinha do cliente externo (link público) — segue igual.
+- PDV de balcão (`/pdv`) — segue igual.
 
-```
-supabase/migrations/<novo>.sql       # daily_number, daily_date, pickup_token,
-                                     # tabela daily_order_counter, triggers,
-                                     # RPC order_lookup_by_token, RPC order_release
-src/routes/_app.pdv.tsx              # abre cupom em nova aba ao finalizar
-src/routes/_app.pdv.cupom.$saleId.tsx          # NOVO — cupom 80mm + QR
-src/routes/_app.preparo.$slipId.tsx            # NOVO — ficha de preparo 80mm
-src/routes/_app.pedidos.$source.$id.tsx        # NOVO — tela liberar pedido
-src/routes/loja.$slug.pedido.$orderId.tsx      # QR único + #NNN destaque
-src/lojinha/components/LojinhaScanner.tsx      # reconhece pos:/loja:
-src/lojinha/components/LojinhaOrdersPanel.tsx  # mostra #NNN
-src/components/vendas/SalesHistory.tsx         # mostra #NNN
-src/lojinha/api.ts                             # createPosOrder devolve pickup_token + daily_number
-```
+### Risco
 
-## 6. Detalhes técnicos importantes
+Baixo. O `createPixCharge` já é usado em produção pelo caixa físico há semanas, e o webhook já sabe atualizar `lojinha_orders` quando o `pix_charge.order_id` aponta pra um pedido da Lojinha — esse caminho está pronto e só não estava sendo acionado.
 
-- **Numeração atômica entre canais**: usar a tabela `daily_order_counter(user_id, date, last_number)` com `INSERT … ON CONFLICT (user_id,date) DO UPDATE SET last_number = last_number+1 RETURNING last_number` dentro de função SECURITY DEFINER chamada pelos triggers `BEFORE INSERT` das duas tabelas. Garante contador único por owner por dia, sem corrida.
-- **Reset diário** usa `America/Sao_Paulo` (não UTC) para a "virada do dia" bater com a operação do bar.
-- **Layout de impressão**: classe `print:` do Tailwind, `@page { size: 80mm auto; margin: 0 }`, `body { width: 80mm }`. Esconder navegação com `print:hidden` e remover backgrounds.
-- **QR**: `qrcode.react` já está no projeto. Tamanho 180–220 px no cupom impresso.
-- **Permissões**: `order_lookup_by_token` e `order_release` checam `has_permission(auth.uid(), user_id, 'vendas')` OU `'lojinha'` para o owner do pedido.
-- **Realtime**: `LojinhaOrdersPanel` já assina mudanças; `daily_number` virá no select normal — nada a mudar.
-- **Pedidos legados** (anteriores à migração) ficam com `daily_number = NULL`; exibimos fallback `#—` no UI.
+### Pré-requisito
 
-## 7. Fora de escopo
-
-- Integração com impressora térmica via driver (QZ Tray etc.). Mantemos `window.print()`; basta o navegador estar configurado para a impressora padrão correta.
-- Layout customizável do cupom (logo, rodapé etc.) — fica para um próximo passo se você quiser.
+A secret `MP_ACCESS_TOKEN` (Mercado Pago) já precisa estar configurada — ela é a mesma usada hoje no caixa físico. Se o Pix do caixa físico está funcionando, esse aqui também vai funcionar.
