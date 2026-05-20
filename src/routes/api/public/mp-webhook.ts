@@ -104,6 +104,15 @@ export const Route = createFileRoute("/api/public/mp-webhook")({
           if (orderErr) console.error("[mp-webhook] order update error", orderErr);
         }
 
+        // Libera a reserva de estoque do checkout em qualquer desfecho diferente de pending.
+        if (newStatus !== "pending" && updated?.order_id && updated.origin === "lojinha") {
+          const { error: relErr } = await supabaseAdmin.rpc("lojinha_release_order_reservation", {
+            _order_id: updated.order_id,
+          });
+          if (relErr) console.error("[mp-webhook] release reservation error", relErr);
+        }
+
+
         return new Response("ok", { status: 200 });
       },
       GET: async () => new Response("ok", { status: 200 }),
