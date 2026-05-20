@@ -47,11 +47,14 @@ export function LojinhaScanner() {
     if (scanning) return;
     setScanning(true);
     try {
-      const inst = new Html5Qrcode("lojinha-qr-reader");
+      const inst = new Html5Qrcode("lojinha-qr-reader", {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        verbose: false,
+      });
       ref.current = inst;
       await inst.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 240, height: 240 } },
+        { fps: 15, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 },
         (text) => handleToken(text),
         () => {}
       );
