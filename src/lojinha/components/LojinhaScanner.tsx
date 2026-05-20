@@ -1,32 +1,44 @@
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { Camera, CheckCircle2, XCircle, KeyboardIcon } from "lucide-react";
+import { Camera, KeyboardIcon } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { orderLookupByToken } from "@/lojinha/api";
 import { validateQr } from "@/lojinha/api";
 import { toast } from "sonner";
 
-type Result = { ok: boolean; reason?: string; product_name?: string; customer_name?: string; delivered_at?: string };
-
 export function LojinhaScanner() {
+  const navigate = useNavigate();
   const [scanning, setScanning] = useState(false);
-  const [last, setLast] = useState<Result | null>(null);
   const [manual, setManual] = useState("");
   const ref = useRef<Html5Qrcode | null>(null);
   const lastTokenRef = useRef<string>("");
 
-  async function handleToken(token: string) {
+  async function handleToken(raw: string) {
+    let token = raw.trim();
     if (!token || token === lastTokenRef.current) return;
     lastTokenRef.current = token;
+    // Aceita URL completa: pega último segmento
+    if (token.includes("/")) token = token.split("/").pop() || token;
+    if (token.includes("?")) token = token.split("?")[0];
+
     try {
+      // Tenta pedido novo (sale ou order via pickup_token)
+      const lookup = await orderLookupByToken(token);
+      if (lookup.ok) {
+        await stop();
+        navigate({ to: "/pedidos-liberar", search: { token } });
+        return;
+      }
+      // Fallback: token de unidade da lojinha (fluxo antigo)
       const res = await validateQr(token);
-      setLast(res);
       if (res.ok) toast.success(`Entregue: ${res.product_name}`);
       else if (res.reason === "already_delivered") toast.error("QR já utilizado");
       else toast.error("QR inválido");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao validar");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao validar");
     }
     setTimeout(() => { lastTokenRef.current = ""; }, 2500);
   }
