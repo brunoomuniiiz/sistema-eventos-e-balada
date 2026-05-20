@@ -126,3 +126,51 @@ export async function confirmDeliveryPos(orderId: string) {
   if (error) throw error;
   return data as { ok: boolean; sale_id: string };
 }
+
+// --- Pedido por QR (novo fluxo do garçom) ---
+
+export type OrderLookupItem = {
+  id: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  product_type: "simple" | "combo";
+};
+
+export type OrderLookup =
+  | { ok: false; reason: string }
+  | {
+      ok: true;
+      source: "sale" | "order";
+      id: string;
+      daily_number: number | null;
+      status: string;
+      total: number;
+      customer_name: string | null;
+      items: OrderLookupItem[];
+    };
+
+export async function orderLookupByToken(token: string): Promise<OrderLookup> {
+  const { data, error } = await supabase.rpc("order_lookup_by_token" as never, { _token: token } as never);
+  if (error) throw error;
+  return data as unknown as OrderLookup;
+}
+
+export type PrepSlipPayload = {
+  daily_number: number | null;
+  bar_name: string | null;
+  item_name: string;
+  unit_index: number;
+  unit_total: number;
+  components: { name: string; qty: number }[];
+  waiter: string | null;
+  created_at: string;
+};
+
+export async function orderRelease(source: "sale" | "order", id: string) {
+  const { data, error } = await supabase.rpc("order_release" as never, { _source: source, _id: id } as never);
+  if (error) throw error;
+  return data as unknown as { ok: boolean; daily_number: number | null; prep_slips: PrepSlipPayload[] };
+}
+
