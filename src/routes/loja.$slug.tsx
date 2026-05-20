@@ -316,7 +316,7 @@ function StorefrontPage() {
                 </Button>
               </SheetFooter>
               <p className="text-xs text-muted-foreground text-center pt-2">
-                Pagamento via Mercado Pago (em configuração).
+                Pagamento via PIX (Mercado Pago). O QR aparece na próxima tela.
               </p>
             </SheetContent>
           </Sheet>
