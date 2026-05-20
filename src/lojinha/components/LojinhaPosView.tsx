@@ -259,15 +259,39 @@ export function LojinhaPosView() {
         {!isPaid ? (
           <Card>
             <CardContent className="p-6 text-center space-y-3">
-              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-              <div className="font-medium">
-                {method === "pix" ? "Aguardando pagamento Pix…" : "Aguardando cartão na maquininha…"}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {method === "pix"
-                  ? "Quando o Mercado Pago estiver conectado, o QR Pix aparece aqui para o cliente apontar a câmera."
-                  : "Quando o Mercado Pago estiver conectado, a maquininha acorda sozinha e mostra o valor para o cliente."}
-              </p>
+              {method === "pix" ? (
+                pixQrBase64 ? (
+                  <>
+                    <img
+                      src={`data:image/png;base64,${pixQrBase64}`}
+                      alt="QR Code Pix"
+                      className="mx-auto w-64 h-64 rounded-lg border bg-white p-2"
+                    />
+                    <div className="font-medium">Aponte a câmera no QR Pix</div>
+                    {pixCopyPaste && (
+                      <Button variant="outline" className="w-full" onClick={copyPix}>
+                        <Copy className="h-4 w-4 mr-2" /> Copiar Pix copia-e-cola
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Pagamento confirma automaticamente em alguns segundos.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+                    <div className="font-medium">Gerando QR Pix…</div>
+                  </>
+                )
+              ) : (
+                <>
+                  <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+                  <div className="font-medium">Aguardando cartão na maquininha…</div>
+                  <p className="text-xs text-muted-foreground">
+                    Quando o Mercado Pago estiver conectado, a maquininha acorda sozinha e mostra o valor para o cliente.
+                  </p>
+                </>
+              )}
               <Button variant="outline" className="w-full" onClick={confirmPaymentManual} disabled={busy}>
                 {busy ? "..." : "Confirmar pagamento manualmente (teste)"}
               </Button>
