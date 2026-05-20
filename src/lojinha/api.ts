@@ -51,13 +51,19 @@ export async function reserveCartItem(slug: string, cartToken: string, productId
   return data as { ok: boolean; reason?: string; available?: number; quantity?: number };
 }
 
-export async function createOrder(slug: string, cartToken: string, customer: { name: string; email: string; phone: string }) {
+export async function createOrder(
+  slug: string,
+  cartToken: string,
+  customer: { name: string; email: string; phone: string },
+  items: Array<{ product_id: string; quantity: number }>,
+) {
   const { data, error } = await supabase.rpc("lojinha_create_order", {
     _slug: slug,
     _cart_token: cartToken,
     _customer_name: customer.name,
     _customer_email: customer.email,
     _customer_phone: customer.phone,
+    _items: items as never,
   });
   if (error) throw error;
   return data as { order_id: string; total: number };
