@@ -1,13 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { QRCodeSVG } from "qrcode.react";
-import { CheckCircle2, Clock, Loader2, Store } from "lucide-react";
+import { CheckCircle2, Clock, Copy, Check, Loader2, Store } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getOrder } from "@/lojinha/api";
 import { formatBRL } from "@/lib/format";
+import { createPublicPixCharge, getPublicPixChargeStatus } from "@/lib/pix-public.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/loja/$slug/pedido/$orderId")({
   component: OrderPage,
@@ -51,6 +55,7 @@ function OrderPage() {
 
   const { order, items, units } = data;
   const isPaid = order.status === "paid" || order.status === "delivered";
+  const isPending = order.status === "pending";
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -65,19 +70,7 @@ function OrderPage() {
       </header>
 
       <main className="max-w-xl mx-auto px-4 py-6 space-y-4">
-        {!isPaid && (
-          <Card className="border-warning/40 bg-warning/5">
-            <CardContent className="p-4 flex items-center gap-3">
-              <Clock className="h-6 w-6 text-warning animate-pulse" />
-              <div>
-                <div className="font-medium">Aguardando pagamento</div>
-                <div className="text-xs text-muted-foreground">
-                  Assim que o pagamento for confirmado, os QR codes aparecerão aqui.
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {isPending && <PixCheckoutPanel orderId={orderId} onPaid={() => refetch()} />}
 
         {isPaid && (
           <Card className="border-success/40 bg-success/5">
@@ -137,5 +130,138 @@ function OrderPage() {
         )}
       </main>
     </div>
+  );
+}
+
+type Charge = {
+  id: string;
+  qr_code: string | null;
+  qr_code_base64: string | null;
+  expires_at: string | null;
+  amount: number;
+  status: string;
+};
+
+function PixCheckoutPanel({ orderId, onPaid }: { orderId: string; onPaid: () => void }) {
+  const create = useServerFn(createPublicPixCharge);
+  const check = useServerFn(getPublicPixChargeStatus);
+  const [charge, setCharge] = useState<Charge | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    create({ data: { orderId } })
+      .then((c) => setCharge(c as Charge))
+      .catch((e: Error) => toast.error(e.message || "Falha ao gerar PIX"))
+      .finally(() => setLoading(false));
+  }, [orderId, create]);
+
+  // Polling de status
+  useEffect(() => {
+    if (!charge || charge.status !== "pending") return;
+    const h = setInterval(async () => {
+      try {
+        const s = await check({ data: { orderId } });
+        if (s?.status === "approved") {
+          clearInterval(h);
+          onPaid();
+        } else if (s?.status === "cancelled" || s?.status === "expired") {
+          clearInterval(h);
+          setCharge((c) => (c ? { ...c, status: s.status } : c));
+        }
+      } catch { /* keep polling */ }
+    }, 3000);
+    return () => clearInterval(h);
+  }, [charge, orderId, check, onPaid]);
+
+  // Countdown
+  useEffect(() => {
+    if (!charge?.expires_at) return;
+    const exp = new Date(charge.expires_at).getTime();
+    const tick = () => setRemaining(Math.max(0, Math.round((exp - Date.now()) / 1000)));
+    tick();
+    const h = setInterval(tick, 1000);
+    return () => clearInterval(h);
+  }, [charge?.expires_at]);
+
+  const copy = async () => {
+    if (!charge?.qr_code) return;
+    await navigator.clipboard.writeText(charge.qr_code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6 flex items-center justify-center gap-3">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Gerando PIX…</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!charge) {
+    return (
+      <Card className="border-destructive/40 bg-destructive/5">
+        <CardContent className="p-4">
+          <div className="font-medium">Não foi possível gerar o PIX</div>
+          <p className="text-xs text-muted-foreground">Atualize a página para tentar novamente.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const mmss = remaining == null ? "" : `${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`;
+
+  return (
+    <Card className="border-primary/40">
+      <CardContent className="p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Clock className="h-5 w-5 text-primary animate-pulse" />
+          <div>
+            <div className="font-medium">Pague com PIX para liberar o pedido</div>
+            <div className="text-xs text-muted-foreground">Total: <strong>{formatBRL(charge.amount)}</strong></div>
+          </div>
+        </div>
+
+        {charge.qr_code_base64 && (
+          <div className="flex justify-center bg-white p-3 rounded-lg">
+            <img
+              src={`data:image/png;base64,${charge.qr_code_base64}`}
+              alt="QR Code PIX"
+              className="w-56 h-56"
+            />
+          </div>
+        )}
+
+        {charge.qr_code && (
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Pix copia-e-cola</div>
+            <div className="flex gap-2">
+              <code className="flex-1 text-[10px] bg-muted rounded px-2 py-2 truncate font-mono">
+                {charge.qr_code}
+              </code>
+              <Button size="icon" variant="outline" onClick={copy}>
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Aguardando confirmação…
+          </div>
+          {remaining != null && <div>Expira em {mmss}</div>}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

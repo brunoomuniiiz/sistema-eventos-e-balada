@@ -85,11 +85,24 @@ export const Route = createFileRoute("/api/public/mp-webhook")({
         if (newStatus === "approved") update.paid_at = new Date().toISOString();
         if (newStatus === "rejected") update.error_message = mp.status_detail;
 
-        const { error } = await supabaseAdmin
+        const { data: updated, error } = await supabaseAdmin
           .from("pix_charges")
           .update(update)
-          .eq("mp_payment_id", String(mp.id));
+          .eq("mp_payment_id", String(mp.id))
+          .select("id, order_id, origin")
+          .maybeSingle();
         if (error) console.error("[mp-webhook] update error", error);
+
+        // Se foi aprovado e a cobrança está vinculada a um pedido da Lojinha,
+        // marca o pedido como pago (dispara a entrega de QR codes).
+        if (newStatus === "approved" && updated?.order_id && updated.origin === "lojinha") {
+          const { error: orderErr } = await supabaseAdmin
+            .from("lojinha_orders")
+            .update({ status: "paid", paid_at: new Date().toISOString(), mp_payment_id: String(mp.id) })
+            .eq("id", updated.order_id)
+            .in("status", ["pending"]);
+          if (orderErr) console.error("[mp-webhook] order update error", orderErr);
+        }
 
         return new Response("ok", { status: 200 });
       },
