@@ -232,7 +232,18 @@ function StorefrontPage() {
                       <div className="font-medium truncate">{p.name}</div>
                       {p.description && <div className="text-xs text-muted-foreground line-clamp-2">{p.description}</div>}
                       <div className="mt-1 font-bold" style={{ color: accent }}>{formatBRL(p.price)}</div>
+                      {!soldOut && p.available_qty === 1 && (
+                        <div className="mt-1 inline-flex items-center rounded-full bg-destructive/15 text-destructive px-2 py-0.5 text-[11px] font-medium">
+                          Última unidade
+                        </div>
+                      )}
+                      {!soldOut && p.available_qty === 2 && (
+                        <div className="mt-1 inline-flex items-center rounded-full bg-amber-500/15 text-amber-600 px-2 py-0.5 text-[11px] font-medium">
+                          Restam 2 — confirme no balcão
+                        </div>
+                      )}
                     </div>
+
                     <div className="flex flex-col items-center justify-center gap-1 shrink-0">
                       {soldOut ? (
                         <span className="text-xs font-medium text-destructive whitespace-nowrap">Esgotado</span>
