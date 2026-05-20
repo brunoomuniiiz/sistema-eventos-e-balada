@@ -101,6 +101,12 @@ export const getPublicPixChargeStatus = createServerFn({ method: "POST" })
 export const simulatePixApproval = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ chargeId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
+    // Guarda: só permite simular quando o token MP é de sandbox (TEST-...).
+    const token = process.env.MP_ACCESS_TOKEN ?? "";
+    if (!token.startsWith("TEST-")) {
+      throw new Error("Simulação só disponível em ambiente de teste (MP sandbox)");
+    }
+
     const nowIso = new Date().toISOString();
 
     const { data: updated, error } = await supabaseAdmin
