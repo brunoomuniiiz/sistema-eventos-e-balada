@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { createPixCharge, getPixChargeStatus, cancelPixCharge } from "@/lib/pix.functions";
+import { simulatePixApproval } from "@/lib/pix-public.functions";
 import { formatBRL } from "@/lib/format";
 
 type Props = {
