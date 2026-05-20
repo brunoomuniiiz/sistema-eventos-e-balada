@@ -31,6 +31,7 @@ import { Route as AppConfiguracaoRouteImport } from './routes/_app.configuracao'
 import { Route as AppBarSettingsRouteImport } from './routes/_app.bar-settings'
 import { Route as AppAdminCaixasRouteImport } from './routes/_app.admin-caixas'
 import { Route as AppEventosIndexRouteImport } from './routes/_app.eventos.index'
+import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp-webhook'
 import { Route as AppEventosEventIdRouteImport } from './routes/_app.eventos.$eventId'
 import { Route as LojaSlugPedidoOrderIdRouteImport } from './routes/loja.$slug.pedido.$orderId'
 
@@ -143,6 +144,11 @@ const AppEventosIndexRoute = AppEventosIndexRouteImport.update({
   path: '/eventos/',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicMpWebhookRoute = ApiPublicMpWebhookRouteImport.update({
+  id: '/api/public/mp-webhook',
+  path: '/api/public/mp-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppEventosEventIdRoute = AppEventosEventIdRouteImport.update({
   id: '/eventos/$eventId',
   path: '/eventos/$eventId',
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/lista/$slug': typeof ListaSlugRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/eventos/$eventId': typeof AppEventosEventIdRoute
+  '/api/public/mp-webhook': typeof ApiPublicMpWebhookRoute
   '/eventos/': typeof AppEventosIndexRoute
   '/loja/$slug/pedido/$orderId': typeof LojaSlugPedidoOrderIdRoute
 }
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/lista/$slug': typeof ListaSlugRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/eventos/$eventId': typeof AppEventosEventIdRoute
+  '/api/public/mp-webhook': typeof ApiPublicMpWebhookRoute
   '/eventos': typeof AppEventosIndexRoute
   '/loja/$slug/pedido/$orderId': typeof LojaSlugPedidoOrderIdRoute
 }
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/lista/$slug': typeof ListaSlugRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/_app/eventos/$eventId': typeof AppEventosEventIdRoute
+  '/api/public/mp-webhook': typeof ApiPublicMpWebhookRoute
   '/_app/eventos/': typeof AppEventosIndexRoute
   '/loja/$slug/pedido/$orderId': typeof LojaSlugPedidoOrderIdRoute
 }
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/lista/$slug'
     | '/loja/$slug'
     | '/eventos/$eventId'
+    | '/api/public/mp-webhook'
     | '/eventos/'
     | '/loja/$slug/pedido/$orderId'
   fileRoutesByTo: FileRoutesByTo
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/lista/$slug'
     | '/loja/$slug'
     | '/eventos/$eventId'
+    | '/api/public/mp-webhook'
     | '/eventos'
     | '/loja/$slug/pedido/$orderId'
   id:
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/lista/$slug'
     | '/loja/$slug'
     | '/_app/eventos/$eventId'
+    | '/api/public/mp-webhook'
     | '/_app/eventos/'
     | '/loja/$slug/pedido/$orderId'
   fileRoutesById: FileRoutesById
@@ -318,6 +330,7 @@ export interface RootRouteChildren {
   ESlugRoute: typeof ESlugRoute
   ListaSlugRoute: typeof ListaSlugRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
+  ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -476,6 +489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEventosIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/mp-webhook': {
+      id: '/api/public/mp-webhook'
+      path: '/api/public/mp-webhook'
+      fullPath: '/api/public/mp-webhook'
+      preLoaderRoute: typeof ApiPublicMpWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/eventos/$eventId': {
       id: '/_app/eventos/$eventId'
       path: '/eventos/$eventId'
@@ -553,17 +573,8 @@ const rootRouteChildren: RootRouteChildren = {
   ESlugRoute: ESlugRoute,
   ListaSlugRoute: ListaSlugRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
+  ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
