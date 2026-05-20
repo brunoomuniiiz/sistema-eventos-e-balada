@@ -1,42 +1,70 @@
+# Plano: Refatoração de Estoque, Visibilidade e Checkout
 
-## 1. Botão de simulação de aprovação (sandbox)
+## 1. Estoque: nunca baixar antes do pagamento + reserva inteligente
 
-Adicionar um botão temporário **`[TESTE] Simular Pagamento Aprovado`** logo abaixo do QR code, em dois lugares:
+**Como está hoje**
+- A baixa real (`product_stock.quantity`) já só acontece via trigger `decrement_product_stock` quando a venda é gravada (PDV em dinheiro/cartão) ou via `finalize_sale_from_pix` (webhook MP `approved`). Isso está correto.
+- O que dá a sensação de "baixa prematura" é `lojinha_reserve_cart_item`: hoje ele incrementa `lojinha_reserved_qty` **toda vez** que o cliente adiciona ao carrinho — então o produto some da loja antes de pagar.
 
-- `src/components/vendas/PixQrDialog.tsx` (PDV / portaria — fluxo interno)
-- `src/routes/loja.$slug.pedido.$orderId.tsx` (lojinha — fluxo cliente final)
+**Nova regra (sua decisão)**
+- Ao adicionar ao carrinho: **não reserva nada**. O estoque continua disponível globalmente para todos os canais.
+- A reserva só acontece no momento em que o cliente **gera o PIX** (cria a `pix_charge`) — e somente se for "estoque crítico":
+  - Se há **1 unidade restante** (a que o cliente quer): reserva por **5 minutos**, exibe aviso "última unidade — pague em até 5 min ou volta para venda".
+  - Se há **2 unidades restantes**: não reserva, mas mostra aviso amarelo "restam só 2 — confirme no balcão antes de pagar".
+  - Se há ≥ 3: comportamento normal, sem reserva nem aviso.
+- Se o pagamento expirar (timeout do MP ou 5 min sem `approved`): job `lojinha_release_expired_reservations` (já existe) devolve para o estoque global.
 
-Como funciona:
-- O botão chama uma nova server function `simulateApproval(chargeId)` em `src/lib/pix.functions.ts`.
-- A função roda exatamente a mesma lógica do webhook real:
-  - Marca `pix_charges.status = 'approved'`, preenche `paid_at`.
-  - Se a cobrança tem `order_id` e `origin = 'lojinha'`, marca `lojinha_orders.status = 'paid'` + `paid_at` (dispara a baixa de estoque/QRs igual ao webhook).
-  - Se for venda PDV (`origin = 'pdv'`/`bar`), grava a venda no caixa usando o `salePayload` já armazenado, igual ao webhook faz hoje.
-- Frontend: o polling existente detecta `approved` em <3s e fecha o modal / muda a tela para "Pago" automaticamente — nenhuma lógica de UI nova.
+**Mudanças técnicas**
+- `lojinha_reserve_cart_item`: deixar de reservar no add-to-cart. Manter a função só para uso interno do checkout (ou substituir por `lojinha_reserve_for_checkout(orderId)` chamada dentro de `createPublicPixCharge`).
+- `lojinha_get_storefront`: incluir `available_qty` real (sem subtrair reservas, exceto a reserva de checkout) e um campo `low_stock_warning: 'last_one' | 'last_two' | null`.
+- `loja.$slug.tsx`: remover chamadas de `reserveCartItem` ao mexer no carrinho. Mostrar badge amarelo "restam só 2" / vermelho "última unidade" no card do produto e no resumo do carrinho.
+- `createPublicPixCharge`: tentar reservar a unidade no momento de criar o PIX; se não conseguir (alguém comprou antes), devolver erro claro "produto esgotado, atualize o carrinho".
 
-Segurança/visibilidade:
-- Botão renderizado só quando `import.meta.env.DEV === true` **e** quando o token MP é de teste (prefixo `TEST-`). Em produção some.
-- Visual: variante `outline` + `border-dashed` + texto "[TESTE]" para deixar claro que é debug.
+## 2. Estoque unificado entre PDV, garçom mobile e lojinha pública
 
-## 2. PIX da lojinha não está sendo gerado
+**Causa da divergência de combos**
+- `lojinha_get_storefront` calcula `available_qty` de combo como `MIN(floor(componente.quantity / ci.quantity))` mas filtra por `location_id = lojinha_settings.stock_location_id`. PDV/garçom usam outra location → números diferentes.
 
-Diagnóstico do banco: há 5 pedidos `pending` recentes na `lojinha_orders`, mas **0 registros** em `pix_charges` com `origin='lojinha'`. Ou seja, o cliente até chega na tela do pedido, mas `createPublicPixCharge` falha silenciosamente antes de gravar a cobrança. O usuário vê apenas o toast vermelho "Falha ao gerar PIX" e interpreta como "não consigo entrar no PIX".
+**Ação**
+- Criar função SQL única `product_available_qty(product_id, location_id)` que serve combo e simples.
+- PDV, garçom mobile (`LojinhaPosView`) e lojinha pública passam a chamá-la.
+- Definir explicitamente a `location_id` "de venda": usar a location do caixa aberto quando há sessão; caso contrário, `lojinha_settings.stock_location_id`. (Decisão técnica — se preferir uma location única global para todos, me avise.)
 
-Causas mais prováveis (a confirmar invocando a server fn com um `orderId` real durante a implementação):
-1. `MP_ACCESS_TOKEN` não está disponível em runtime no Worker (não foi anexado como secret, só como env do front).
-2. `createMpPixPayment` recebe `payerEmail = undefined` quando o cliente não preenche e-mail e a API do MP exige e-mail para PIX → 400.
-3. O token é `TEST-...` mas a conta MP da loja não está configurada para PIX em sandbox.
+## 3. Visibilidade de produtos por canal
 
-Ações:
-- Adicionar `console.error` detalhado em `createPublicPixCharge` (mensagem real do MP) para o usuário ver no toast.
-- Garantir fallback de `payerEmail` para `test_user_xxx@testuser.com` quando o cliente não informar.
-- Verificar o secret `MP_ACCESS_TOKEN` via `secrets--fetch_secrets`; se faltar no runtime, pedir reenvio.
+**Migration (`products`)**
+- Adicionar 4 colunas `boolean not null default true`:
+  - `ativo_geral` (renomeia/substitui `is_available`).
+  - `visivel_pdv_caixa`.
+  - `visivel_mobile_garcom`.
+  - `visivel_lojinha_cliente` (renomeia/substitui `sell_online`).
+- Backfill: `ativo_geral := is_available`, `visivel_lojinha_cliente := sell_online`. Mantenho `is_available`/`sell_online` por compatibilidade temporária e removo depois.
 
-## Fora de escopo
-- Implementar refund / cancelamento via botão.
-- Mexer no fluxo de assinatura HMAC do webhook real.
+**Admin (`_app.produtos.tsx`)**
+- Bloco "Visibilidade" no formulário de produto com 4 switches.
 
-## Detalhes técnicos
-- Nenhuma migração de banco.
-- Tipos: `simulateApproval` valida `{ chargeId: z.string().uuid() }`.
-- Mantém compatibilidade com webhook real (mesma função utilitária `applyApproval(charge)` consumida pelo webhook e pelo simulador, para evitar drift).
+**Queries**
+- `lojinha_get_storefront`: `WHERE ativo_geral AND visivel_lojinha_cliente`.
+- PDV (`_app.pdv.tsx`): filtra por `ativo_geral AND visivel_pdv_caixa`.
+- Garçom mobile (`LojinhaPosView`): filtra por `ativo_geral AND visivel_mobile_garcom`.
+- `ativo_geral = false` esconde de tudo (inclusive admin de vendas).
+
+## 4. Lojinha pública: só PIX
+
+- Em `loja.$slug.tsx` / `loja.$slug.pedido.$orderId.tsx`: garantir que a UI só oferece PIX. Já está perto disso — vou auditar e remover qualquer botão/menção residual a dinheiro ou cartão.
+- Backend não muda (já só cria `pix_charge`).
+
+## Resumo dos avisos no checkout da lojinha
+
+| Estoque restante | Comportamento |
+|---|---|
+| ≥ 3 | Normal, sem aviso, sem reserva |
+| 2 | Aviso amarelo "Restam só 2 — confirme no balcão antes de pagar". Sem reserva |
+| 1 | Aviso vermelho "Última unidade". Ao gerar PIX, reserva por 5 min |
+| 0 (após reserva de outro) | "Esgotado, atualize o carrinho" |
+
+## Questões abertas
+
+1. **Location única vs por canal?** Posso assumir: PDV/garçom usam a location do caixa aberto; lojinha usa `lojinha_settings.stock_location_id`. OK?
+2. **Renomear ou duplicar flags?** Recomendo renomear `is_available → ativo_geral` e `sell_online → visivel_lojinha_cliente` (mais limpo). Confirma?
+3. **"Garçom mobile"** = `LojinhaPosView` (POS interno acessado pelos garçons). Confirma?
