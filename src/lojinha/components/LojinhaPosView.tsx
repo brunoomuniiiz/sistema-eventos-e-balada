@@ -126,6 +126,8 @@ export function LojinhaPosView() {
     setMethod(null);
     setOrderId(null);
     setOrderTotal(0);
+    setPixQrBase64(null);
+    setPixCopyPaste(null);
   };
 
   const startCharge = async (m: "pix" | "card") => {
@@ -141,14 +143,47 @@ export function LojinhaPosView() {
       setOrderId(res.order_id);
       setOrderTotal(Number(res.total));
       setMethod(m);
+      setPixQrBase64(null);
+      setPixCopyPaste(null);
       setStep("waiting");
-      toast.success(m === "pix" ? "Pedido criado — gerando QR Pix" : "Pedido criado — enviando para a maquininha");
+
+      if (m === "pix") {
+        try {
+          const charge = await createPix({
+            data: {
+              amount: Number(res.total),
+              description: `Lojinha — pedido ${res.order_id.slice(0, 8)}`,
+              origin: "lojinha",
+              sector: "lojinha-pdv",
+              orderId: res.order_id,
+            },
+          });
+          setPixQrBase64(charge.qr_code_base64 ?? null);
+          setPixCopyPaste(charge.qr_code ?? null);
+          toast.success("QR Pix gerado");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Falha ao gerar QR Pix");
+        }
+      } else {
+        toast.success("Pedido criado — enviando para a maquininha");
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao criar pedido");
     } finally {
       setBusy(false);
     }
   };
+
+  const copyPix = async () => {
+    if (!pixCopyPaste) return;
+    try {
+      await navigator.clipboard.writeText(pixCopyPaste);
+      toast.success("Código Pix copiado");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
 
   // Simulação enquanto MP não está conectado: botão manual de "confirmar pagamento"
   const confirmPaymentManual = async () => {
