@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { CheckCircle2, Loader2, Printer, ArrowLeft, Package, Layers } from "lucide-react";
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CheckCircle2, Loader2, Printer, ArrowLeft, Package, Layers, User, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,13 +80,22 @@ function ReleasePage() {
         }
       }
       setReleased(true);
-      toast.success(`Pedido ${formatOrderNo(res.daily_number)} liberado!`);
+      toast.success(`Pedido ${formatOrderNo(res.daily_number)} entregue!`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao liberar pedido");
     } finally {
       setReleasing(false);
     }
   }
+
+  // Auto-return to scanner after release
+  useEffect(() => {
+    if (!released) return;
+    const h = setTimeout(() => {
+      navigate({ to: "/vendas", search: { tab: "scanner" } });
+    }, 1500);
+    return () => clearTimeout(h);
+  }, [released, navigate]);
 
   return (
     <div className="space-y-4 pb-24">
@@ -94,7 +105,30 @@ function ReleasePage() {
       />
 
       {data.customer_name && data.customer_name !== "Balcão" && (
-        <Card><CardContent className="p-3 text-sm">Cliente: <strong>{data.customer_name}</strong></CardContent></Card>
+        <Card><CardContent className="p-3 text-sm">
+          Cliente: <strong>{data.customer_name}</strong>
+          {data.customer_phone && <span className="text-muted-foreground"> · {data.customer_phone}</span>}
+        </CardContent></Card>
+      )}
+
+      {(data.status === "released" || data.status === "delivered") && (
+        <Card className="border-success/40 bg-success/5">
+          <CardContent className="p-3 space-y-1 text-sm">
+            <div className="font-bold text-success flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" /> Produto já entregue
+            </div>
+            {data.delivered_by_name && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <User className="h-3 w-3" /> Entregue por <strong className="text-foreground">{data.delivered_by_name}</strong>
+              </div>
+            )}
+            {data.delivered_at && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" /> {format(new Date(data.delivered_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <Card><CardContent className="p-3 divide-y">
@@ -127,13 +161,11 @@ function ReleasePage() {
         <Card className="border-success/40 bg-success/5">
           <CardContent className="p-4 flex items-center gap-3">
             <CheckCircle2 className="h-6 w-6 text-success" />
-            <div>
-              <div className="font-bold text-success">Pedido liberado!</div>
-              <div className="text-xs text-muted-foreground">Pronto para entrega.</div>
+            <div className="flex-1">
+              <div className="font-bold text-success">Entregue!</div>
+              <div className="text-xs text-muted-foreground">Voltando ao scanner…</div>
             </div>
-            <Button className="ml-auto" variant="outline" onClick={() => navigate({ to: "/lojinha" })}>
-              Voltar
-            </Button>
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </CardContent>
         </Card>
       ) : (
@@ -146,11 +178,11 @@ function ReleasePage() {
           >
             {releasing ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
             {data.status === "released" || data.status === "delivered"
-              ? "Já liberado"
+              ? "Produto já entregue"
               : hasCombos ? "Liberar e imprimir" : "Liberar pedido"}
           </Button>
           {(data.status === "released" || data.status === "delivered") && (
-            <Badge className="absolute -top-3 right-2">Já liberado</Badge>
+            <Badge className="absolute -top-3 right-2">Entregue</Badge>
           )}
         </div>
       )}

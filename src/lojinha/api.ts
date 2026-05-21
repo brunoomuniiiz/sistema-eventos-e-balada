@@ -164,6 +164,9 @@ export type OrderLookup =
       status: string;
       total: number;
       customer_name: string | null;
+      customer_phone: string | null;
+      delivered_at: string | null;
+      delivered_by_name: string | null;
       items: OrderLookupItem[];
     };
 

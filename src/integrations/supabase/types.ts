@@ -921,6 +921,8 @@ export type Database = {
           daily_date: string | null
           daily_number: number | null
           delivered_at: string | null
+          delivered_by: string | null
+          delivered_by_name: string | null
           expires_at: string | null
           id: string
           init_point: string | null
@@ -952,6 +954,8 @@ export type Database = {
           daily_date?: string | null
           daily_number?: number | null
           delivered_at?: string | null
+          delivered_by?: string | null
+          delivered_by_name?: string | null
           expires_at?: string | null
           id?: string
           init_point?: string | null
@@ -983,6 +987,8 @@ export type Database = {
           daily_date?: string | null
           daily_number?: number | null
           delivered_at?: string | null
+          delivered_by?: string | null
+          delivered_by_name?: string | null
           expires_at?: string | null
           id?: string
           init_point?: string | null
@@ -1533,6 +1539,8 @@ export type Database = {
           payment_method: string
           pickup_token: string | null
           released_at: string | null
+          released_by: string | null
+          released_by_name: string | null
           session_id: string | null
           total: number
           updated_at: string
@@ -1557,6 +1565,8 @@ export type Database = {
           payment_method: string
           pickup_token?: string | null
           released_at?: string | null
+          released_by?: string | null
+          released_by_name?: string | null
           session_id?: string | null
           total?: number
           updated_at?: string
@@ -1581,6 +1591,8 @@ export type Database = {
           payment_method?: string
           pickup_token?: string | null
           released_at?: string | null
+          released_by?: string | null
+          released_by_name?: string | null
           session_id?: string | null
           total?: number
           updated_at?: string
