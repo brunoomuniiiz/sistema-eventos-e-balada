@@ -2090,6 +2090,10 @@ export type Database = {
       lojinha_generate_pickup_code: { Args: never; Returns: string }
       lojinha_get_order: { Args: { _order_id: string }; Returns: Json }
       lojinha_get_storefront: { Args: { _slug: string }; Returns: Json }
+      lojinha_mark_order_delivered: {
+        Args: { _order_id: string }
+        Returns: Json
+      }
       lojinha_mark_pos_paid: {
         Args: { _order_id: string; _payment_id: string }
         Returns: Json
