@@ -137,6 +137,12 @@ export async function confirmDeliveryPos(orderId: string) {
   return data as { ok: boolean; sale_id: string };
 }
 
+export async function markOrderDelivered(orderId: string) {
+  const { data, error } = await supabase.rpc("lojinha_mark_order_delivered" as never, { _order_id: orderId } as never);
+  if (error) throw error;
+  return data as unknown as { ok: boolean; reason?: string };
+}
+
 // --- Pedido por QR (novo fluxo do garçom) ---
 
 export type OrderLookupItem = {
