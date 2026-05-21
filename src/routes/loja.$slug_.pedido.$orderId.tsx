@@ -55,6 +55,7 @@ function OrderPage() {
 
   const { order, items } = data;
   const isPaid = order.status === "paid" || order.status === "delivered";
+  const isDelivered = order.status === "delivered";
   const isPending = order.status === "pending";
   const dailyNo = (order as unknown as { daily_number?: number | null }).daily_number ?? null;
   const pickupToken = (order as unknown as { pickup_token?: string | null }).pickup_token ?? null;
@@ -75,7 +76,17 @@ function OrderPage() {
       <main className="max-w-xl mx-auto px-4 py-6 space-y-4">
         {isPending && <PixCheckoutPanel orderId={orderId} onPaid={() => refetch()} />}
 
-        {isPaid && pickupToken && (
+        {isDelivered && (
+          <Card className="border-success/40 bg-success/5">
+            <CardContent className="p-6 flex flex-col items-center gap-3 text-center">
+              <CheckCircle2 className="h-10 w-10 text-success" />
+              <div className="font-bold text-success text-xl">Retirado com sucesso</div>
+              <div className="text-sm text-muted-foreground">Obrigado! Aproveite 🎉</div>
+            </CardContent>
+          </Card>
+        )}
+
+        {isPaid && !isDelivered && pickupToken && (
           <Card className="border-success/40 bg-success/5">
             <CardContent className="p-4 flex flex-col items-center gap-3 text-center">
               <CheckCircle2 className="h-6 w-6 text-success" />
@@ -104,17 +115,6 @@ function OrderPage() {
                 <p className="text-[11px] text-muted-foreground">
                   Câmera do garçom não leu? Toque em "Copiar código" e peça pra ele colar na tela dele.
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        {isPaid && !pickupToken && (
-          <Card className="border-success/40 bg-success/5">
-            <CardContent className="p-4 flex items-center gap-3">
-              <CheckCircle2 className="h-6 w-6 text-success" />
-              <div>
-                <div className="font-medium">Pedido entregue</div>
-                <div className="text-xs text-muted-foreground">Obrigado! Aproveite.</div>
               </div>
             </CardContent>
           </Card>
