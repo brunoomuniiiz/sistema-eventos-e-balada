@@ -921,14 +921,19 @@ export type Database = {
           daily_date: string | null
           daily_number: number | null
           delivered_at: string | null
+          expires_at: string | null
           id: string
           init_point: string | null
           mp_payment_id: string | null
           mp_point_intent_id: string | null
           mp_preference_id: string | null
           paid_at: string | null
+          pickup_code: string | null
           pickup_token: string | null
           point_device_id: string | null
+          reconciled_at: string | null
+          reconciled_by: string | null
+          reconciled_note: string | null
           seller_name: string | null
           seller_user_id: string | null
           status: string
@@ -947,14 +952,19 @@ export type Database = {
           daily_date?: string | null
           daily_number?: number | null
           delivered_at?: string | null
+          expires_at?: string | null
           id?: string
           init_point?: string | null
           mp_payment_id?: string | null
           mp_point_intent_id?: string | null
           mp_preference_id?: string | null
           paid_at?: string | null
+          pickup_code?: string | null
           pickup_token?: string | null
           point_device_id?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciled_note?: string | null
           seller_name?: string | null
           seller_user_id?: string | null
           status?: string
@@ -973,14 +983,19 @@ export type Database = {
           daily_date?: string | null
           daily_number?: number | null
           delivered_at?: string | null
+          expires_at?: string | null
           id?: string
           init_point?: string | null
           mp_payment_id?: string | null
           mp_point_intent_id?: string | null
           mp_preference_id?: string | null
           paid_at?: string | null
+          pickup_code?: string | null
           pickup_token?: string | null
           point_device_id?: string | null
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          reconciled_note?: string | null
           seller_name?: string | null
           seller_user_id?: string | null
           status?: string
@@ -1981,6 +1996,7 @@ export type Database = {
       }
       confirm_close_sector: { Args: { _sector: string }; Returns: string }
       consume_grant: { Args: { _scope: string; _token: string }; Returns: Json }
+      expire_pending_lojinha_orders: { Args: never; Returns: undefined }
       finalize_sale_from_pix: { Args: { _charge_id: string }; Returns: string }
       force_close_sector: { Args: { _sector: string }; Returns: string }
       force_open_sector: {
@@ -2071,6 +2087,7 @@ export type Database = {
         Args: { _device_id: string; _items: Json; _payment_method: string }
         Returns: Json
       }
+      lojinha_generate_pickup_code: { Args: never; Returns: string }
       lojinha_get_order: { Args: { _order_id: string }; Returns: Json }
       lojinha_get_storefront: { Args: { _slug: string }; Returns: Json }
       lojinha_mark_pos_paid: {
@@ -2079,6 +2096,10 @@ export type Database = {
       }
       lojinha_release_expired_reservations: { Args: never; Returns: undefined }
       lojinha_release_order_reservation: {
+        Args: { _order_id: string }
+        Returns: undefined
+      }
+      lojinha_release_order_reservations: {
         Args: { _order_id: string }
         Returns: undefined
       }
