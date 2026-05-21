@@ -149,7 +149,8 @@ function StorefrontPage() {
     );
   }
 
-  const accent = data.settings.accent_color || "#e94560";
+  const rawAccent = data.settings.accent_color;
+  const accent = rawAccent && /^#[0-9a-fA-F]{6}$/.test(rawAccent) ? rawAccent : "#e94560";
 
   return (
     <div className="min-h-screen bg-background pb-32">
