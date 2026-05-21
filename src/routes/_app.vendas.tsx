@@ -19,13 +19,20 @@ import { LojinhaDevicesPanel } from "@/lojinha/components/LojinhaDevicesPanel";
 import { LojinhaSettingsPanel } from "@/lojinha/components/LojinhaSettingsPanel";
 import { SellerPermissionsPanel } from "@/components/vendas/SellerPermissionsPanel";
 
+type VendasSearch = { tab?: string };
+
 export const Route = createFileRoute("/_app/vendas")({
   component: VendasPage,
+  validateSearch: (s: Record<string, unknown>): VendasSearch => ({
+    tab: typeof s.tab === "string" ? s.tab : undefined,
+  }),
 });
 
 function VendasPage() {
   const { ownerId, can, isOwner, lojinhaCanSell, canSellCash, loading } = usePermissions();
   const [closing, setClosing] = useState(false);
+  const { tab } = useSearch({ from: "/_app/vendas" });
+  const navigate = useNavigate();
 
   if (loading) return null;
   const hasVendas = can("vendas");
@@ -37,11 +44,16 @@ function VendasPage() {
   const showPdvCaixa = hasVendas; // PDV do caixa presencial
   const showPdvGarcom = hasLojinha && lojinhaCanSell; // PDV mobile do garçom (maquininha)
   const defaultTab = showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : "scanner";
+  const currentTab = tab ?? defaultTab;
 
   return (
     <div className="space-y-4">
       <PageHeader title="Vendas" subtitle="PDV, pedidos online, entregas e fechamento" />
-      <Tabs defaultValue={defaultTab} className="space-y-4">
+      <Tabs
+        value={currentTab}
+        onValueChange={(v) => navigate({ to: "/vendas", search: { tab: v }, replace: true })}
+        className="space-y-4"
+      >
         <TabsList className="flex-wrap h-auto">
           {showPdvCaixa && <TabsTrigger value="pdv"><ShoppingCart className="h-4 w-4 mr-1.5" /> PDV Caixa</TabsTrigger>}
           {showPdvGarcom && <TabsTrigger value="vender"><Store className="h-4 w-4 mr-1.5" /> Vender (garçom)</TabsTrigger>}
