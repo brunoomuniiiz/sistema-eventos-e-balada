@@ -1,24 +1,34 @@
-## Diagnóstico do QR não ler
+## Entendi o fluxo correto
 
-Olhando o código, a causa mais provável da câmera não enxergar o QR é **tamanho**: o QR de cada unidade é renderizado em apenas **104px** (`size={104}` em `loja.$slug_.pedido.$orderId.tsx` linha 130), enquanto o scanner usa uma `qrbox` de 240x240. Em telas pequenas e com brilho/zoom variando, 104px fica abaixo do limiar de reconhecimento do `html5-qrcode`. O token em si (36 caracteres hex) é válido — quando colado no campo "Validar por código" funciona via `validateQr` → `lojinha_validate_qr`.
+**Um QR por pedido** (não um por bebida). O garçom escaneia → valida tudo de uma vez → pedido vira `delivered` → QR some da tela do cliente. Anti-fraude: token usado uma vez só.
 
-Não há bug de validade do token; é problema de leitura óptica.
+## Diagnóstico do que está quebrado hoje
+
+1. **QR grande (`pickup_token`) não valida**: a RPC `lojinha_validate_qr` só procura em `lojinha_order_units.qr_token`. Quando o garçom escaneia o QR do pedido, retorna `invalid`.
+2. **Sem copia-e-cola** no QR grande (fallback pra câmera ruim).
+3. **QRs por unidade poluem a tela** e duplicam o conceito — confundem cliente e garçom.
 
 ## Mudanças
 
-### 1) Tela do cliente — `src/routes/loja.$slug_.pedido.$orderId.tsx`
-Dentro do `units.map` (linhas 124-144):
-- Aumentar `<QRCodeSVG size={104} />` para `size={180}` (mais legível para câmera).
-- Abaixo do nome do produto, mostrar o `qr_token` em fonte mono pequena com `break-all` + botão "Copiar código" (toast "Código copiado") seguindo o mesmo padrão de `handleCopyPix` (linha 210).
-- Texto auxiliar: "Câmera não leu? Copie o código e peça ao garçom para colar."
+### 1) Backend — migração SQL
+Reescrever `public.lojinha_validate_qr(_token text)` para:
+- Procurar primeiro em `lojinha_orders.pickup_token` (com `FOR UPDATE`).
+- Se achar: checar permissão `lojinha`, rejeitar se `status` já = `delivered` (retornar `already_delivered` com cliente + horário), senão marcar **todas as unidades** pendentes como `delivered` (com `delivered_by`/`delivered_by_name`/`delivered_at`), marcar o pedido como `delivered`, e **anular o `pickup_token`** (`SET pickup_token = NULL`) para invalidar.
+- Retornar `{ok:true, customer_name, product_name: "<N> itens", order_total}`.
+- Fallback: se não achar pickup_token, manter o comportamento antigo (procurar em `qr_token` de unidade) por compatibilidade.
 
-### 2) Scanner do garçom — `src/lojinha/components/LojinhaScanner.tsx`
-- Aumentar `qrbox` de 240 para 280 e adicionar `aspectRatio: 1.0` para forçar enquadramento quadrado.
-- Adicionar `formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]` na config para acelerar o decoder focando só em QR.
-- Adicionar dica visual abaixo do botão: "Se não ler, peça ao cliente o código e cole no campo abaixo."
+### 2) Frontend — `src/routes/loja.$slug_.pedido.$orderId.tsx`
+- **Manter só o QR grande do pedido** (`pickup_token`). Remover o bloco `units.map` com QRs por unidade.
+- Quando `order.status === 'delivered'` (ou `pickup_token === null`): esconder o QR e mostrar card de confirmação ("Pedido entregue — obrigado!").
+- Abaixo do QR grande adicionar:
+  - `pickup_token` em fonte mono + botão "Copiar código de retirada" (padrão `navigator.clipboard.writeText` + `toast.success`).
+  - Texto: "Câmera do garçom não leu? Toque em 'Copiar código' e peça pra ele colar."
+- O polling/realtime já existente (`refetch` em mudanças de `lojinha_orders`) faz o QR sumir automaticamente quando `status` virar `delivered`.
 
-Nenhuma mudança de backend; o caminho manual já existe e funciona.
+### 3) Frontend — `src/lojinha/components/LojinhaScanner.tsx`
+Nenhuma mudança estrutural. Ele já chama `validateQr(token)`; com a RPC nova, o mesmo botão passa a aceitar `pickup_token` colado/escaneado. Só ajustar a mensagem de sucesso para mostrar `customer_name + product_name` (que vai conter "N itens" quando for pedido inteiro).
 
 ## Arquivos afetados
+- Migração SQL: `public.lojinha_validate_qr`
 - `src/routes/loja.$slug_.pedido.$orderId.tsx`
-- `src/lojinha/components/LojinhaScanner.tsx`
+- `src/lojinha/components/LojinhaScanner.tsx` (toast de sucesso apenas)

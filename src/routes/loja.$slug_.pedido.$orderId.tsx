@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { QRCodeSVG } from "qrcode.react";
 import { CheckCircle2, Clock, Copy, Check, Loader2, Store } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getOrder } from "@/lojinha/api";
@@ -53,7 +53,7 @@ function OrderPage() {
     );
   }
 
-  const { order, items, units } = data;
+  const { order, items } = data;
   const isPaid = order.status === "paid" || order.status === "delivered";
   const isPending = order.status === "pending";
   const dailyNo = (order as unknown as { daily_number?: number | null }).daily_number ?? null;
@@ -81,11 +81,29 @@ function OrderPage() {
               <CheckCircle2 className="h-6 w-6 text-success" />
               <div>
                 <div className="font-bold text-success text-lg">Pagamento confirmado</div>
-                <div className="text-xs text-muted-foreground">Mostre este QR ao garçom para retirar.</div>
+                <div className="text-xs text-muted-foreground">Mostre este QR ao garçom para retirar seu pedido.</div>
               </div>
               {orderNoLabel && <div className="text-3xl font-black tracking-widest">{orderNoLabel}</div>}
               <div className="bg-white p-3 rounded-lg">
-                <QRCodeSVG value={pickupToken} size={200} level="M" />
+                <QRCodeSVG value={pickupToken} size={220} level="M" />
+              </div>
+              <div className="w-full space-y-2 pt-2 border-t">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground text-left">Código de retirada</div>
+                <div className="font-mono text-xs break-all bg-muted rounded p-2 text-left">{pickupToken}</div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(pickupToken);
+                    toast.success("Código copiado");
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" /> Copiar código de retirada
+                </Button>
+                <p className="text-[11px] text-muted-foreground">
+                  Câmera do garçom não leu? Toque em "Copiar código" e peça pra ele colar na tela dele.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -95,8 +113,8 @@ function OrderPage() {
             <CardContent className="p-4 flex items-center gap-3">
               <CheckCircle2 className="h-6 w-6 text-success" />
               <div>
-                <div className="font-medium">Pagamento confirmado</div>
-                <div className="text-xs text-muted-foreground">Apresente cada QR code abaixo no balcão para retirar.</div>
+                <div className="font-medium">Pedido entregue</div>
+                <div className="text-xs text-muted-foreground">Obrigado! Aproveite.</div>
               </div>
             </CardContent>
           </Card>
@@ -117,55 +135,6 @@ function OrderPage() {
             </div>
           </CardContent>
         </Card>
-
-        {units.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="font-bold mt-4">Seus QR codes ({units.length})</h2>
-            <p className="text-xs text-muted-foreground -mt-2">
-              Câmera não leu? Toque em "Copiar código" e peça ao garçom para colar.
-            </p>
-            {units.map((u, idx) => {
-              const delivered = u.status === "delivered";
-              return (
-                <Card key={u.id} className={delivered ? "opacity-60" : ""}>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-start gap-4">
-                      <div className="bg-white p-2 rounded-lg shrink-0">
-                        <QRCodeSVG value={u.qr_token} size={180} level="M" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs text-muted-foreground">Unidade {idx + 1} de {units.length}</div>
-                        <div className="font-medium">{u.product_name}</div>
-                        {delivered ? (
-                          <Badge variant="secondary" className="mt-1">Entregue</Badge>
-                        ) : (
-                          <Badge className="mt-1 bg-success text-success-foreground">Pronto p/ retirar</Badge>
-                        )}
-                      </div>
-                    </div>
-                    {!delivered && (
-                      <div className="border-t pt-3 space-y-2">
-                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Código de retirada</div>
-                        <div className="font-mono text-xs break-all bg-muted rounded p-2">{u.qr_token}</div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          onClick={async () => {
-                            await navigator.clipboard.writeText(u.qr_token);
-                            toast.success("Código copiado");
-                          }}
-                        >
-                          Copiar código
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
       </main>
     </div>
   );
