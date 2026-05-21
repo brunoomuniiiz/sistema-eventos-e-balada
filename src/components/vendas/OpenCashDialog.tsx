@@ -5,11 +5,12 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wallet, CalendarDays, Check, Info } from "lucide-react";
+import { Wallet, CalendarDays, Check, Info, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
+import { AuthorizationDialog } from "@/components/AuthorizationDialog";
 
 interface Props {
   open: boolean;
@@ -24,6 +25,7 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
   const [notes, setNotes] = useState("");
   const [eventId, setEventId] = useState<string>("none");
   const [loading, setLoading] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
   const { data: todayEvents = [] } = useQuery({
     queryKey: ["open-cash-today-events"],
@@ -51,7 +53,9 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
     }
   }, [open, todayEvents]);
 
-  const submit = async () => {
+  const askAuth = () => setAuthOpen(true);
+
+  const onApproved = async (token: string) => {
     setLoading(true);
     try {
       const v = canSellCash ? amount : 0;
@@ -59,7 +63,8 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
         _opening: v,
         _notes: notes || undefined,
         _event_id: (eventId === "none" ? null : eventId) as unknown as string | undefined,
-      });
+        _grant_token: token as never,
+      } as never);
       if (error) throw error;
       toast.success("Caixa aberto");
       onOpened();
@@ -72,6 +77,7 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
@@ -79,7 +85,7 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
             {step === 1 ? <><CalendarDays className="h-5 w-5 text-primary" /> Confirmar evento</> : <><Wallet className="h-5 w-5 text-primary" /> Abrir caixa</>}
           </DialogTitle>
           <DialogDescription>
-            {step === 1 ? "Confirme o evento de hoje para iniciar seu turno." : canSellCash ? "Informe o valor inicial em dinheiro (troco)." : "Você não opera dinheiro — o caixa abre em R$ 0,00."}
+            {step === 1 ? "Confirme o evento de hoje para iniciar seu turno." : canSellCash ? "Informe o valor inicial em dinheiro (troco). A abertura precisa de autorização do gerente." : "Você não opera dinheiro — o caixa abre em R$ 0,00. A abertura precisa de autorização do gerente."}
           </DialogDescription>
         </DialogHeader>
 
@@ -129,13 +135,22 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
             )}
             <DialogFooter className="gap-2">
               <Button variant="ghost" onClick={() => setStep(1)}>Voltar</Button>
-              <Button onClick={submit} disabled={loading} className="flex-1">
-                {loading ? "Abrindo..." : "Abrir caixa"}
+              <Button onClick={askAuth} disabled={loading} className="flex-1">
+                <ShieldCheck className="h-4 w-4" /> {loading ? "Abrindo..." : "Pedir autorização"}
               </Button>
             </DialogFooter>
           </div>
         )}
       </DialogContent>
     </Dialog>
+    <AuthorizationDialog
+      open={authOpen}
+      onOpenChange={setAuthOpen}
+      scope="open_cash"
+      title="Autorizar abertura de caixa"
+      description="O owner ou gerente precisa autorizar a abertura com e-mail e senha."
+      onApproved={(t) => onApproved(t)}
+    />
+    </>
   );
 }

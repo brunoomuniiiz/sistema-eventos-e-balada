@@ -1912,7 +1912,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      unified_sales_history: {
+        Row: {
+          category: string | null
+          channel: string | null
+          created_at: string | null
+          customer_name: string | null
+          daily_number: number | null
+          delivered_at: string | null
+          delivered_by: string | null
+          delivered_by_name: string | null
+          id: string | null
+          owner_id: string | null
+          payment_method: string | null
+          seller_name: string | null
+          seller_user_id: string | null
+          status: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _can_authorize_cash: {
@@ -2064,6 +2083,38 @@ export type Database = {
         Args: { _owner_id: string; _user_id: string }
         Returns: boolean
       }
+      list_unified_sales_history: {
+        Args: {
+          _channel?: string
+          _from?: string
+          _limit?: number
+          _seller_user_id?: string
+          _to?: string
+        }
+        Returns: {
+          category: string | null
+          channel: string | null
+          created_at: string | null
+          customer_name: string | null
+          daily_number: number | null
+          delivered_at: string | null
+          delivered_by: string | null
+          delivered_by_name: string | null
+          id: string | null
+          owner_id: string | null
+          payment_method: string | null
+          seller_name: string | null
+          seller_user_id: string | null
+          status: string | null
+          total: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "unified_sales_history"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       lojinha_confirm_delivery_pos: {
         Args: { _order_id: string }
         Returns: Json
@@ -2126,10 +2177,20 @@ export type Database = {
       }
       lojinha_validate_qr: { Args: { _token: string }; Returns: Json }
       next_daily_order_number: { Args: { _owner: string }; Returns: number }
-      open_cash_session: {
-        Args: { _event_id?: string; _notes?: string; _opening: number }
-        Returns: string
-      }
+      open_cash_session:
+        | {
+            Args: { _event_id?: string; _notes?: string; _opening: number }
+            Returns: string
+          }
+        | {
+            Args: {
+              _event_id?: string
+              _grant_token?: string
+              _notes?: string
+              _opening: number
+            }
+            Returns: string
+          }
       order_lookup_by_token: { Args: { _token: string }; Returns: Json }
       order_release: { Args: { _id: string; _source: string }; Returns: Json }
       register_event_entry: {

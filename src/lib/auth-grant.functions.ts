@@ -7,7 +7,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const Input = z.object({
   email: z.string().email().max(255),
   password: z.string().min(1).max(200),
-  scope: z.enum(["withdrawal", "discount", "closing"]),
+  scope: z.enum(["withdrawal", "discount", "closing", "open_cash"]),
 });
 
 function randomToken() {
