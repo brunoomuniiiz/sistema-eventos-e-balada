@@ -10,7 +10,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { requestAuthGrant } from "@/lib/auth-grant.functions";
 import { toast } from "sonner";
 
-type Scope = "withdrawal" | "discount" | "closing";
+type Scope = "withdrawal" | "discount" | "closing" | "open_cash";
 
 interface Props {
   open: boolean;
