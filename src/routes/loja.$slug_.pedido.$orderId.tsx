@@ -53,7 +53,7 @@ function OrderPage() {
     );
   }
 
-  const { order, items, units } = data;
+  const { order, items } = data;
   const isPaid = order.status === "paid" || order.status === "delivered";
   const isPending = order.status === "pending";
   const dailyNo = (order as unknown as { daily_number?: number | null }).daily_number ?? null;
