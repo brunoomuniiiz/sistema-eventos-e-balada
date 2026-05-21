@@ -80,13 +80,22 @@ function ReleasePage() {
         }
       }
       setReleased(true);
-      toast.success(`Pedido ${formatOrderNo(res.daily_number)} liberado!`);
+      toast.success(`Pedido ${formatOrderNo(res.daily_number)} entregue!`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao liberar pedido");
     } finally {
       setReleasing(false);
     }
   }
+
+  // Auto-return to scanner after release
+  useEffect(() => {
+    if (!released) return;
+    const h = setTimeout(() => {
+      navigate({ to: "/vendas", search: { tab: "scanner" } });
+    }, 1500);
+    return () => clearTimeout(h);
+  }, [released, navigate]);
 
   return (
     <div className="space-y-4 pb-24">
