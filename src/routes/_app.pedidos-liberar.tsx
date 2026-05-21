@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { CheckCircle2, Loader2, Printer, ArrowLeft, Package, Layers } from "lucide-react";
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CheckCircle2, Loader2, Printer, ArrowLeft, Package, Layers, User, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
