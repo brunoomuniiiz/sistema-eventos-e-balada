@@ -161,13 +161,11 @@ function ReleasePage() {
         <Card className="border-success/40 bg-success/5">
           <CardContent className="p-4 flex items-center gap-3">
             <CheckCircle2 className="h-6 w-6 text-success" />
-            <div>
-              <div className="font-bold text-success">Pedido liberado!</div>
-              <div className="text-xs text-muted-foreground">Pronto para entrega.</div>
+            <div className="flex-1">
+              <div className="font-bold text-success">Entregue!</div>
+              <div className="text-xs text-muted-foreground">Voltando ao scanner…</div>
             </div>
-            <Button className="ml-auto" variant="outline" onClick={() => navigate({ to: "/lojinha" })}>
-              Voltar
-            </Button>
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </CardContent>
         </Card>
       ) : (
@@ -180,11 +178,11 @@ function ReleasePage() {
           >
             {releasing ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
             {data.status === "released" || data.status === "delivered"
-              ? "Já liberado"
+              ? "Produto já entregue"
               : hasCombos ? "Liberar e imprimir" : "Liberar pedido"}
           </Button>
           {(data.status === "released" || data.status === "delivered") && (
-            <Badge className="absolute -top-3 right-2">Já liberado</Badge>
+            <Badge className="absolute -top-3 right-2">Entregue</Badge>
           )}
         </div>
       )}
