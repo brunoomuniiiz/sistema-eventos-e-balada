@@ -39,6 +39,7 @@ export function printReceipt(opts: {
   payment_method: string | null;
   qr_svg_string: string;
   pickup_token: string;
+  pickup_code?: string | null;
 }): boolean {
   const itemsHtml = opts.items
     .map(
@@ -49,6 +50,12 @@ export function printReceipt(opts: {
         </div>`,
     )
     .join("");
+
+  const shortCode = opts.pickup_code ?? opts.pickup_token.slice(0, 6).toUpperCase();
+  const shortHtml = `
+    <div class="center small" style="margin-top:6px">Sem leitor? Digite o código:</div>
+    <div class="center huge" style="letter-spacing:6px;font-family:monospace">${escapeHtml(shortCode)}</div>
+  `;
 
   const body = `
     <div class="sheet">
@@ -63,8 +70,8 @@ export function printReceipt(opts: {
       <div class="row small muted"><span>Pagamento</span><span>${escapeHtml(opts.payment_method ?? "—")}</span></div>
       <hr />
       <div class="qr-wrap">${opts.qr_svg_string}</div>
-      <div class="center small">Apresente este QR ao garçom<br/>para retirar seu pedido</div>
-      <div class="center small muted" style="margin-top:6px;word-break:break-all">${escapeHtml(opts.pickup_token)}</div>
+      <div class="center small">Apresente este QR ao garçom para retirar</div>
+      ${shortHtml}
     </div>
   `;
   return openPrintWindow(`Cupom ${formatOrderNo(opts.daily_number)}`, body);

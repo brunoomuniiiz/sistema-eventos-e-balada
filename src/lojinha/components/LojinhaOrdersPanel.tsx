@@ -27,7 +27,11 @@ export function LojinhaOrdersPanel() {
     refetchInterval: 8000,
     queryFn: async () => {
       let q = supabase.from("lojinha_orders").select("*").order("created_at", { ascending: false }).limit(50);
-      if (filter !== "all") q = q.eq("status", filter);
+      if (filter === "all") {
+        q = q.not("status", "in", "(abandoned,cancelled)");
+      } else {
+        q = q.eq("status", filter);
+      }
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];

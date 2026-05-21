@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
-import { createPosOrder, confirmDeliveryPos, markPosPaid } from "@/lojinha/api";
+import { createPosOrder, confirmDeliveryPos, markPosPaid, reserveCartItem } from "@/lojinha/api";
 import { createPixCharge } from "@/lib/pix.functions";
 
 type Product = {
@@ -103,8 +103,21 @@ export function LojinhaPosView() {
     });
   }, [products, search, activeCategory]);
 
-  const addToCart = (p: Product) => {
+  const addToCart = async (p: Product) => {
     const price = Number(p.online_price ?? p.price);
+    const nextQty = (cart.find((i) => i.product_id === p.id)?.quantity ?? 0) + 1;
+    try {
+      const res = await reserveCartItem("__pos__:" + (ownerId ?? ""), "pos:" + (ownerId ?? ""), p.id, nextQty);
+      if (!res.ok) {
+        toast.error(res.blocked_by ? `Esgotado: ${res.blocked_by}` : "Esgotado agora");
+        return;
+      }
+      if (res.low_stock) {
+        toast.warning(`Últimos ${(res.remaining ?? 0) + 1} — reservado pra você por 5 min`);
+      }
+    } catch {
+      // se falhar reserva (ex.: produto sem slug), só segue local
+    }
     setCart((prev) => {
       const ex = prev.find((i) => i.product_id === p.id);
       if (ex) return prev.map((i) => i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i);

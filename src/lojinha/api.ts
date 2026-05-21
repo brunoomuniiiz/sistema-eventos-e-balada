@@ -40,7 +40,17 @@ export async function getStorefront(slug: string): Promise<Storefront | null> {
   return data as unknown as Storefront | null;
 }
 
-export async function reserveCartItem(slug: string, cartToken: string, productId: string, qty: number) {
+export type ReserveResult = {
+  ok: boolean;
+  reason?: string;
+  available?: number;
+  quantity?: number;
+  low_stock?: boolean;
+  remaining?: number | null;
+  blocked_by?: string;
+};
+
+export async function reserveCartItem(slug: string, cartToken: string, productId: string, qty: number): Promise<ReserveResult> {
   const { data, error } = await supabase.rpc("lojinha_reserve_cart_item", {
     _slug: slug,
     _cart_token: cartToken,
@@ -48,7 +58,7 @@ export async function reserveCartItem(slug: string, cartToken: string, productId
     _qty: qty,
   });
   if (error) throw error;
-  return data as { ok: boolean; reason?: string; available?: number; quantity?: number };
+  return data as ReserveResult;
 }
 
 export async function createOrder(
@@ -173,4 +183,3 @@ export async function orderRelease(source: "sale" | "order", id: string) {
   if (error) throw error;
   return data as unknown as { ok: boolean; daily_number: number | null; prep_slips: PrepSlipPayload[] };
 }
-
