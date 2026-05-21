@@ -105,7 +105,30 @@ function ReleasePage() {
       />
 
       {data.customer_name && data.customer_name !== "Balcão" && (
-        <Card><CardContent className="p-3 text-sm">Cliente: <strong>{data.customer_name}</strong></CardContent></Card>
+        <Card><CardContent className="p-3 text-sm">
+          Cliente: <strong>{data.customer_name}</strong>
+          {data.customer_phone && <span className="text-muted-foreground"> · {data.customer_phone}</span>}
+        </CardContent></Card>
+      )}
+
+      {(data.status === "released" || data.status === "delivered") && (
+        <Card className="border-success/40 bg-success/5">
+          <CardContent className="p-3 space-y-1 text-sm">
+            <div className="font-bold text-success flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4" /> Produto já entregue
+            </div>
+            {data.delivered_by_name && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <User className="h-3 w-3" /> Entregue por <strong className="text-foreground">{data.delivered_by_name}</strong>
+              </div>
+            )}
+            {data.delivered_at && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" /> {format(new Date(data.delivered_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <Card><CardContent className="p-3 divide-y">
