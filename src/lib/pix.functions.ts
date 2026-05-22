@@ -65,7 +65,7 @@ export const createPixCharge = createServerFn({ method: "POST" })
     return charge;
   });
 
-/** Polling do status pelo front (autenticado). */
+/** Polling do status pelo front (autenticado). Reconcilia com MP se ainda pending. */
 export const getPixChargeStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ chargeId: z.string().uuid() }).parse(d))
@@ -82,6 +82,25 @@ export const getPixChargeStatus = createServerFn({ method: "POST" })
 
     if (error) throw new Error(error.message);
     if (!charge) throw new Error("Cobrança não encontrada");
+
+    // Fallback: webhook pode estar atrasado/falho — consulta MP direto se ainda pending.
+    if (charge.status === "pending" && charge.mp_payment_id) {
+      try {
+        const mp = await getMpPayment(charge.mp_payment_id);
+        const result = await applyMpPaymentToCharge(mp);
+        if (result.updated && result.status !== "pending") {
+          const { data: fresh } = await supabaseAdmin
+            .from("pix_charges")
+            .select("id, status, paid_at, mp_payment_id, error_message, amount")
+            .eq("id", charge.id)
+            .maybeSingle();
+          return fresh ?? charge;
+        }
+      } catch (e) {
+        console.warn("[getPixChargeStatus] MP poll fail:", e instanceof Error ? e.message : e);
+      }
+    }
+
     return charge;
   });
 
