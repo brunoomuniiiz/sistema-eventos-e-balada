@@ -121,6 +121,8 @@ function AppLayoutInner() {
           })}
         </div>
       </nav>
+
+      <ViewAsBar />
     </div>
   );
 }
