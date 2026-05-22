@@ -681,6 +681,57 @@ export type Database = {
           },
         ]
       }
+      event_promoter_commissions: {
+        Row: {
+          comm_man_free_type: string
+          comm_man_free_value: number
+          comm_man_paid_type: string
+          comm_man_paid_value: number
+          comm_woman_free_type: string
+          comm_woman_free_value: number
+          comm_woman_paid_type: string
+          comm_woman_paid_value: number
+          created_at: string
+          event_id: string
+          id: string
+          promoter_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comm_man_free_type?: string
+          comm_man_free_value?: number
+          comm_man_paid_type?: string
+          comm_man_paid_value?: number
+          comm_woman_free_type?: string
+          comm_woman_free_value?: number
+          comm_woman_paid_type?: string
+          comm_woman_paid_value?: number
+          created_at?: string
+          event_id: string
+          id?: string
+          promoter_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comm_man_free_type?: string
+          comm_man_free_value?: number
+          comm_man_paid_type?: string
+          comm_man_paid_value?: number
+          comm_woman_free_type?: string
+          comm_woman_free_value?: number
+          comm_woman_paid_type?: string
+          comm_woman_paid_value?: number
+          created_at?: string
+          event_id?: string
+          id?: string
+          promoter_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_promoters: {
         Row: {
           created_at: string
@@ -1409,9 +1460,104 @@ export type Database = {
         }
         Relationships: []
       }
+      promoter_credit_redemptions: {
+        Row: {
+          amount: number
+          authorized_by: string | null
+          authorized_by_name: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          id: string
+          notes: string | null
+          promoter_id: string
+          sale_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          authorized_by?: string | null
+          authorized_by_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          notes?: string | null
+          promoter_id: string
+          sale_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          authorized_by?: string | null
+          authorized_by_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          id?: string
+          notes?: string | null
+          promoter_id?: string
+          sale_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      promoter_credits: {
+        Row: {
+          amount: number
+          created_at: string
+          event_id: string
+          expires_after_event_id: string | null
+          gender: string | null
+          id: string
+          notes: string | null
+          promoter_id: string
+          source: string
+          source_ref_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          event_id: string
+          expires_after_event_id?: string | null
+          gender?: string | null
+          id?: string
+          notes?: string | null
+          promoter_id: string
+          source: string
+          source_ref_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          event_id?: string
+          expires_after_event_id?: string | null
+          gender?: string | null
+          id?: string
+          notes?: string | null
+          promoter_id?: string
+          source?: string
+          source_ref_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       promoters: {
         Row: {
           accumulated_balance: number
+          comm_man_free_type: string
+          comm_man_free_value: number
+          comm_man_paid_type: string
+          comm_man_paid_value: number
+          comm_woman_free_type: string
+          comm_woman_free_value: number
+          comm_woman_paid_type: string
+          comm_woman_paid_value: number
           commission_percent: number
           created_at: string
           email: string | null
@@ -1424,6 +1570,14 @@ export type Database = {
         }
         Insert: {
           accumulated_balance?: number
+          comm_man_free_type?: string
+          comm_man_free_value?: number
+          comm_man_paid_type?: string
+          comm_man_paid_value?: number
+          comm_woman_free_type?: string
+          comm_woman_free_value?: number
+          comm_woman_paid_type?: string
+          comm_woman_paid_value?: number
           commission_percent?: number
           created_at?: string
           email?: string | null
@@ -1436,6 +1590,14 @@ export type Database = {
         }
         Update: {
           accumulated_balance?: number
+          comm_man_free_type?: string
+          comm_man_free_value?: number
+          comm_man_paid_type?: string
+          comm_man_paid_value?: number
+          comm_woman_free_type?: string
+          comm_woman_free_value?: number
+          comm_woman_paid_type?: string
+          comm_woman_paid_value?: number
           commission_percent?: number
           created_at?: string
           email?: string | null
@@ -1508,6 +1670,7 @@ export type Database = {
           created_at: string
           id: string
           method: string
+          promoter_id: string | null
           sale_id: string
           user_id: string
         }
@@ -1516,6 +1679,7 @@ export type Database = {
           created_at?: string
           id?: string
           method: string
+          promoter_id?: string | null
           sale_id: string
           user_id: string
         }
@@ -1524,6 +1688,7 @@ export type Database = {
           created_at?: string
           id?: string
           method?: string
+          promoter_id?: string | null
           sale_id?: string
           user_id?: string
         }
@@ -1886,6 +2051,7 @@ export type Database = {
       user_roles: {
         Row: {
           aceita_cartao: boolean
+          aceita_credito_promoter: boolean
           aceita_dinheiro: boolean
           aceita_pix: boolean
           can_authorize: boolean
@@ -1917,6 +2083,7 @@ export type Database = {
         }
         Insert: {
           aceita_cartao?: boolean
+          aceita_credito_promoter?: boolean
           aceita_dinheiro?: boolean
           aceita_pix?: boolean
           can_authorize?: boolean
@@ -1948,6 +2115,7 @@ export type Database = {
         }
         Update: {
           aceita_cartao?: boolean
+          aceita_credito_promoter?: boolean
           aceita_dinheiro?: boolean
           aceita_pix?: boolean
           can_authorize?: boolean
@@ -2089,6 +2257,10 @@ export type Database = {
       }
       confirm_close_sector: { Args: { _sector: string }; Returns: string }
       consume_grant: { Args: { _scope: string; _token: string }; Returns: Json }
+      expire_old_promoter_credits: {
+        Args: { _owner_id: string }
+        Returns: number
+      }
       expire_pending_lojinha_orders: { Args: never; Returns: undefined }
       finalize_sale_from_pix: { Args: { _charge_id: string }; Returns: string }
       force_close_sector: { Args: { _sector: string }; Returns: string }
@@ -2309,6 +2481,19 @@ export type Database = {
           }
       order_lookup_by_token: { Args: { _token: string }; Returns: Json }
       order_release: { Args: { _id: string; _source: string }; Returns: Json }
+      promoter_active_balance: {
+        Args: { _promoter_id: string }
+        Returns: number
+      }
+      redeem_promoter_credit: {
+        Args: {
+          _amount: number
+          _grant_token?: string
+          _promoter_id: string
+          _sale_id: string
+        }
+        Returns: string
+      }
       register_event_entry: {
         Args: {
           _amount: number
