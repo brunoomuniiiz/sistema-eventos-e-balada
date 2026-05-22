@@ -686,16 +686,33 @@ function ProdutosPage() {
 
 
             {form.product_type === "simple" && (
-              <div>
-                <Label>Estoque inicial</Label>
-                <Input
-                  type="number"
-                  value={form.stock_quantity}
-                  onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })}
-                  disabled={!!editing}
-                />
-                {editing && <div className="text-[11px] text-muted-foreground mt-1">Use a página de Estoque para ajustar quantidades</div>}
-              </div>
+              <>
+                <div className="flex items-center justify-between gap-3 p-3 rounded-lg border">
+                  <div>
+                    <Label className="cursor-pointer">Controlar estoque</Label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Desligue para itens sem estoque (couvert, rolha, consumação mínima, cortesia).
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.track_stock}
+                    onCheckedChange={(v) => setForm({ ...form, track_stock: v })}
+                  />
+                </div>
+
+                {form.track_stock && (
+                  <div>
+                    <Label>Estoque inicial</Label>
+                    <Input
+                      type="number"
+                      value={form.stock_quantity}
+                      onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })}
+                      disabled={!!editing}
+                    />
+                    {editing && <div className="text-[11px] text-muted-foreground mt-1">Use a página de Estoque para ajustar quantidades</div>}
+                  </div>
+                )}
+              </>
             )}
 
             <div>
