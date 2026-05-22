@@ -84,6 +84,7 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
         .from("bar_expenses")
         .select("id, category_name, amount, paid, paid_at, paid_amount, interest_amount, reference_month, expense_date, payment_method, description, supplier_name, recurrence, installment_index, installment_total, is_investment")
         .eq("kind", kind)
+        .eq("is_investment", false)
         .or(`and(reference_month.gte.${start},reference_month.lte.${end}),and(reference_month.is.null,expense_date.gte.${start},expense_date.lte.${end})`)
         .order("reference_month", { ascending: false, nullsFirst: false })
         .order("expense_date", { ascending: false });
@@ -101,6 +102,7 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
         .from("bar_expenses")
         .select("interest_amount, paid_at")
         .eq("kind", kind)
+        .eq("is_investment", false)
         .eq("paid", true)
         .gt("interest_amount", 0)
         .gte("paid_at", `${start}T00:00:00`)
