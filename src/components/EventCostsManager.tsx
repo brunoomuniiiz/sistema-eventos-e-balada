@@ -125,6 +125,10 @@ export function EventCostsManager({ eventId }: { eventId: string }) {
 
   const total = costs.reduce((s, c) => s + Number(c.amount), 0);
 
+  const consumacaoCost = Number(consumacao?.totals?.cost ?? 0);
+  const consumacaoRetail = Number(consumacao?.totals?.retail ?? 0);
+  const totalWithConsumacao = total + consumacaoCost;
+
   return (
     <div className="space-y-4">
       {/* Form */}
