@@ -745,9 +745,25 @@ export function PdvView() {
               <Wallet className="h-5 w-5" />
               {submitting ? "Registrando..." : `Finalizar ${formatBRL(total)}`}
             </Button>
+            {canConsumacao && eventId !== "none" && cart.length > 0 && (
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full h-12 text-sm font-semibold"
+                onClick={() => setConsumacaoOpen(true)}
+                disabled={submitting}
+              >
+                Lançar como Consumação (sem cobrar)
+              </Button>
+            )}
           </div>
         </SheetContent>
       </Sheet>
+      <ConsumacaoTargetDialog
+        open={consumacaoOpen}
+        onOpenChange={setConsumacaoOpen}
+        onPick={(target) => { void saveConsumacao(target); }}
+      />
     </div>
   );
 }
