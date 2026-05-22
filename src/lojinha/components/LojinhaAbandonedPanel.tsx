@@ -239,13 +239,13 @@ export function LojinhaAbandonedPanel() {
 
       <Dialog open={!!editing} onOpenChange={(v) => { if (!v) { setEditing(null); setNote(""); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Conciliar pedido</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Marcar como conferido</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Confirme que esse PIX não entrou na sua conta (ou já foi tratado).
-              Deixe uma nota se quiser (ex.: "verificado no extrato — sem cobrança").
+              Isso apenas marca o pedido como verificado e o esconde da lista (não move para Pedidos/Histórico).
+              Se o PIX <strong>foi pago</strong> no Mercado Pago, use o botão <strong>"Conciliar pelo MP"</strong> em vez deste.
             </p>
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota opcional" />
+            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota opcional (ex.: verificado no extrato — sem cobrança)" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
