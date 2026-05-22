@@ -78,9 +78,11 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         onKeyDown={handleKeyDown}
         onChange={handleChange}
         onFocus={(e) => {
-          // place cursor at end
-          const len = e.target.value.length;
-          requestAnimationFrame(() => e.target.setSelectionRange(len, len));
+          // Select all so digitar substitui o valor inteiro (UX pedida: clicar em 370 e digitar 400 vira 400)
+          const el = e.target;
+          requestAnimationFrame(() => {
+            try { el.select(); } catch { /* noop */ }
+          });
         }}
       />
     );
