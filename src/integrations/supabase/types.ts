@@ -1873,6 +1873,14 @@ export type Database = {
           role_preset: string | null
           updated_at: string
           user_id: string
+          vendas_abre_caixa: boolean
+          vendas_fechamento: boolean
+          vendas_garcom: boolean
+          vendas_historico: boolean
+          vendas_pdv_caixa: boolean
+          vendas_pedidos: boolean
+          vendas_sangria: boolean
+          vendas_validar_qr: boolean
         }
         Insert: {
           aceita_cartao?: boolean
@@ -1896,6 +1904,14 @@ export type Database = {
           role_preset?: string | null
           updated_at?: string
           user_id: string
+          vendas_abre_caixa?: boolean
+          vendas_fechamento?: boolean
+          vendas_garcom?: boolean
+          vendas_historico?: boolean
+          vendas_pdv_caixa?: boolean
+          vendas_pedidos?: boolean
+          vendas_sangria?: boolean
+          vendas_validar_qr?: boolean
         }
         Update: {
           aceita_cartao?: boolean
@@ -1919,6 +1935,14 @@ export type Database = {
           role_preset?: string | null
           updated_at?: string
           user_id?: string
+          vendas_abre_caixa?: boolean
+          vendas_fechamento?: boolean
+          vendas_garcom?: boolean
+          vendas_historico?: boolean
+          vendas_pdv_caixa?: boolean
+          vendas_pedidos?: boolean
+          vendas_sangria?: boolean
+          vendas_validar_qr?: boolean
         }
         Relationships: []
       }
