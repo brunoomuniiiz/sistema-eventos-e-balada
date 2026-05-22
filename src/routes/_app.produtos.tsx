@@ -92,6 +92,8 @@ function ProdutosPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [tab, setTab] = useState<"simple" | "combo">("simple");
+  const [query, setQuery] = useState("");
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
