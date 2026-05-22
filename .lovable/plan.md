@@ -1,119 +1,68 @@
+## O que vou fazer
 
-## Contexto
+### 1) Pendentes que ficam para sempre na fila
+**Causa:** os pedidos antigos foram criados antes da migration que adicionou `expires_at`, então estão com esse campo `NULL` e o cron não pega.
 
-Hoje em `Vendas > Configuração > Permissões` existe uma tabela com switches direto na linha (Vender PDV, Vender online, Dinheiro, Pix, Cartão). Você quer:
+**Fix:**
+- Backfill: para `lojinha_orders` com `status='pending' AND expires_at IS NULL`, definir `expires_at = created_at + 10 min`. O cron (que já roda a cada minuto) vai marcar todos como `abandoned` no próximo ciclo.
+- Mudar o prazo padrão de **5 min → 10 min** em todas as funções de criação (PDV garçom, lojinha online, balcão).
 
-1. Que **cada funcionário** tenha um botão "Editar permissões" que abre uma página/diálogo dedicado com TODAS as opções dele.
-2. Dentro desse diálogo configurar acessos por aba do módulo Vendas + métodos de pagamento.
-3. Garantir que quem tem permissão veja todas as abas de Vendas (PDV Caixa, Vender garçom, Validar QR, Pedidos, Histórico, Fechamento).
+### 2) Botão "Marcar como abandonado" no PDV/Garçom
+Quando funcionário vê que o cliente desistiu, ele aperta um botão e o pedido vai pra **abandonados** na hora (sem esperar os 10 min).
 
-Verifiquei o seu usuário `happybeer.adm@gmail.com`: ele é `staff` com `permissions = {vendas, lojinha}` e `lojinha_can_sell = true`. Pela lógica atual ele já deveria ver PDV, Vender (garçom), Validar QR, Pedidos e Histórico. Se está vendo só "venda rápida", é porque a aba `Fechamento` está condicionada a `canSellCash` e algumas abas (Abandonados, Maquininhas, Configuração) só aparecem para `isOwner`. Vamos abrir essas para staff com permissão também (controlado pelas novas flags abaixo).
+- Aba **Pendentes** do `LojinhaOrdersPanel`: botão "Cliente abandonou" em cada card.
+- Server function `abandonOrder({ orderId })` que: muda status pra `abandoned`, libera reservas de estoque, registra `cancelled_at` e quem cancelou.
+- Visível pra qualquer um com permissão `vendas` (garçom, caixa, owner).
+- Pedido aparece em **Abandonados** (visível só pro owner/gerente), e é deletado automaticamente após 7 dias (já existe esse cron).
 
-## O que será feito
+### 3) Histórico vazio
+**Causa:** as vendas no `sales` estão sendo gravadas com `employee_id = NULL` (só `employee_name` preenchido). A view `unified_sales_history` usa `employee_id` como `seller_user_id`, então o filtro "só minhas vendas" nunca dá match. Para owner deveria mostrar tudo (não filtra por seller), então:
+- Vou verificar a chamada da RPC no front e revalidar `is_owner_of` — se você estiver realmente logado como `happybeer.adm` deveria ver tudo. Vou adicionar logs e um botão "recarregar" pra confirmar.
+- Backfill: gravar `employee_id` corretamente nas vendas novas (passar o `auth.uid()` quando o funcionário está logado, ou o id do funcionário selecionado).
+- Excluir vendas `cancelled`/`refunded` da view.
 
-### 1. Banco — novos campos por funcionário em `user_roles`
+### 4) Estorno via Mercado Pago
+**Sim, dá** — MP tem API oficial `POST /v1/payments/{id}/refunds` (total ou parcial, até 180 dias após o pagamento).
 
-Migração adicionando flags granulares (todas `boolean default true` para não quebrar quem já existe):
+- Nova server function `refundMpPayment({ orderId | chargeId, amount? })` em `src/lib/pix.functions.ts`:
+  - Valida owner + permissão `vendas` (e flag tipo `can_refund` — só owner/gerente).
+  - Chama MP com `MP_ACCESS_TOKEN`.
+  - Atualiza `lojinha_orders.status = 'refunded'`, salva `refunded_at`, `refund_amount`, `refunded_by`, `refunded_reason`.
+- UI no **Histórico**: botão "Estornar" em cada venda paga via PIX/MP. Diálogo de confirmação com motivo e opção de valor parcial.
+- Badge "Estornado" no histórico (sai do total de receita).
+- Para vendas em **dinheiro/cartão físico não-MP**: botão "Cancelar venda" — não chama MP (não tem o que estornar), só marca como `cancelled`, devolve estoque e registra quem cancelou.
 
-- `vendas_pdv_caixa` — pode usar a aba PDV Caixa
-- `vendas_garcom` — pode usar a aba Vender (garçom) — substitui o uso atual de `lojinha_can_sell`
-- `vendas_validar_qr` — pode usar o scanner de QR
-- `vendas_pedidos` — pode ver/gerir a lista de Pedidos online
-- `vendas_historico` — pode ver Histórico de vendas
-- `vendas_fechamento` — pode fazer Fechamento de caixa
-- `vendas_abre_caixa` — pode abrir caixa (valor inicial)
-- `vendas_sangria` — pode solicitar sangria
+### ❌ O que não dá
+- Estornar maquininha física que não é MP (Cielo/Stone): tem que ser pelo app da operadora.
+- Estornar PIX recebido fora do MP: sem `payment_id`, não dá pra chamar a API.
+- Reembolso depois de 180 dias.
 
-Os campos existentes continuam sendo a fonte da verdade para método de pagamento: `aceita_dinheiro`, `aceita_pix`, `aceita_cartao`.
+---
 
-Regras:
-- Owner ignora todas as flags (acesso total, como hoje).
-- Staff sem a permissão base (`vendas` ou `lojinha` em `permissions`) continua bloqueado — as novas flags são sub-permissões dentro do módulo Vendas.
+## Arquivos / migrations
 
-### 2. Hook `usePermissions` — expor as novas flags
+1. **Migration** (`expires_at` backfill + colunas refund + novas RPCs):
+   - `UPDATE lojinha_orders SET expires_at = created_at + interval '10 min' WHERE status='pending' AND expires_at IS NULL`
+   - `ALTER TABLE lojinha_orders ADD COLUMN refunded_at, refund_amount, refunded_by, refunded_reason`
+   - Idem em `sales` para cancelamento/estorno
+   - Trocar `5 min` por `10 min` nas funções `lojinha_create_*_order`
+   - RPC `abandon_lojinha_order(_order_id)` com check de permissão
+   - Atualizar `unified_sales_history` pra ignorar `refunded`/`cancelled`
 
-Adicionar derivados:
-```
-canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos,
-canVerHistorico, canFechamento, canAbrirCaixa, canSangria
-```
-Cada um = `isOwner || (tem permissão base && flag === true)`.
+2. **Server functions** (`src/lib/pix.functions.ts`, novo `src/lib/orders.functions.ts`):
+   - `abandonOrder({ orderId })`
+   - `refundMpPayment({ orderId, amount?, reason })`
+   - `cancelLocalSale({ saleId, reason })`
 
-### 3. `_app.vendas.tsx` — exibir abas pela flag fina
+3. **UI**:
+   - `LojinhaOrdersPanel.tsx`: botão "Cliente abandonou" na aba Pendentes
+   - `SalesHistory.tsx`: botões "Estornar" (PIX/MP) e "Cancelar" (dinheiro), badges de status
+   - Toast + invalidate cache
 
-Trocar as condições atuais:
-- `showPdvCaixa` → `canPdvCaixa`
-- `showPdvGarcom` → `canVenderGarcom`
-- aba Validar QR → `canValidarQr`
-- aba Pedidos → `canVerPedidos`
-- aba Histórico → `canVerHistorico`
-- aba Fechamento → `canFechamento && canSellCash`
-- Abandonados / Maquininhas / Configuração → permanecem `isOwner`
+---
 
-### 4. Novo componente: `SellerPermissionDialog`
+## Confirmações pra começar
 
-Substitui a tabela larga atual. A lista de funcionários vira cards/linhas enxutos:
-
-```
-[Avatar]  Nome do funcionário              [ Editar permissões ]
-          email · cargo
-          chips resumo: PDV · Garçom · QR · Pix · Dinheiro
-```
-
-Ao clicar em **Editar permissões** abre Dialog responsivo (full-screen no mobile) com seções:
-
-**Acesso às abas de Vendas**
-- [x] PDV Caixa
-- [x] Vender (garçom / online)
-- [x] Validar QR (entregar pedido)
-- [x] Pedidos online
-- [x] Histórico
-- [x] Fechamento de caixa
-
-**Trabalho com dinheiro** (mostrado só se PDV Caixa OU Vender garçom)
-- [x] Pode abrir caixa (com autorização do dono/gerente)
-- [x] Pode solicitar sangria
-
-**Formas de pagamento que pode receber**
-- [x] Dinheiro
-- [x] Pix
-- [x] Cartão (débito/crédito)
-
-**Desconto** (já existe no banco — apenas trazer para o mesmo diálogo)
-- [x] Pode dar desconto · até [__]%
-
-Footer com `Salvar` + `Cancelar`. Owner aparece na lista, mas com diálogo bloqueado mostrando "Acesso total — não pode ser editado".
-
-### 5. `SellerPermissionsPanel.tsx` — refatorar
-
-- Remove a tabela horizontal.
-- Mostra grid/lista de funcionários (mobile-first, já que sua viewport é estreita).
-- Controla abertura do `SellerPermissionDialog`.
-- Mantém o atalho "Funcionários (avançado)" para Configuração.
-
-### 6. Atualizar `OpenCashDialog` / `WithdrawalDialog`
-
-- Abertura de caixa: respeitar `canAbrirCaixa` (se desligado para o staff, esconde o botão "Abrir caixa" — mas a autorização do owner por email+senha continua funcionando como hoje).
-- Sangria: respeitar `canSangria` no botão.
-
-### 7. Migração de dados
-
-Como todas as flags têm `DEFAULT true`, funcionários existentes mantêm o comportamento atual. Nada mais a migrar.
-
-## Arquivos afetados
-
-- `supabase/migrations/<new>.sql` — adiciona 8 colunas em `user_roles`
-- `src/hooks/usePermissions.tsx` — expor novos derivados
-- `src/routes/_app.vendas.tsx` — condicionar abas pelas novas flags
-- `src/components/vendas/SellerPermissionsPanel.tsx` — refatorar para lista + botão
-- `src/components/vendas/SellerPermissionDialog.tsx` — **novo**
-- `src/components/vendas/OpenCashDialog.tsx` — esconder botão se `!canAbrirCaixa`
-- `src/components/vendas/SessionWithdrawalsCard.tsx` (ou onde está o botão de sangria) — idem
-
-## Fora de escopo
-
-- Não muda o fluxo de autorização por email+senha (continua igual).
-- Não mexe na lojinha pública nem no checkout do cliente.
-- Não remove a tela "Funcionários (avançado)" em Configuração — segue para gerenciar criação/exclusão.
-
-Se aprovar, eu implemento exatamente isso. Quer que eu adicione também algo como "duplicar permissões de outro funcionário" para configurar rápido vários iguais, ou deixamos manual nesta primeira versão?
+1. **Prazo de 10 min** se aplica a tudo (lojinha online, PDV garçom, balcão) — ok?
+2. **Estorno parcial** (input de valor) ou só total por enquanto?
+3. Quem pode estornar: **só owner**, ou owner + funcionário com a flag `vendas_fechamento`?
