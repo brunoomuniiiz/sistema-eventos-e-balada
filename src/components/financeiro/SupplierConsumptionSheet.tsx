@@ -154,6 +154,8 @@ export function SupplierConsumptionSheet({ open, onOpenChange, eventId }: Props)
       toast.success(`Consumo de ${formatBRL(total)} abatido da parcela`);
       qc.invalidateQueries({ queryKey: ["bar-expenses"] });
       qc.invalidateQueries({ queryKey: ["open-expenses-for-offset"] });
+      qc.invalidateQueries({ queryKey: ["investments"] });
+      qc.invalidateQueries({ queryKey: ["investments-offsets"] });
       qc.invalidateQueries({ queryKey: ["event-costs-recent", eventId] });
       qc.invalidateQueries({ queryKey: ["financeiro-real"] });
       qc.invalidateQueries({ queryKey: ["sales"] });

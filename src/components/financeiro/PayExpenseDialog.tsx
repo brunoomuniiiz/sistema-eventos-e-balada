@@ -91,6 +91,7 @@ export function PayExpenseDialog({
       qc.invalidateQueries({ queryKey: ["bar-expenses"] });
       qc.invalidateQueries({ queryKey: ["bar-expenses-month-summary"] });
       qc.invalidateQueries({ queryKey: ["bar-expenses-interest-month"] });
+      qc.invalidateQueries({ queryKey: ["investments"] });
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
