@@ -207,3 +207,34 @@ export async function cancelLocalSale(saleId: string, reason: string) {
   return data as unknown as { ok: boolean; reason?: string };
 }
 
+// Lojinha online: detecta pedido pendente do mesmo cliente (por telefone)
+export type PendingForCustomer =
+  | { found: false }
+  | {
+      found: true;
+      order_id: string;
+      total: number;
+      expires_at: string | null;
+      created_at: string;
+      customer_name: string;
+    };
+
+export async function findPendingForCustomer(slug: string, phone: string): Promise<PendingForCustomer> {
+  const { data, error } = await supabase.rpc("lojinha_find_pending_for_customer" as never, {
+    _slug: slug,
+    _customer_phone: phone,
+  } as never);
+  if (error) throw error;
+  return data as unknown as PendingForCustomer;
+}
+
+// Cliente abandona pedido na hora (DELETE - não vai pra abandonados)
+export async function customerAbandonOrder(orderId: string, phone: string) {
+  const { data, error } = await supabase.rpc("lojinha_customer_abandon_order" as never, {
+    _order_id: orderId,
+    _customer_phone: phone,
+  } as never);
+  if (error) throw error;
+  return data as unknown as { ok: boolean; reason?: string };
+}
+
