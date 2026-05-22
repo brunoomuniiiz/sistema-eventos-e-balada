@@ -32,15 +32,16 @@ export const Route = createFileRoute("/_app/vendas")({
 
 function VendasPage() {
   const {
-    ownerId, isOwner, canSellCash, loading,
+    ownerId, isOwner, canSellCash, loading, can,
     canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico, canFechamento,
   } = usePermissions();
+  const isManager = isOwner || can("financeiro");
   const [closing, setClosing] = useState(false);
   const { tab } = useSearch({ from: "/_app/vendas" });
   const navigate = useNavigate();
 
   if (loading) return null;
-  const hasAny = canPdvCaixa || canVenderGarcom || canValidarQr || canVerPedidos || canVerHistorico || canFechamento;
+  const hasAny = canPdvCaixa || canVenderGarcom || canValidarQr || canVerPedidos || canVerHistorico || canFechamento || isManager;
   if (!hasAny) {
     return <PageHeader title="Vendas" subtitle="Você não tem permissão para acessar esta página" />;
   }
