@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Zap } from "lucide-react";
+import { Plus, Zap, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { SupplierConsumptionSheet } from "@/components/financeiro/SupplierConsumptionSheet";
 
 interface Props {
   eventId: string | null;
@@ -26,6 +27,7 @@ export function QuickEventCostCard({ eventId, eventName }: Props) {
   const [amount, setAmount] = useState(0);
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [supplierOpen, setSupplierOpen] = useState(false);
 
   const { data: recent = [] } = useQuery({
     queryKey: ["event-costs-recent", eventId],
@@ -95,6 +97,10 @@ export function QuickEventCostCard({ eventId, eventName }: Props) {
           </Button>
         </div>
 
+        <Button variant="outline" size="sm" onClick={() => setSupplierOpen(true)} className="w-full">
+          <ShoppingBag className="h-4 w-4 mr-1" /> Consumo de fornecedor (abate parcela)
+        </Button>
+
         {recent.length > 0 && (
           <div className="space-y-1 pt-2 border-t">
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Últimos custos da noite</div>
@@ -109,6 +115,7 @@ export function QuickEventCostCard({ eventId, eventName }: Props) {
           </div>
         )}
       </CardContent>
+      <SupplierConsumptionSheet open={supplierOpen} onOpenChange={setSupplierOpen} eventId={eventId} />
     </Card>
   );
 }
