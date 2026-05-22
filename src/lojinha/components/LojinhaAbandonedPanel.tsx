@@ -83,6 +83,46 @@ export function LojinhaAbandonedPanel() {
     toast.success("Copiado");
   }
 
+  async function checkMp(orderId: string) {
+    setBusyId(orderId);
+    try {
+      const r = await inspect({ data: { orderId } });
+      if (!r.found) {
+        toast.error(r.reason || "Não foi possível consultar o MP");
+        return;
+      }
+      if (r.mapped === "approved") {
+        toast.success(`Mercado Pago: APROVADO (${formatBRL(r.amount)}). Use "Conciliar como pago".`);
+      } else if (r.mapped === "rejected") {
+        toast.warning(`Mercado Pago: ${r.mp_status}. Pagamento não entrou.`);
+      } else {
+        toast.info(`Mercado Pago: ${r.mp_status}. Ainda pendente.`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao consultar MP");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function reconcileFromMercadoPago(orderId: string) {
+    setBusyId(orderId);
+    try {
+      const r = await reconcileFromMp({ data: { orderId } });
+      if (r.mp_status === "approved" || r.mp_status === "authorized") {
+        toast.success("Pedido conciliado como pago via Mercado Pago");
+      } else {
+        toast.info(`MP status: ${r.mp_status}. Nada a aplicar.`);
+      }
+      qc.invalidateQueries({ queryKey: ["lojinha-abandoned"] });
+      qc.invalidateQueries({ queryKey: ["lojinha-orders"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao conciliar pelo MP");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <Card className="border-amber-500/30 bg-amber-500/5">
