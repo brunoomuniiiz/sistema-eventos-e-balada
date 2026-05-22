@@ -48,6 +48,19 @@ export function EventCostsManager({ eventId }: { eventId: string }) {
     },
   });
 
+  const { data: consumacao } = useQuery({
+    queryKey: ["event-consumacao-dre", eventId],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_event_consumacao" as never, { _event_id: eventId } as never);
+      if (error) throw error;
+      return data as unknown as {
+        by_target: Array<{ target: string; qty: number; cost: number; retail: number }>;
+        totals: { qty: number; cost: number; retail: number };
+      } | null;
+    },
+  });
+
   const addMut = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
@@ -111,6 +124,10 @@ export function EventCostsManager({ eventId }: { eventId: string }) {
   });
 
   const total = costs.reduce((s, c) => s + Number(c.amount), 0);
+
+  const consumacaoCost = Number(consumacao?.totals?.cost ?? 0);
+  const consumacaoRetail = Number(consumacao?.totals?.retail ?? 0);
+  const totalWithConsumacao = total + consumacaoCost;
 
   return (
     <div className="space-y-4">
@@ -219,9 +236,43 @@ export function EventCostsManager({ eventId }: { eventId: string }) {
             ))}
           </ul>
           <div className="bg-secondary/40 px-4 py-2.5 flex items-center justify-between border-t border-border/60">
-            <span className="text-sm text-muted-foreground">Total de custos</span>
+            <span className="text-sm text-muted-foreground">Total de custos lançados</span>
             <span className="font-bold text-destructive">{formatBRL(total)}</span>
           </div>
+        </div>
+      )}
+
+      {/* Consumação interna agregada */}
+      {consumacaoCost > 0 && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-sm font-semibold">Consumação interna (equipe & atrações)</div>
+              <div className="text-[11px] text-muted-foreground">
+                Calculado pelo CMV dos itens lançados como consumação no PDV. Valor de balcão equivalente: {formatBRL(consumacaoRetail)}.
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="font-bold text-destructive">{formatBRL(consumacaoCost)}</div>
+              <div className="text-[10px] text-muted-foreground">custo (CMV)</div>
+            </div>
+          </div>
+          {consumacao?.by_target && consumacao.by_target.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {consumacao.by_target.map((b) => (
+                <span key={b.target} className="text-[10px] px-2 py-0.5 rounded-full bg-background border">
+                  {b.target}: {formatBRL(Number(b.cost))}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {(costs.length > 0 || consumacaoCost > 0) && (
+        <div className="rounded-lg border-2 border-destructive/40 bg-destructive/5 px-4 py-3 flex items-center justify-between">
+          <span className="text-sm font-semibold">Total geral (custos + consumação)</span>
+          <span className="font-bold text-destructive text-lg">{formatBRL(totalWithConsumacao)}</span>
         </div>
       )}
     </div>

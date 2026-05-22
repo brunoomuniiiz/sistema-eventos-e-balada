@@ -18,7 +18,7 @@ function CupomPage() {
     queryKey: ["pdv-cupom", saleId],
     queryFn: async () => {
       const [{ data: sale }, { data: items }, { data: bar }] = await Promise.all([
-        supabase.from("sales").select("*").eq("id", saleId).maybeSingle(),
+        supabase.from("sales").select("id, total, payment_method, daily_number, pickup_token, created_at, category, consumacao_target").eq("id", saleId).maybeSingle(),
         supabase.from("sale_items").select("product_name, quantity, unit_price").eq("sale_id", saleId).order("created_at"),
         supabase.from("bar_settings").select("bar_name").maybeSingle(),
       ]);
@@ -43,6 +43,12 @@ function CupomPage() {
     daily_number: number | null;
     pickup_token: string | null;
     created_at: string;
+    category: string | null;
+    consumacao_target: string | null;
+  };
+  const isConsumacao = sale.category === "consumacao";
+  const TARGET_LABEL: Record<string, string> = {
+    banda: "BANDA", dj: "DJ", seguranca: "SEGURANÇA", funcionario: "FUNCIONÁRIO", sorteio: "SORTEIO",
   };
   const bar = data.bar as { bar_name: string | null } | null;
   const items = data.items as { product_name: string; quantity: number; unit_price: number }[];
@@ -53,23 +59,46 @@ function CupomPage() {
         .actions { max-width: 80mm; margin: 12px auto; display: flex; gap: 8px; }
         .actions button { flex:1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; background:#fff; cursor:pointer; font-family: inherit; }
         @media print { .actions { display: none; } }
+        .consumacao-banner { border: 2px dashed #000; padding: 6px; margin: 6px 0; text-align: center; font-weight: 900; letter-spacing: 1px; }
+        .consumacao-target { text-align: center; font-weight: 700; margin-top: 4px; }
+        .consumacao-note { text-align: center; font-size: 10px; margin-top: 6px; font-style: italic; }
       `}</style>
       <div className="sheet">
         <div className="center big">{bar?.bar_name ?? "NightOps"}</div>
         <div className="center small muted">{new Date(sale.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</div>
+        {isConsumacao && (
+          <>
+            <div className="consumacao-banner">*** CONSUMAÇÃO INTERNA ***<br/>NÃO É VENDA</div>
+            {sale.consumacao_target && (
+              <div className="consumacao-target">Destino: {TARGET_LABEL[sale.consumacao_target] ?? sale.consumacao_target.toUpperCase()}</div>
+            )}
+          </>
+        )}
         <hr />
         <div className="center huge">{formatOrderNo(sale.daily_number)}</div>
         <hr />
         {items.map((i, idx) => (
           <div className="row" key={idx}>
             <span>{i.quantity}× {i.product_name}</span>
-            <span>{formatBRL(i.unit_price * i.quantity)}</span>
+            <span>{isConsumacao ? "—" : formatBRL(i.unit_price * i.quantity)}</span>
           </div>
         ))}
         <hr />
-        <div className="row big"><span>TOTAL</span><span>{formatBRL(Number(sale.total))}</span></div>
-        <div className="row small muted"><span>Pagamento</span><span>{sale.payment_method ?? "—"}</span></div>
-        {sale.pickup_token && (
+        {isConsumacao ? (
+          <>
+            <div className="row big"><span>TOTAL</span><span>R$ 0,00</span></div>
+            <div className="consumacao-note">
+              Itens entregues como cortesia / consumo de equipe.<br/>
+              Não compõem faturamento. Estoque baixado normalmente.
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="row big"><span>TOTAL</span><span>{formatBRL(Number(sale.total))}</span></div>
+            <div className="row small muted"><span>Pagamento</span><span>{sale.payment_method ?? "—"}</span></div>
+          </>
+        )}
+        {sale.pickup_token && !isConsumacao && (
           <>
             <hr />
             <div className="qr-wrap">
