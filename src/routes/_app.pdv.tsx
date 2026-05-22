@@ -23,6 +23,7 @@ import { WithdrawalDialog } from "@/components/vendas/WithdrawalDialog";
 import { SplitPaymentEditor, isSplitValid, dominantMethod, type PaymentLine } from "@/components/vendas/SplitPaymentEditor";
 import { PixQrDialog } from "@/components/vendas/PixQrDialog";
 import { PromoterCreditPicker } from "@/components/vendas/PromoterCreditPicker";
+import { ConsumacaoTargetDialog, type ConsumacaoTarget } from "@/components/vendas/ConsumacaoTargetDialog";
 import { useQuery as useQueryRQ } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_app/pdv")({
