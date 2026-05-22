@@ -31,6 +31,7 @@ import { Route as AppEstoqueRouteImport } from './routes/_app.estoque'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConfiguracaoRouteImport } from './routes/_app.configuracao'
 import { Route as AppBarSettingsRouteImport } from './routes/_app.bar-settings'
+import { Route as AppAoVivoRouteImport } from './routes/_app.ao-vivo'
 import { Route as AppAdminCaixasRouteImport } from './routes/_app.admin-caixas'
 import { Route as AppEventosIndexRouteImport } from './routes/_app.eventos.index'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp-webhook'
@@ -146,6 +147,11 @@ const AppBarSettingsRoute = AppBarSettingsRouteImport.update({
   path: '/bar-settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAoVivoRoute = AppAoVivoRouteImport.update({
+  id: '/ao-vivo',
+  path: '/ao-vivo',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminCaixasRoute = AppAdminCaixasRouteImport.update({
   id: '/admin-caixas',
   path: '/admin-caixas',
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin-caixas': typeof AppAdminCaixasRoute
+  '/ao-vivo': typeof AppAoVivoRoute
   '/bar-settings': typeof AppBarSettingsRoute
   '/configuracao': typeof AppConfiguracaoRoute
   '/dashboard': typeof AppDashboardRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin-caixas': typeof AppAdminCaixasRoute
+  '/ao-vivo': typeof AppAoVivoRoute
   '/bar-settings': typeof AppBarSettingsRoute
   '/configuracao': typeof AppConfiguracaoRoute
   '/dashboard': typeof AppDashboardRoute
@@ -235,6 +243,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_app/admin-caixas': typeof AppAdminCaixasRoute
+  '/_app/ao-vivo': typeof AppAoVivoRoute
   '/_app/bar-settings': typeof AppBarSettingsRoute
   '/_app/configuracao': typeof AppConfiguracaoRoute
   '/_app/dashboard': typeof AppDashboardRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/admin-caixas'
+    | '/ao-vivo'
     | '/bar-settings'
     | '/configuracao'
     | '/dashboard'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/admin-caixas'
+    | '/ao-vivo'
     | '/bar-settings'
     | '/configuracao'
     | '/dashboard'
@@ -322,6 +333,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_app/admin-caixas'
+    | '/_app/ao-vivo'
     | '/_app/bar-settings'
     | '/_app/configuracao'
     | '/_app/dashboard'
@@ -515,6 +527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBarSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ao-vivo': {
+      id: '/_app/ao-vivo'
+      path: '/ao-vivo'
+      fullPath: '/ao-vivo'
+      preLoaderRoute: typeof AppAoVivoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin-caixas': {
       id: '/_app/admin-caixas'
       path: '/admin-caixas'
@@ -555,6 +574,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAdminCaixasRoute: typeof AppAdminCaixasRoute
+  AppAoVivoRoute: typeof AppAoVivoRoute
   AppBarSettingsRoute: typeof AppBarSettingsRoute
   AppConfiguracaoRoute: typeof AppConfiguracaoRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -575,6 +595,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminCaixasRoute: AppAdminCaixasRoute,
+  AppAoVivoRoute: AppAoVivoRoute,
   AppBarSettingsRoute: AppBarSettingsRoute,
   AppConfiguracaoRoute: AppConfiguracaoRoute,
   AppDashboardRoute: AppDashboardRoute,
