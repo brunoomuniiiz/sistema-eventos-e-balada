@@ -2242,6 +2242,14 @@ export type Database = {
             Args: { _device_id: string; _items: Json; _payment_method: string }
             Returns: Json
           }
+      lojinha_customer_abandon_order: {
+        Args: { _customer_phone: string; _order_id: string }
+        Returns: Json
+      }
+      lojinha_find_pending_for_customer: {
+        Args: { _customer_phone: string; _slug: string }
+        Returns: Json
+      }
       lojinha_generate_pickup_code: { Args: never; Returns: string }
       lojinha_get_order: { Args: { _order_id: string }; Returns: Json }
       lojinha_get_storefront: { Args: { _slug: string }; Returns: Json }
