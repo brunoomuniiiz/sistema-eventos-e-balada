@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { createMpPixPayment } from "./mp.server";
+import { applyMpPaymentToCharge, createMpPixPayment, getMpPayment } from "./mp.server";
 
 /**
  * Cria (ou reaproveita) uma cobrança PIX vinculada a um pedido da Lojinha.
@@ -10,7 +10,6 @@ import { createMpPixPayment } from "./mp.server";
 export const createPublicPixCharge = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ orderId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
-    // Pedido
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("lojinha_orders")
       .select("id, user_id, total, status, customer_email, customer_name")
@@ -22,7 +21,6 @@ export const createPublicPixCharge = createServerFn({ method: "POST" })
       throw new Error("Pedido não está aguardando pagamento");
     }
 
-    // Reaproveita cobrança pendente, se existir e não expirada
     const { data: existing } = await supabaseAdmin
       .from("pix_charges")
       .select("id, qr_code, qr_code_base64, expires_at, status, amount")
@@ -38,8 +36,6 @@ export const createPublicPixCharge = createServerFn({ method: "POST" })
       if (stillValid) return existing;
     }
 
-    // Valida estoque e reserva "última unidade" por 5 min ANTES de criar o PIX no MP,
-    // para não deixar cobrança órfã caso o estoque tenha acabado.
     const { error: resErr } = await supabaseAdmin.rpc("lojinha_reserve_for_checkout", {
       _order_id: order.id,
     });
@@ -48,7 +44,6 @@ export const createPublicPixCharge = createServerFn({ method: "POST" })
       throw new Error(resErr.message);
     }
 
-    // Cria nova no MP
     let mp;
     try {
       mp = await createMpPixPayment({
@@ -56,6 +51,7 @@ export const createPublicPixCharge = createServerFn({ method: "POST" })
         description: `Pedido Lojinha · ${order.customer_name}`.slice(0, 200),
         externalReference: `lojinha:${order.id}`,
         payerEmail: order.customer_email || "test_user_lojinha@testuser.com",
+        expiresInMinutes: 24 * 60, // 24h para cliente final
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -88,19 +84,41 @@ export const createPublicPixCharge = createServerFn({ method: "POST" })
     return charge;
   });
 
-
-/** Polling público pelo status (lê pelo orderId, devolve a última cobrança). */
+/**
+ * Polling público pelo status. Além de ler o banco, consulta o MP quando ainda
+ * está pending — funciona como fallback se o webhook atrasou ou falhou.
+ */
 export const getPublicPixChargeStatus = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ orderId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { data: charge, error } = await supabaseAdmin
       .from("pix_charges")
-      .select("id, status, amount, paid_at")
+      .select("id, status, amount, paid_at, mp_payment_id")
       .eq("order_id", data.orderId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
+
+    // Se ainda pending e temos mp_payment_id, consulta MP e reconcilia.
+    if (charge && charge.status === "pending" && charge.mp_payment_id) {
+      try {
+        const mp = await getMpPayment(charge.mp_payment_id);
+        const result = await applyMpPaymentToCharge(mp);
+        if (result.updated && result.status !== "pending") {
+          // Releitura para devolver o status final
+          const { data: fresh } = await supabaseAdmin
+            .from("pix_charges")
+            .select("id, status, amount, paid_at, mp_payment_id")
+            .eq("id", charge.id)
+            .maybeSingle();
+          return fresh ?? charge;
+        }
+      } catch (e) {
+        console.warn("[getPublicPixChargeStatus] MP poll fail:", e instanceof Error ? e.message : e);
+      }
+    }
+
     return charge;
   });
 
@@ -113,9 +131,6 @@ export const getPublicPixChargeStatus = createServerFn({ method: "POST" })
 export const simulatePixApproval = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ chargeId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
-    // Modo teste interno: permite simular aprovação independentemente do token MP.
-
-
     const nowIso = new Date().toISOString();
 
     const { data: updated, error } = await supabaseAdmin
@@ -143,7 +158,6 @@ export const simulatePixApproval = createServerFn({ method: "POST" })
         _order_id: updated.order_id,
       });
     }
-
 
     return { ok: true };
   });

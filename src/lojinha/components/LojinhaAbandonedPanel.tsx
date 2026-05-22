@@ -2,16 +2,17 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, AlertTriangle, CheckCircle2, Copy } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, Copy, Search, Wallet } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBRL } from "@/lib/format";
+import { inspectMpForOrder, reconcileOrderFromMp } from "@/lib/pix.functions";
 import { toast } from "sonner";
 
 type AbandonedOrder = {
@@ -35,6 +36,9 @@ export function LojinhaAbandonedPanel() {
   const [showReconciled, setShowReconciled] = useState(false);
   const [editing, setEditing] = useState<AbandonedOrder | null>(null);
   const [note, setNote] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const inspect = useServerFn(inspectMpForOrder);
+  const reconcileFromMp = useServerFn(reconcileOrderFromMp);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["lojinha-abandoned", user?.id, showReconciled],
@@ -77,6 +81,46 @@ export function LojinhaAbandonedPanel() {
   function copy(s: string) {
     navigator.clipboard.writeText(s);
     toast.success("Copiado");
+  }
+
+  async function checkMp(orderId: string) {
+    setBusyId(orderId);
+    try {
+      const r = await inspect({ data: { orderId } });
+      if (!r.found) {
+        toast.error(r.reason || "Não foi possível consultar o MP");
+        return;
+      }
+      if (r.mapped === "approved") {
+        toast.success(`Mercado Pago: APROVADO (${formatBRL(r.amount)}). Use "Conciliar como pago".`);
+      } else if (r.mapped === "rejected") {
+        toast.warning(`Mercado Pago: ${r.mp_status}. Pagamento não entrou.`);
+      } else {
+        toast.info(`Mercado Pago: ${r.mp_status}. Ainda pendente.`);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao consultar MP");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function reconcileFromMercadoPago(orderId: string) {
+    setBusyId(orderId);
+    try {
+      const r = await reconcileFromMp({ data: { orderId } });
+      if (r.mp_status === "approved" || r.mp_status === "authorized") {
+        toast.success("Pedido conciliado como pago via Mercado Pago");
+      } else {
+        toast.info(`MP status: ${r.mp_status}. Nada a aplicar.`);
+      }
+      qc.invalidateQueries({ queryKey: ["lojinha-abandoned"] });
+      qc.invalidateQueries({ queryKey: ["lojinha-orders"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao conciliar pelo MP");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   return (
@@ -160,9 +204,33 @@ export function LojinhaAbandonedPanel() {
               )}
 
               {!o.reconciled_at && (
-                <Button size="sm" variant="outline" className="w-full" onClick={() => { setEditing(o); setNote(""); }}>
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar como conciliado
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {o.mp_payment_id && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busyId === o.id}
+                        onClick={() => checkMp(o.id)}
+                      >
+                        {busyId === o.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Search className="h-3 w-3 mr-1" />}
+                        Verificar no MP
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        disabled={busyId === o.id}
+                        onClick={() => reconcileFromMercadoPago(o.id)}
+                      >
+                        {busyId === o.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wallet className="h-3 w-3 mr-1" />}
+                        Conciliar pelo MP
+                      </Button>
+                    </>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => { setEditing(o); setNote(""); }}>
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Apenas marcar
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
