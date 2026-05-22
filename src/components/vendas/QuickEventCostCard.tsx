@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Zap } from "lucide-react";
+import { Plus, Zap, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { SupplierConsumptionSheet } from "@/components/financeiro/SupplierConsumptionSheet";
 
 interface Props {
   eventId: string | null;
