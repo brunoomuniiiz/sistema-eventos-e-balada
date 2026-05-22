@@ -827,6 +827,10 @@ function ProdutosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {ownerId && (
+        <PurchaseSheet open={purchaseOpen} onOpenChange={setPurchaseOpen} ownerId={ownerId} />
+      )}
     </div>
   );
 }
