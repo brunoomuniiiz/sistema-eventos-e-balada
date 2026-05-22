@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, Settings, Boxes, DoorOpen, Wallet } from "lucide-react";
+import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, Settings, Boxes, DoorOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?
   { to: "/produtos", label: "Produtos", icon: Boxes, perm: "estoque" },
   { to: "/portaria", label: "Portaria", icon: DoorOpen, perm: "portaria" },
   { to: "/financeiro", label: "Financeiro", icon: DollarSign, perm: "financeiro" },
-  { to: "/admin-caixas", label: "Caixas", icon: Wallet, anyPerm: ["financeiro"] },
   { to: "/configuracao", label: "Configuração", icon: Settings, anyPerm: ["funcionarios", "promoters"] },
 ];
 

@@ -1,68 +1,71 @@
-## O que vou fazer
+## Entendi as respostas
 
-### 1) Pendentes que ficam para sempre na fila
-**Causa:** os pedidos antigos foram criados antes da migration que adicionou `expires_at`, então estão com esse campo `NULL` e o cron não pega.
+1. **Janela padrão:** se tem evento aberto → mostra o evento; senão → mostra o dia. ✅
+2. **Sangrias:** no painel ao vivo mostra **valor BRUTO** que entrou em dinheiro (sem descontar sangria). A sangria aparece num **card separado** ("Sangrias da sessão: R$ X"). O desconto só acontece no **fechamento do caixa** (entrou 600, fundo 100, sangrias 400 → esperado em gaveta = 300). ✅
+3. **Tudo dentro de Vendas**, sub-abas visíveis só pra **owner + permissão `financeiro`**. ✅
 
-**Fix:**
-- Backfill: para `lojinha_orders` com `status='pending' AND expires_at IS NULL`, definir `expires_at = created_at + 10 min`. O cron (que já roda a cada minuto) vai marcar todos como `abandoned` no próximo ciclo.
-- Mudar o prazo padrão de **5 min → 10 min** em todas as funções de criação (PDV garçom, lojinha online, balcão).
+## Plano
 
-### 2) Botão "Marcar como abandonado" no PDV/Garçom
-Quando funcionário vê que o cliente desistiu, ele aperta um botão e o pedido vai pra **abandonados** na hora (sem esperar os 10 min).
+### A) Mover "Caixas" pra dentro de Vendas
+- Remove a rota standalone `/admin-caixas` do menu lateral.
+- Em `/vendas`, adiciona 2 novas abas (só pra owner/gerente):
+  - **"Painel ao vivo"** 📊 (nova — descrita abaixo)
+  - **"Caixas"** 🔐 (move o conteúdo atual de `admin-caixas` pra cá: autorizar abertura, autorizar fechamento, ver valores declarados)
+- Owner/gerente passa a operar tudo de longe (notebook): autorizar abertura do Bar/Portaria, fazer sangria à distância, conferir fechamento — sem precisar trocar de tela.
 
-- Aba **Pendentes** do `LojinhaOrdersPanel`: botão "Cliente abandonou" em cada card.
-- Server function `abandonOrder({ orderId })` que: muda status pra `abandoned`, libera reservas de estoque, registra `cancelled_at` e quem cancelou.
-- Visível pra qualquer um com permissão `vendas` (garçom, caixa, owner).
-- Pedido aparece em **Abandonados** (visível só pro owner/gerente), e é deletado automaticamente após 7 dias (já existe esse cron).
+### B) Sangria remota
+Hoje a sangria (`SessionWithdrawalsCard`) só aparece na aba **Fechamento**, que exige caixa aberto no próprio dispositivo. Vou:
+- Mover o card de sangrias pra dentro da nova aba **"Caixas"** também, listando as sessões abertas (Bar e Portaria) com botão "Nova sangria" pra cada uma.
+- A RPC `register_withdrawal` já aceita um `_grant_token` autorizado — o owner se autoriza sozinho via `AuthorizationDialog`, então funciona remoto perfeitamente.
 
-### 3) Histórico vazio
-**Causa:** as vendas no `sales` estão sendo gravadas com `employee_id = NULL` (só `employee_name` preenchido). A view `unified_sales_history` usa `employee_id` como `seller_user_id`, então o filtro "só minhas vendas" nunca dá match. Para owner deveria mostrar tudo (não filtra por seller), então:
-- Vou verificar a chamada da RPC no front e revalidar `is_owner_of` — se você estiver realmente logado como `happybeer.adm` deveria ver tudo. Vou adicionar logs e um botão "recarregar" pra confirmar.
-- Backfill: gravar `employee_id` corretamente nas vendas novas (passar o `auth.uid()` quando o funcionário está logado, ou o id do funcionário selecionado).
-- Excluir vendas `cancelled`/`refunded` da view.
+### C) Aba "Painel ao vivo" (nova)
 
-### 4) Estorno via Mercado Pago
-**Sim, dá** — MP tem API oficial `POST /v1/payments/{id}/refunds` (total ou parcial, até 180 dias após o pagamento).
+**Filtro de período no topo:**
+- Default: evento aberto se existir; senão "Hoje (0h–agora)".
+- Outras opções: Hoje · Evento atual · Ontem · 7 dias · 30 dias · Custom.
 
-- Nova server function `refundMpPayment({ orderId | chargeId, amount? })` em `src/lib/pix.functions.ts`:
-  - Valida owner + permissão `vendas` (e flag tipo `can_refund` — só owner/gerente).
-  - Chama MP com `MP_ACCESS_TOKEN`.
-  - Atualiza `lojinha_orders.status = 'refunded'`, salva `refunded_at`, `refund_amount`, `refunded_by`, `refunded_reason`.
-- UI no **Histórico**: botão "Estornar" em cada venda paga via PIX/MP. Diálogo de confirmação com motivo e opção de valor parcial.
-- Badge "Estornado" no histórico (sai do total de receita).
-- Para vendas em **dinheiro/cartão físico não-MP**: botão "Cancelar venda" — não chama MP (não tem o que estornar), só marca como `cancelled`, devolve estoque e registra quem cancelou.
+**Card 1 — Faturamento bruto**
+- Total geral
+- Por forma de pagamento: **Dinheiro · Pix · Débito · Crédito** (valor + % do total)
+- Importante: o **Dinheiro aqui é bruto** (tudo que entrou no caixa, antes de sangria).
 
-### ❌ O que não dá
-- Estornar maquininha física que não é MP (Cielo/Stone): tem que ser pelo app da operadora.
-- Estornar PIX recebido fora do MP: sem `payment_id`, não dá pra chamar a API.
-- Reembolso depois de 180 dias.
+**Card 2 — Sangrias (separado, em vermelho)**
+- Total sangrado no período
+- Lista resumida (motivo + valor + quem fez)
+- *Não desconta do faturamento — é só pra você saber.*
 
----
+**Card 3 — Entrada por funcionário**
+Tabela com cada vendedor ativo:
+- Nome · Canal (Caixa / Garçom / Portaria / Lojinha)
+- Dinheiro · Pix · Débito · Crédito · **Total** · Nº vendas
+- Rodapé com soma geral
 
-## Arquivos / migrations
+**Card 4 — Mix de canais**
+Pizza: % de venda por PDV Caixa vs Garçom vs Lojinha vs Portaria.
 
-1. **Migration** (`expires_at` backfill + colunas refund + novas RPCs):
-   - `UPDATE lojinha_orders SET expires_at = created_at + interval '10 min' WHERE status='pending' AND expires_at IS NULL`
-   - `ALTER TABLE lojinha_orders ADD COLUMN refunded_at, refund_amount, refunded_by, refunded_reason`
-   - Idem em `sales` para cancelamento/estorno
-   - Trocar `5 min` por `10 min` nas funções `lojinha_create_*_order`
-   - RPC `abandon_lojinha_order(_order_id)` com check de permissão
-   - Atualizar `unified_sales_history` pra ignorar `refunded`/`cancelled`
+**Card 5 — Ranking de vendedores**
+Top 5 por faturamento (e alternativa por nº de vendas). 🥇🥈🥉
 
-2. **Server functions** (`src/lib/pix.functions.ts`, novo `src/lib/orders.functions.ts`):
-   - `abandonOrder({ orderId })`
-   - `refundMpPayment({ orderId, amount?, reason })`
-   - `cancelLocalSale({ saleId, reason })`
+**Card 6 — Produtos mais vendidos**
+Top 10 com quantidade, valor total, % do faturamento.
 
-3. **UI**:
-   - `LojinhaOrdersPanel.tsx`: botão "Cliente abandonou" na aba Pendentes
-   - `SalesHistory.tsx`: botões "Estornar" (PIX/MP) e "Cancelar" (dinheiro), badges de status
-   - Toast + invalidate cache
+**Atualização:** auto-refresh 10s + realtime (já usamos no projeto).
 
----
+### D) Como buscar os dados
+Uma RPC nova `get_live_dashboard(_from, _to, _event_id)` que devolve tudo agregado num JSON (1 chamada só). Fontes:
+- `sales` + `sale_payments` + `sale_items` (PDV/garçom — com `seller_user_id`/`employee_name`)
+- `lojinha_orders` + `lojinha_order_items` (status `paid`/`delivered`)
+- `event_entries` (portaria, com `payment_method`)
+- `cash_withdrawals` (sangrias do período)
 
-## Confirmações pra começar
+## Arquivos a editar
 
-1. **Prazo de 10 min** se aplica a tudo (lojinha online, PDV garçom, balcão) — ok?
-2. **Estorno parcial** (input de valor) ou só total por enquanto?
-3. Quem pode estornar: **só owner**, ou owner + funcionário com a flag `vendas_fechamento`?
+1. `src/routes/_app.vendas.tsx` — adicionar abas "Painel" e "Caixas" (owner/financeiro).
+2. **Novo:** `src/components/vendas/LiveDashboardPanel.tsx`.
+3. **Novo:** `src/components/vendas/CaixasAdminPanel.tsx` (extrai conteúdo de `_app.admin-caixas.tsx` + cards de sangria remota por setor).
+4. `src/components/AppLayout.tsx` — remover item "Caixas" do menu (vira sub-aba de Vendas).
+5. `src/routes/_app.admin-caixas.tsx` — deletar (ou deixar um redirect pra `/vendas?tab=caixas`).
+6. **Migration:** RPC `get_live_dashboard(_from timestamptz, _to timestamptz, _event_id uuid default null)` retornando JSON com os 6 cards.
+
+## Pergunta única antes de codar
+Pra **sangria remota** funcionar com você no notebook, o caixa do setor precisa estar **aberto** (sessão ativa de algum funcionário no local) — porque a sangria é amarrada à `session_id`. Confirma que esse fluxo serve? (Owner não consegue "sangrar do nada" se nenhum caixa físico estiver aberto — o que faz sentido, dinheiro tem que estar na gaveta.)

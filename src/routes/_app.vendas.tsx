@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { LockKeyhole, Store, ScanLine, Package, AlertTriangle, Smartphone, Settings, Receipt, ShoppingCart } from "lucide-react";
+import { LockKeyhole, Store, ScanLine, Package, AlertTriangle, Smartphone, Settings, Receipt, ShoppingCart, Activity, Wallet } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/PageHeader";
 import { PdvView } from "./_app.pdv";
@@ -18,6 +18,8 @@ import { LojinhaAbandonedPanel } from "@/lojinha/components/LojinhaAbandonedPane
 import { LojinhaDevicesPanel } from "@/lojinha/components/LojinhaDevicesPanel";
 import { LojinhaSettingsPanel } from "@/lojinha/components/LojinhaSettingsPanel";
 import { SellerPermissionsPanel } from "@/components/vendas/SellerPermissionsPanel";
+import { LiveDashboardPanel } from "@/components/vendas/LiveDashboardPanel";
+import { CaixasAdminPanel } from "@/components/vendas/CaixasAdminPanel";
 
 type VendasSearch = { tab?: string };
 
@@ -30,22 +32,23 @@ export const Route = createFileRoute("/_app/vendas")({
 
 function VendasPage() {
   const {
-    ownerId, isOwner, canSellCash, loading,
+    ownerId, isOwner, canSellCash, loading, can,
     canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico, canFechamento,
   } = usePermissions();
+  const isManager = isOwner || can("financeiro");
   const [closing, setClosing] = useState(false);
   const { tab } = useSearch({ from: "/_app/vendas" });
   const navigate = useNavigate();
 
   if (loading) return null;
-  const hasAny = canPdvCaixa || canVenderGarcom || canValidarQr || canVerPedidos || canVerHistorico || canFechamento;
+  const hasAny = canPdvCaixa || canVenderGarcom || canValidarQr || canVerPedidos || canVerHistorico || canFechamento || isManager;
   if (!hasAny) {
     return <PageHeader title="Vendas" subtitle="Você não tem permissão para acessar esta página" />;
   }
 
   const showPdvCaixa = canPdvCaixa;
   const showPdvGarcom = canVenderGarcom;
-  const defaultTab = showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : canValidarQr ? "scanner" : canVerPedidos ? "pedidos" : "historico";
+  const defaultTab = isManager ? "painel" : showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : canValidarQr ? "scanner" : canVerPedidos ? "pedidos" : "historico";
   const currentTab = tab ?? defaultTab;
 
   return (
@@ -57,6 +60,8 @@ function VendasPage() {
         className="space-y-4"
       >
         <TabsList className="flex-wrap h-auto">
+          {isManager && <TabsTrigger value="painel"><Activity className="h-4 w-4 mr-1.5" /> Painel ao vivo</TabsTrigger>}
+          {isManager && <TabsTrigger value="caixas"><Wallet className="h-4 w-4 mr-1.5" /> Caixas</TabsTrigger>}
           {showPdvCaixa && <TabsTrigger value="pdv"><ShoppingCart className="h-4 w-4 mr-1.5" /> PDV Caixa</TabsTrigger>}
           {showPdvGarcom && <TabsTrigger value="vender"><Store className="h-4 w-4 mr-1.5" /> Vender (garçom)</TabsTrigger>}
           {canValidarQr && <TabsTrigger value="scanner"><ScanLine className="h-4 w-4 mr-1.5" /> Validar QR</TabsTrigger>}
@@ -67,6 +72,9 @@ function VendasPage() {
           {isOwner && <TabsTrigger value="devices"><Smartphone className="h-4 w-4 mr-1.5" /> Maquininhas</TabsTrigger>}
           {isOwner && <TabsTrigger value="config"><Settings className="h-4 w-4 mr-1.5" /> Configuração</TabsTrigger>}
         </TabsList>
+
+        {isManager && <TabsContent value="painel"><LiveDashboardPanel /></TabsContent>}
+        {isManager && <TabsContent value="caixas"><CaixasAdminPanel /></TabsContent>}
 
         {showPdvCaixa && (
           <TabsContent value="pdv">
