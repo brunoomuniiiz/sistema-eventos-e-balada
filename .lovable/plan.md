@@ -1,95 +1,51 @@
-# Plano: Investimentos (CAPEX) + renomear Consumo
+## Objetivo
+Permitir que você (owner) entre em um modo de pré-visualização e veja o sistema exatamente como cada papel envolvido: promoter, garçom, caixa, portaria, lojinha (vendedor online) e também as páginas públicas do cliente (lojinha, evento, lista).
 
-## O que muda
+Tudo client-side, sem mudar banco nem permissões reais. É só uma "máscara" que sobrescreve o que `usePermissions` retorna enquanto você está logado como dono.
 
-### 1. Nova sub-aba "Investimento" dentro do Financeiro (do mês)
+## O que será criado
 
-No `/financeiro`, dentro da view do mês corrente, adicionar uma sub-aba **Investimento** (ao lado das atuais Despesas/Receitas).
+### 1. Hook de impersonação
+`src/hooks/useViewAs.tsx` — contexto global que guarda o persona ativo em `sessionStorage` (`null` = sem máscara). Personas:
 
-A sub-aba mostra:
-- **Card de resumo**: Total investido (geral), Total pago, Saldo a pagar.
-- **Lista de "bens investidos"** agrupada por `installment_group_id` (ou avulsos sem grupo). Cada item mostra:
-  - Nome ("Som JBL", "Microfone Shure", "Aumento de camarotes")
-  - Categoria personalizada criada por ti
-  - Valor total · Pago · Saldo · Barra de progresso `5/12`
-  - Botão "Ver parcelas" → expande e mostra cada parcela com status (paga/aberta/abate)
-  - Botão "Pagar parcela do mês" → abre `PayExpenseDialog` já existente (com abate)
-- **Botão "+ Novo investimento"** no topo abre um formulário próprio:
-  - Nome do bem (livre)
-  - Categoria (select de categorias kind=`investment` com botão "+ criar categoria" inline)
-  - Vendedor (livre, opcional)
-  - Valor total
-  - Modo: **Parcelado** (N parcelas) ou **Pagamento único**
-  - Se parcelado: nº parcelas, primeira parcela, dia de vencimento
-  - Quanto já paguei (opcional) → marca as primeiras X parcelas como pagas automaticamente
-  - Observação
+- `promoter` — só vê Promoters + Lista de check-in do seu evento
+- `garcom` — Ao Vivo + Pedidos + estoque visual (sem financeiro, sem caixa)
+- `caixa` — PDV + Fechamento + Sangria + Abertura (sem financeiro mensal)
+- `portaria` — Portaria + Validar QR
+- `lojinha` — vendedor da lojinha online (aceita pedidos, vê pedidos liberar)
+- `dono` (default) — visão completa
 
-### 2. Categorias de investimento personalizáveis
+Cada persona é um mapa de flags equivalente ao schema de `user_roles` (permissions array + vendas_*, aceita_*, can_*, etc.).
 
-- `bar_expense_categories` ganha entradas com `kind = 'investment'`.
-- Categorias-semente criadas no onboarding: **Equipamento de som**, **Equipamento de bar/cozinha**, **Móveis e decoração**, **Obras e reforma**, **Tecnologia**, **Melhoria do espaço**.
-- Botão "+ criar categoria" dentro do form de investimento (cria na hora sem sair da tela).
-- Gerenciamento completo via `/financeiro` → aba existente de categorias (filtro por tipo).
+### 2. Patch no `usePermissions`
+Quando `viewAs` estiver ativo **e** o usuário for owner real, o hook devolve as flags da persona em vez das reais. `isOwner` vira `false` para a máscara funcionar (exceto persona "dono"). Um campo extra `realIsOwner` é exposto para o seletor poder aparecer só pra você.
 
-### 3. Lucro do mês = Operacional puro
+### 3. Barra flutuante "Ver como"
+`src/components/ViewAsBar.tsx` montada no `AppLayout`:
 
-- O cálculo de "Lucro líquido do mês" no card principal **ignora** despesas com `is_investment = true` (já é assim hoje, vou só validar e deixar explícito o rótulo).
-- Card "Investimentos pagos no mês" continua existindo, mas com link "Ver tudo →" que leva pra sub-aba Investimento.
-- Remover o subtotal de investimento do agregado de "Despesas do mês".
+- Aparece só se `realIsOwner === true`
+- Botão fixo no canto inferior direito com o persona atual
+- Ao abrir: lista de personas + atalhos para páginas públicas do cliente:
+  - Abrir Lojinha (`/loja/{slug}` em nova aba)
+  - Abrir página do evento (`/e/{slug}`)
+  - Abrir lista do promoter (`/lista/{slug}`)
+  - Slugs vêm de uma query rápida (lojinha ativa + último evento)
+- Banner no topo enquanto persona ≠ dono: "Visualizando como GARÇOM — sair"
 
-### 4. Renomear "Consumo de fornecedor" → "Abater consumo na parcela"
+### 4. Sidebar/menu responde à máscara
+`AppLayout` já usa `usePermissions` para filtrar itens — então com o patch acima a navegação se ajusta automaticamente. Verifico só se há checagens diretas de `isOwner` em telas críticas e troco por `can(...)` quando fizer sentido para o teste ser realista.
 
-- Botão no `QuickEventCostCard` (Ao Vivo): novo texto **"Abater consumo na parcela"** + ícone de carrinho.
-- Título do sheet: **"Abater consumo na parcela do investimento"**.
-- Label da seleção: "Qual parcela abater?" (em vez de "Abater de qual conta").
-- Filtra parcelas em aberto com prioridade para `is_investment = true`.
-- Toast e descrição usam linguagem "abate" em vez de "fornecedor".
-- Lógica de gravação **não muda**: continua criando `sales` + `sale_items` + `expense_offsets`.
+## O que NÃO muda
+- Banco, RLS, papéis reais dos funcionários
+- Nenhuma escrita acontece em nome de outro usuário
+- Ao recarregar, persona persiste por aba (sessionStorage) — fácil de sair
 
-### 5. Tirar "Som" do Custo Rápido
+## Arquivos
+- Criar: `src/hooks/useViewAs.tsx`, `src/components/ViewAsBar.tsx`
+- Editar: `src/hooks/usePermissions.tsx` (aplicar máscara + expor `realIsOwner`), `src/components/AppLayout.tsx` (montar ViewAsBar + Provider), `src/routes/__root.tsx` se precisar do Provider mais alto
 
-- Remover `"Som"` do array `QUICK_CATS` no `QuickEventCostCard`. Som agora é investimento, não custo de noite.
-
----
-
-## Detalhes técnicos
-
-**Migrações:**
-- `bar_expenses`: adicionar `total_amount` (numeric, opcional) pra guardar valor total do bem quando é uma parcela única que representa investimento parcelado externamente (caso "já paguei X de Y").
-- `bar_expenses`: adicionar `investment_name` (text, opcional) pra rotular o bem ("Som JBL") separado do `category_name`.
-- Seed: inserir categorias padrão com `kind = 'investment'` para owners novos (via migration que faz `INSERT … ON CONFLICT DO NOTHING` baseado no `user_id` dos owners existentes).
-
-**Componentes:**
-- Novo: `src/components/financeiro/InvestmentTab.tsx` — sub-aba com lista de bens agrupados.
-- Novo: `src/components/financeiro/InvestmentFormDialog.tsx` — form dedicado de criar bem + parcelas.
-- Novo: `src/components/financeiro/InvestmentCategoryQuickCreate.tsx` — inline category creator.
-- Editado: `src/routes/_app.financeiro.tsx` — adicionar sub-aba "Investimento".
-- Editado: `src/components/vendas/QuickEventCostCard.tsx` — renomear botão, remover "Som" de `QUICK_CATS`.
-- Editado: `src/components/financeiro/SupplierConsumptionSheet.tsx` — renomear textos, filtrar/ordenar parcelas de investimento primeiro.
-- Editado: cálculo do "Lucro do mês" em `_app.financeiro.tsx` — confirmar exclusão de `is_investment`.
-
-**Não muda:**
-- Schema de `expense_offsets`.
-- Lógica de `PayExpenseDialog` (já lida com abate automaticamente).
-- `bar_expenses.is_investment` (já existe).
-- `installment_group_id` (já existe).
-
----
-
-## Resultado prático
-
-- Tu cria **"Som JBL — R$ 36.000 em 12x"** uma vez. Diz "já paguei 4". Sistema marca 4 como pagas e mostra `4/12 · saldo R$ 24.000`.
-- No mês corrente vê só a parcela do mês na sub-aba. Lucro do mês não é afetado.
-- Quando o vendedor pega R$ 800 em bebida na festa: aperta "Abater consumo na parcela" no Ao Vivo, escolhe a parcela do mês, lança produtos, salva. Parcela vira "R$ 3.000 original − R$ 800 abatido = R$ 2.200 a pagar".
-- Cria "Microfone Shure — R$ 800 à vista" como investimento avulso. Aparece na lista, sem parcela.
-- Cria "Aumento de camarotes — R$ 15.000 em 6x" como obra. Mesma cara, categoria "Obras e reforma".
-
----
-
-## Fora de escopo (próximas conversas)
-
-- Depreciação/amortização contábil.
-- Anexar nota fiscal/contrato ao investimento.
-- Relatório de ROI por investimento.
-- Pré-pagar várias parcelas de uma vez com desconto.
-- Modo demo "visualizar como [garçom/portaria/promoter]" e checklist de publicação (próxima rodada).
+## Ordem
+1. `useViewAs` + Provider
+2. Patch `usePermissions`
+3. `ViewAsBar` com seletor + atalhos públicos
+4. Testar cada persona navegando pelo menu

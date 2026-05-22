@@ -3,6 +3,8 @@ import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, 
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
+import { ViewAsProvider } from "@/hooks/useViewAs";
+import { ViewAsBar } from "@/components/ViewAsBar";
 
 const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?: Permission; ownerOnly?: boolean; anyPerm?: Permission[] }[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, anyPerm: ["financeiro"] },
@@ -16,6 +18,14 @@ const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?
 ];
 
 export function AppLayout() {
+  return (
+    <ViewAsProvider>
+      <AppLayoutInner />
+    </ViewAsProvider>
+  );
+}
+
+function AppLayoutInner() {
   const { user, signOut } = useAuth();
   const { can, isOwner } = usePermissions();
   const location = useLocation();
@@ -111,6 +121,8 @@ export function AppLayout() {
           })}
         </div>
       </nav>
+
+      <ViewAsBar />
     </div>
   );
 }

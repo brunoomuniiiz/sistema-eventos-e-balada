@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useViewAs } from "@/hooks/useViewAs";
 
 export type Permission =
   | "vendas"
@@ -27,6 +28,7 @@ export type AcceptedMethod = "dinheiro" | "debito" | "credito" | "pix";
 
 export function usePermissions() {
   const { user } = useAuth();
+  const { mask } = useViewAs();
   const { data, isLoading } = useQuery({
     queryKey: ["my-role", user?.id],
     queryFn: async () => {
@@ -43,69 +45,63 @@ export function usePermissions() {
     enabled: !!user,
   });
 
-  const isOwner = data?.role === "owner";
+  const realIsOwner = data?.role === "owner";
   const ownerId = data?.owner_id ?? user?.id ?? null;
-  const permissions = (data?.permissions ?? []) as Permission[];
+
+  // Aplica máscara apenas se o usuário real é owner
+  const useMask = !!mask && realIsOwner;
+  const isOwner = useMask ? mask!.isOwner : realIsOwner;
+  const permissions = (useMask ? mask!.permissions : ((data?.permissions ?? []) as Permission[])) as Permission[];
   const rolePreset = (data?.role_preset ?? null) as string | null;
 
   const can = (p: Permission) => isOwner || permissions.includes(p);
 
-  const canDiscount = isOwner || !!data?.can_discount;
-  const maxDiscountPercent = isOwner ? 100 : Number(data?.max_discount_percent ?? 0);
-  const canAuthorize = isOwner || !!data?.can_authorize;
-
-  const row = data as null | {
-    aceita_dinheiro?: boolean;
-    aceita_pix?: boolean;
-    aceita_cartao?: boolean;
-    aceita_credito_promoter?: boolean;
-    pode_lancar_consumacao?: boolean;
-    pode_adicionar_bebidas?: boolean;
-    can_sell_cash?: boolean;
-    vendas_pdv_caixa?: boolean;
-    vendas_garcom?: boolean;
-    vendas_validar_qr?: boolean;
-    vendas_pedidos?: boolean;
-    vendas_historico?: boolean;
-    vendas_fechamento?: boolean;
-    vendas_abre_caixa?: boolean;
-    vendas_sangria?: boolean;
+  // Helper para flags: durante máscara usa mask.flags (default false), senão usa row real
+  const realRow = data as null | Record<string, unknown>;
+  const flagOf = (key: string, defaultReal: boolean): boolean => {
+    if (useMask) return mask!.flags[key] === true;
+    const v = realRow?.[key];
+    if (v === undefined || v === null) return defaultReal;
+    return v === true;
   };
-  const aceitaDinheiro = isOwner || row?.aceita_dinheiro !== false;
-  const aceitaPix = isOwner || row?.aceita_pix !== false;
-  const aceitaCartao = isOwner || row?.aceita_cartao !== false;
-  const aceitaCreditoPromoter = isOwner || !!row?.aceita_credito_promoter;
-  const canConsumacao = isOwner || !!row?.pode_lancar_consumacao;
+
+  const canDiscount = isOwner || flagOf("can_discount", false);
+  const maxDiscountPercent = isOwner ? 100 : Number((useMask ? 0 : data?.max_discount_percent) ?? 0);
+  const canAuthorize = isOwner || flagOf("can_authorize", false);
+
+  const aceitaDinheiro = isOwner || flagOf("aceita_dinheiro", true);
+  const aceitaPix = isOwner || flagOf("aceita_pix", true);
+  const aceitaCartao = isOwner || flagOf("aceita_cartao", true);
+  const aceitaCreditoPromoter = isOwner || flagOf("aceita_credito_promoter", false);
+  const canConsumacao = isOwner || flagOf("pode_lancar_consumacao", false);
   const acceptedMethods: AcceptedMethod[] = [];
   if (aceitaDinheiro) acceptedMethods.push("dinheiro");
   if (aceitaCartao) acceptedMethods.push("debito", "credito");
   if (aceitaPix) acceptedMethods.push("pix");
   const canSellCash = aceitaDinheiro;
 
-  const canAddProducts = isOwner || (!!row?.pode_adicionar_bebidas && can("estoque"));
+  const canAddProducts = isOwner || (flagOf("pode_adicionar_bebidas", false) && can("estoque"));
 
-  // Lojinha (legado — mantido para checkout e maquininhas)
-  const lojinhaCanSell = isOwner || !!(data as { lojinha_can_sell?: boolean } | null)?.lojinha_can_sell;
+  const lojinhaCanSell = isOwner || flagOf("lojinha_can_sell", false);
   const lojinhaPaymentMethods = (
-    isOwner ? ["pix", "card"] : ((data as { lojinha_payment_methods?: string[] } | null)?.lojinha_payment_methods ?? [])
+    isOwner ? ["pix", "card"] : (useMask ? [] : ((data as { lojinha_payment_methods?: string[] } | null)?.lojinha_payment_methods ?? []))
   ) as Array<"pix" | "card">;
-  const lojinhaPointDeviceId = (data as { lojinha_point_device_id?: string | null } | null)?.lojinha_point_device_id ?? null;
+  const lojinhaPointDeviceId = useMask ? null : ((data as { lojinha_point_device_id?: string | null } | null)?.lojinha_point_device_id ?? null);
 
-  // Sub-permissões do módulo Vendas (default true = mantém comportamento atual)
   const hasVendas = can("vendas");
   const hasLojinha = can("lojinha");
-  const flag = (v: boolean | undefined) => v !== false;
-  const canPdvCaixa = isOwner || (hasVendas && flag(row?.vendas_pdv_caixa));
-  const canVenderGarcom = isOwner || (hasLojinha && flag(row?.vendas_garcom) && lojinhaCanSell);
-  const canValidarQr = isOwner || ((hasVendas || hasLojinha) && flag(row?.vendas_validar_qr));
-  const canVerPedidos = isOwner || ((hasVendas || hasLojinha) && flag(row?.vendas_pedidos));
-  const canVerHistorico = isOwner || ((hasVendas || hasLojinha) && flag(row?.vendas_historico));
-  const canFechamento = isOwner || (hasVendas && flag(row?.vendas_fechamento));
-  const canAbrirCaixa = isOwner || (hasVendas && flag(row?.vendas_abre_caixa));
-  const canSangria = isOwner || (hasVendas && flag(row?.vendas_sangria));
+  const canPdvCaixa = isOwner || (hasVendas && flagOf("vendas_pdv_caixa", true));
+  const canVenderGarcom = isOwner || (hasLojinha && flagOf("vendas_garcom", true) && lojinhaCanSell);
+  const canValidarQr = isOwner || ((hasVendas || hasLojinha) && flagOf("vendas_validar_qr", true));
+  const canVerPedidos = isOwner || ((hasVendas || hasLojinha) && flagOf("vendas_pedidos", true));
+  const canVerHistorico = isOwner || ((hasVendas || hasLojinha) && flagOf("vendas_historico", true));
+  const canFechamento = isOwner || (hasVendas && flagOf("vendas_fechamento", true));
+  const canAbrirCaixa = isOwner || (hasVendas && flagOf("vendas_abre_caixa", true));
+  const canSangria = isOwner || (hasVendas && flagOf("vendas_sangria", true));
 
   return {
     isOwner,
+    realIsOwner,
     ownerId,
     permissions,
     rolePreset,
