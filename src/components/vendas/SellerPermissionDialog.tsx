@@ -74,6 +74,7 @@ function initialDraft(r: SellerRow | null): Draft {
     aceita_cartao: r?.aceita_cartao ?? true,
     aceita_credito_promoter: r?.aceita_credito_promoter ?? false,
     pode_lancar_consumacao: r?.pode_lancar_consumacao ?? false,
+    can_discount: r?.can_discount ?? false,
     max_discount_percent: Number(r?.max_discount_percent ?? 0),
   };
 }
