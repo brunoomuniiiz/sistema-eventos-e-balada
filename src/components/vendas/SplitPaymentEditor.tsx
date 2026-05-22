@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { Banknote, CreditCard, Smartphone, Plus, Trash2, ArrowLeft, X } from "lucide-react";
+import { Banknote, CreditCard, Smartphone, Plus, Trash2, ArrowLeft, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { formatBRL } from "@/lib/format";
 
-export type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix";
+export type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix" | "promoter_credit";
 
 export interface PaymentLine {
   method: PaymentMethod;
   amount: number;
+  promoter_id?: string;
+  promoter_name?: string;
 }
 
 const METHODS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
@@ -16,6 +18,7 @@ const METHODS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = 
   { key: "debito", label: "Débito", icon: CreditCard },
   { key: "credito", label: "Crédito", icon: CreditCard },
   { key: "pix", label: "Pix", icon: Smartphone },
+  { key: "promoter_credit", label: "Crédito promoter", icon: Sparkles },
 ];
 
 interface Props {
@@ -24,9 +27,11 @@ interface Props {
   onChange: (next: PaymentLine[]) => void;
   canSellCash: boolean;
   acceptedMethods?: PaymentMethod[];
+  canPromoterCredit?: boolean;
+  onPickPromoterCredit?: (maxAmount: number) => void;
 }
 
-export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acceptedMethods }: Props) {
+export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acceptedMethods, canPromoterCredit, onPickPromoterCredit }: Props) {
   const paid = payments.reduce((s, p) => s + p.amount, 0);
   const dinheiroPaid = payments
     .filter((p) => p.method === "dinheiro")
