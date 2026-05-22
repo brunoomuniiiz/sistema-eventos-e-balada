@@ -1,108 +1,95 @@
-## Resumo do que vamos fazer
+# Plano: Investimentos (CAPEX) + renomear Consumo
 
-Tudo na aba **Financeiro** + um ajuste pequeno no **Custos rápidos do evento (Ao Vivo)** pra resolver o caso do "som".
+## O que muda
 
----
+### 1. Nova sub-aba "Investimento" dentro do Financeiro (do mês)
 
-## 1. Forma de pagamento ganha "A pagar"
+No `/financeiro`, dentro da view do mês corrente, adicionar uma sub-aba **Investimento** (ao lado das atuais Despesas/Receitas).
 
-No form de nova despesa (`ExpenseFormDialog`), a opção **"A pagar"** entra como forma de pagamento. Quando escolhida:
-- a conta nasce com `paid = false`
-- aparece com o círculo vermelho na lista, pronto pra abrir o dialog de "Registrar pagamento"
-- os campos "data de pagamento" e "valor pago" somem do form (irrelevantes)
+A sub-aba mostra:
+- **Card de resumo**: Total investido (geral), Total pago, Saldo a pagar.
+- **Lista de "bens investidos"** agrupada por `installment_group_id` (ou avulsos sem grupo). Cada item mostra:
+  - Nome ("Som JBL", "Microfone Shure", "Aumento de camarotes")
+  - Categoria personalizada criada por ti
+  - Valor total · Pago · Saldo · Barra de progresso `5/12`
+  - Botão "Ver parcelas" → expande e mostra cada parcela com status (paga/aberta/abate)
+  - Botão "Pagar parcela do mês" → abre `PayExpenseDialog` já existente (com abate)
+- **Botão "+ Novo investimento"** no topo abre um formulário próprio:
+  - Nome do bem (livre)
+  - Categoria (select de categorias kind=`investment` com botão "+ criar categoria" inline)
+  - Vendedor (livre, opcional)
+  - Valor total
+  - Modo: **Parcelado** (N parcelas) ou **Pagamento único**
+  - Se parcelado: nº parcelas, primeira parcela, dia de vencimento
+  - Quanto já paguei (opcional) → marca as primeiras X parcelas como pagas automaticamente
+  - Observação
 
-## 2. CurrencyInput com select-all
+### 2. Categorias de investimento personalizáveis
 
-Hoje, clicar em cima de "R$ 370" coloca o cursor no meio e bagunça. Vou ajustar o `CurrencyInput` pra **selecionar tudo no focus** (`onFocus={e => e.target.select()}`). Aplica em todos os lugares do app (despesa, pagamento, retirada, etc) — você digita "400" e substitui direto.
+- `bar_expense_categories` ganha entradas com `kind = 'investment'`.
+- Categorias-semente criadas no onboarding: **Equipamento de som**, **Equipamento de bar/cozinha**, **Móveis e decoração**, **Obras e reforma**, **Tecnologia**, **Melhoria do espaço**.
+- Botão "+ criar categoria" dentro do form de investimento (cria na hora sem sair da tela).
+- Gerenciamento completo via `/financeiro` → aba existente de categorias (filtro por tipo).
 
-## 3. Categoria padrão "Bazar e limpeza"
+### 3. Lucro do mês = Operacional puro
 
-Adicionar como categoria fixa padrão (papelaria, copos, bobinas, produtos de limpeza). Mesmo com valor variando, fica em **Custos fixos** porque é recorrente todo mês.
+- O cálculo de "Lucro líquido do mês" no card principal **ignora** despesas com `is_investment = true` (já é assim hoje, vou só validar e deixar explícito o rótulo).
+- Card "Investimentos pagos no mês" continua existindo, mas com link "Ver tudo →" que leva pra sub-aba Investimento.
+- Remover o subtotal de investimento do agregado de "Despesas do mês".
 
-## 4. Parcelado (12x do som, do bar, etc)
+### 4. Renomear "Consumo de fornecedor" → "Abater consumo na parcela"
 
-Nova aba no form: **Uma vez · Mensal fixo · Parcelado**.
+- Botão no `QuickEventCostCard` (Ao Vivo): novo texto **"Abater consumo na parcela"** + ícone de carrinho.
+- Título do sheet: **"Abater consumo na parcela do investimento"**.
+- Label da seleção: "Qual parcela abater?" (em vez de "Abater de qual conta").
+- Filtra parcelas em aberto com prioridade para `is_investment = true`.
+- Toast e descrição usam linguagem "abate" em vez de "fornecedor".
+- Lógica de gravação **não muda**: continua criando `sales` + `sale_items` + `expense_offsets`.
 
-Em **Parcelado** você informa:
-- Total de parcelas (ex: 12)
-- Valor da parcela (ex: R$ 3.000)
-- Mês da 1ª parcela (compet.)
-- Dia do vencimento
-- Categoria + descrição ("Som JBL")
-- Checkbox **"Isso é investimento (não afeta lucro do mês)"**
+### 5. Tirar "Som" do Custo Rápido
 
-Ao salvar, **cria as 12 contas de uma vez** com status "a pagar", cada uma com sua competência (jan, fev… dez) e descrição "Som JBL · 1/12, 2/12, …". Você pode editar/excluir parcela individual depois.
-
-Na lista, parcelas aparecem com badge `3/12` e link "ver todas as parcelas deste compromisso".
-
-## 5. Investimento (vira lucro quando acabar)
-
-Despesas marcadas como **investimento**:
-- não entram no cálculo de "Lucro líquido do mês"
-- aparecem num card separado **"Investimentos pagos (mês)"** no topo do Financeiro
-- quando as 12 parcelas acabam, simplesmente param de aparecer → seu lucro mensal sobe naturalmente sem precisar mexer em nada
-
-Tecnicamente: nova coluna `is_investment boolean` em `bar_expenses`.
-
-## 6. Abate do consumo do "cara do som"
-
-O fluxo que você descreveu é o mais limpo. Vou implementar assim:
-
-**Na aba Ao Vivo → card "Custo rápido do evento":**
-
-Hoje já tem o `QuickEventCostCard`. Vou adicionar um botão extra ao lado: **"+ Consumo de fornecedor / cortesia"**. Ele abre um sheet com:
-
-1. **Para quem?** (campo livre: "Cara do som JBL" — ou linkar com uma parcela existente em aberto)
-2. **Buscar produtos** (lupa igual PDV) → adiciona itens com qtd
-3. Calcula automático **valor de venda total** (ex: R$ 800)
-4. Botão **"Lançar"** faz 3 coisas em uma transação:
-   - **Baixa estoque** dos produtos no local do evento
-   - **Cria uma venda** (`sales`) marcada como `category = 'cortesia_fornecedor'`, paga, vinculada ao evento → entra no faturamento normalmente, gera CMV correto, margem correta
-   - **Cria um `event_cost`** no evento com descrição "Consumo cara do som — abate parcela" no valor de R$ 800 (sinal positivo, é custo do evento)
-
-**Resultado no relatório da festa:**
-- Faturamento bar: + R$ 800 (preço de venda)
-- CMV: + custo dos produtos
-- Custo do evento: + R$ 800 (o abate)
-- Lucro líquido da festa: ganha só a **margem** dos 800 (que é exatamente o "lucro" real da operação, como você falou)
-
-**Resultado na parcela do som:**
-A parcela continua com valor original R$ 3.000. Quando você for **pagar** essa parcela, o dialog "Registrar pagamento" mostra:
-> *"Esta parcela tem R$ 800 em consumo de fornecedor abatido este mês. Pagar R$ 2.200?"*
-
-Você confirma e ele registra `paid_amount = 2.200`, mostrando na lista "Original R$ 3.000 · abatido R$ 800 · pago R$ 2.200".
-
-Para isso preciso de uma forma de **linkar o consumo à parcela**: no sheet de "Consumo de fornecedor", se já existe parcela em aberto pro mesmo "fornecedor", aparece um seletor "abater de qual parcela?". A linkagem fica numa nova tabela `expense_offsets` (despesa_id, event_cost_id, valor).
+- Remover `"Som"` do array `QUICK_CATS` no `QuickEventCostCard`. Som agora é investimento, não custo de noite.
 
 ---
 
 ## Detalhes técnicos
 
-**Migrations:**
-- `bar_expenses`: + `is_investment bool default false`, + `installment_total int`, + `installment_index int`, + `installment_group_id uuid` (agrupa as 12)
-- nova tabela `expense_offsets` (id, expense_id, source_type 'sale'|'event_cost', source_id, amount, created_at) — pra rastrear abatimentos
-- seed da categoria "Bazar e limpeza" (kind=fixed) no `bar_expense_categories` default
-- novo tipo de venda: `sales.category = 'cortesia_fornecedor'` (texto, não precisa enum)
+**Migrações:**
+- `bar_expenses`: adicionar `total_amount` (numeric, opcional) pra guardar valor total do bem quando é uma parcela única que representa investimento parcelado externamente (caso "já paguei X de Y").
+- `bar_expenses`: adicionar `investment_name` (text, opcional) pra rotular o bem ("Som JBL") separado do `category_name`.
+- Seed: inserir categorias padrão com `kind = 'investment'` para owners novos (via migration que faz `INSERT … ON CONFLICT DO NOTHING` baseado no `user_id` dos owners existentes).
 
-**Arquivos a editar/criar:**
-- `src/components/ui/currency-input.tsx` — select-all no focus
-- `src/components/financeiro/ExpenseFormDialog.tsx` — opção "A pagar", aba Parcelado, checkbox investimento
-- `src/components/financeiro/ExpensesTab.tsx` — badge "3/12", agrupamento por grupo de parcela
-- `src/components/financeiro/PayExpenseDialog.tsx` — mostrar abatimentos + sugerir valor a pagar
-- `src/components/vendas/SupplierConsumptionSheet.tsx` — **novo**, lupa + carrinho + lançar
-- `src/components/vendas/QuickEventCostCard.tsx` — botão "+ Consumo de fornecedor"
-- `src/routes/_app.financeiro.tsx` — novo card "Investimentos pagos (mês)" e excluí-los do lucro líquido
-- `supabase/migrations/...` — colunas + tabela offsets + seed categoria
+**Componentes:**
+- Novo: `src/components/financeiro/InvestmentTab.tsx` — sub-aba com lista de bens agrupados.
+- Novo: `src/components/financeiro/InvestmentFormDialog.tsx` — form dedicado de criar bem + parcelas.
+- Novo: `src/components/financeiro/InvestmentCategoryQuickCreate.tsx` — inline category creator.
+- Editado: `src/routes/_app.financeiro.tsx` — adicionar sub-aba "Investimento".
+- Editado: `src/components/vendas/QuickEventCostCard.tsx` — renomear botão, remover "Som" de `QUICK_CATS`.
+- Editado: `src/components/financeiro/SupplierConsumptionSheet.tsx` — renomear textos, filtrar/ordenar parcelas de investimento primeiro.
+- Editado: cálculo do "Lucro do mês" em `_app.financeiro.tsx` — confirmar exclusão de `is_investment`.
 
-**Permissões:** Consumo de fornecedor exige permissão `financeiro` (mexe em parcela) E `vendas` (baixa estoque). Se só tem `vendas`, o botão fica desabilitado.
+**Não muda:**
+- Schema de `expense_offsets`.
+- Lógica de `PayExpenseDialog` (já lida com abate automaticamente).
+- `bar_expenses.is_investment` (já existe).
+- `installment_group_id` (já existe).
 
 ---
 
-## Fora de escopo desta etapa
+## Resultado prático
 
-- Juros automáticos por dia de atraso (já decidimos não fazer)
-- Antecipar parcelas (pagar 2 de uma vez com desconto)
-- Renegociação de parcelado (recalcular as restantes)
-- Anexar boleto/PDF
+- Tu cria **"Som JBL — R$ 36.000 em 12x"** uma vez. Diz "já paguei 4". Sistema marca 4 como pagas e mostra `4/12 · saldo R$ 24.000`.
+- No mês corrente vê só a parcela do mês na sub-aba. Lucro do mês não é afetado.
+- Quando o vendedor pega R$ 800 em bebida na festa: aperta "Abater consumo na parcela" no Ao Vivo, escolhe a parcela do mês, lança produtos, salva. Parcela vira "R$ 3.000 original − R$ 800 abatido = R$ 2.200 a pagar".
+- Cria "Microfone Shure — R$ 800 à vista" como investimento avulso. Aparece na lista, sem parcela.
+- Cria "Aumento de camarotes — R$ 15.000 em 6x" como obra. Mesma cara, categoria "Obras e reforma".
 
-Posso seguir com isso?
+---
+
+## Fora de escopo (próximas conversas)
+
+- Depreciação/amortização contábil.
+- Anexar nota fiscal/contrato ao investimento.
+- Relatório de ROI por investimento.
+- Pré-pagar várias parcelas de uma vez com desconto.
+- Modo demo "visualizar como [garçom/portaria/promoter]" e checklist de publicação (próxima rodada).
