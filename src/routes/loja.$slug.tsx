@@ -110,6 +110,12 @@ function StorefrontPage() {
   }
 
 
+  const [pendingPrompt, setPendingPrompt] = useState<null | {
+    order_id: string;
+    total: number;
+    created_at: string;
+  }>(null);
+
   async function handleCheckout() {
     if (!customer.name.trim() || !customer.phone.trim()) {
       toast.error("Preencha nome e WhatsApp");
@@ -118,13 +124,50 @@ function StorefrontPage() {
     saveCustomer(customer);
     setCreating(true);
     try {
+      // 1) Já tem pedido pendente desse telefone? Bloqueia.
+      const existing = await findPendingForCustomer(slug, customer.phone);
+      if (existing.found) {
+        setPendingPrompt({
+          order_id: existing.order_id,
+          total: existing.total,
+          created_at: existing.created_at,
+        });
+        return;
+      }
       const res = await createOrder(slug, token, customer, cart);
-      // Limpa carrinho local (reserva fica até pagar; aqui simplificamos)
       resetCart(slug);
       navigate({ to: "/loja/$slug_/pedido/$orderId", params: { slug, orderId: res.order_id } });
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message ?? "Erro ao criar pedido");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleResumePending() {
+    if (!pendingPrompt) return;
+    const id = pendingPrompt.order_id;
+    setPendingPrompt(null);
+    navigate({ to: "/loja/$slug_/pedido/$orderId", params: { slug, orderId: id } });
+  }
+
+  async function handleAbandonPending() {
+    if (!pendingPrompt) return;
+    setCreating(true);
+    try {
+      const r = await customerAbandonOrder(pendingPrompt.order_id, customer.phone);
+      if (!r.ok) {
+        toast.error("Não foi possível abandonar o pedido anterior");
+        return;
+      }
+      setPendingPrompt(null);
+      // Tenta criar o novo agora
+      const res = await createOrder(slug, token, customer, cart);
+      resetCart(slug);
+      navigate({ to: "/loja/$slug_/pedido/$orderId", params: { slug, orderId: res.order_id } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
     } finally {
       setCreating(false);
     }
