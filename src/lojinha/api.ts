@@ -192,3 +192,18 @@ export async function orderRelease(source: "sale" | "order", id: string) {
   if (error) throw error;
   return data as unknown as { ok: boolean; daily_number: number | null; prep_slips: PrepSlipPayload[] };
 }
+
+// Funcionario marca pedido como abandonado na hora (sem esperar 10min)
+export async function abandonLojinhaOrder(orderId: string) {
+  const { data, error } = await supabase.rpc("abandon_lojinha_order" as never, { _order_id: orderId } as never);
+  if (error) throw error;
+  return data as unknown as { ok: boolean; reason?: string };
+}
+
+// Cancela venda local (dinheiro/cartao fisico) - somente owner
+export async function cancelLocalSale(saleId: string, reason: string) {
+  const { data, error } = await supabase.rpc("cancel_local_sale" as never, { _sale_id: saleId, _reason: reason } as never);
+  if (error) throw error;
+  return data as unknown as { ok: boolean; reason?: string };
+}
+
