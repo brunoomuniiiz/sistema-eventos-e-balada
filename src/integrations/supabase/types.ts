@@ -101,6 +101,7 @@ export type Database = {
           installment_index: number | null
           installment_total: number | null
           interest_amount: number
+          investment_name: string | null
           is_investment: boolean
           kind: string
           notes: string | null
@@ -113,6 +114,7 @@ export type Database = {
           reference_month: string | null
           supplier_id: string | null
           supplier_name: string | null
+          total_amount: number | null
           updated_at: string
           user_id: string
         }
@@ -130,6 +132,7 @@ export type Database = {
           installment_index?: number | null
           installment_total?: number | null
           interest_amount?: number
+          investment_name?: string | null
           is_investment?: boolean
           kind: string
           notes?: string | null
@@ -142,6 +145,7 @@ export type Database = {
           reference_month?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
+          total_amount?: number | null
           updated_at?: string
           user_id: string
         }
@@ -159,6 +163,7 @@ export type Database = {
           installment_index?: number | null
           installment_total?: number | null
           interest_amount?: number
+          investment_name?: string | null
           is_investment?: boolean
           kind?: string
           notes?: string | null
@@ -171,6 +176,7 @@ export type Database = {
           reference_month?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
+          total_amount?: number | null
           updated_at?: string
           user_id?: string
         }

@@ -6,6 +6,7 @@ import {
   Wine, DoorOpen, ShoppingBag, Sparkles, Receipt, Repeat,
 } from "lucide-react";
 import { ExpensesTab } from "@/components/financeiro/ExpensesTab";
+import { InvestmentTab } from "@/components/financeiro/InvestmentTab";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -239,6 +240,7 @@ function FinanceiroPage() {
           <TabsTrigger value="bar">Bar avulso</TabsTrigger>
           <TabsTrigger value="fixos">Custos fixos</TabsTrigger>
           <TabsTrigger value="variaveis">Custos variáveis</TabsTrigger>
+          <TabsTrigger value="investimento">Investimento</TabsTrigger>
           <TabsTrigger value="mensal">Mensal</TabsTrigger>
         </TabsList>
 
@@ -324,6 +326,10 @@ function FinanceiroPage() {
 
         <TabsContent value="variaveis" className="mt-4">
           <ExpensesTab kind="variable" />
+        </TabsContent>
+
+        <TabsContent value="investimento" className="mt-4">
+          <InvestmentTab />
         </TabsContent>
 
         <TabsContent value="mensal" className="mt-4">

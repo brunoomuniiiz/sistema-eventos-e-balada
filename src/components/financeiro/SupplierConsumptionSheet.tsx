@@ -42,9 +42,10 @@ export function SupplierConsumptionSheet({ open, onOpenChange, eventId }: Props)
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bar_expenses")
-        .select("id, category_name, supplier_name, amount, installment_index, installment_total, due_date, description")
+        .select("id, category_name, supplier_name, investment_name, amount, installment_index, installment_total, due_date, description, is_investment")
         .eq("user_id", ownerId!)
         .eq("paid", false)
+        .order("is_investment", { ascending: false })
         .order("due_date", { ascending: true });
       if (error) throw error;
       return data;
@@ -108,7 +109,7 @@ export function SupplierConsumptionSheet({ open, onOpenChange, eventId }: Props)
       if (cart.length === 0) throw new Error("Adicione produtos");
       if (total <= 0) throw new Error("Total inválido");
 
-      const supplierLabel = selectedExpense?.supplier_name || selectedExpense?.category_name || "fornecedor";
+      const supplierLabel = selectedExpense?.investment_name || selectedExpense?.supplier_name || selectedExpense?.category_name || "investimento";
 
       const { data: sale, error: saleErr } = await supabase
         .from("sales")
@@ -119,7 +120,7 @@ export function SupplierConsumptionSheet({ open, onOpenChange, eventId }: Props)
           total,
           category: "bar",
           event_id: eventId,
-          notes: `Abate fornecedor: ${supplierLabel}${note ? " — " + note : ""}`,
+          notes: `Abate consumo: ${supplierLabel}${note ? " — " + note : ""}`,
         } as never)
         .select("id")
         .single();
@@ -153,6 +154,8 @@ export function SupplierConsumptionSheet({ open, onOpenChange, eventId }: Props)
       toast.success(`Consumo de ${formatBRL(total)} abatido da parcela`);
       qc.invalidateQueries({ queryKey: ["bar-expenses"] });
       qc.invalidateQueries({ queryKey: ["open-expenses-for-offset"] });
+      qc.invalidateQueries({ queryKey: ["investments"] });
+      qc.invalidateQueries({ queryKey: ["investments-offsets"] });
       qc.invalidateQueries({ queryKey: ["event-costs-recent", eventId] });
       qc.invalidateQueries({ queryKey: ["financeiro-real"] });
       qc.invalidateQueries({ queryKey: ["sales"] });
@@ -167,23 +170,29 @@ export function SupplierConsumptionSheet({ open, onOpenChange, eventId }: Props)
       <SheetContent side="right" className="w-full sm:max-w-md flex flex-col gap-3 overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4" /> Consumo de fornecedor
+            <ShoppingBag className="h-4 w-4" /> Abater consumo na parcela
           </SheetTitle>
+          <p className="text-xs text-muted-foreground">
+            Lança produtos consumidos por quem te vendeu o equipamento. Vira faturamento real e abate o que tu paga em dinheiro na parcela.
+          </p>
         </SheetHeader>
 
         <div className="space-y-1">
-          <label className="text-xs text-muted-foreground">Abater de qual conta?</label>
+          <label className="text-xs text-muted-foreground">Qual parcela abater?</label>
           <Select value={expenseId} onValueChange={setExpenseId}>
-            <SelectTrigger><SelectValue placeholder="Escolha a parcela em aberto" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Escolha uma parcela em aberto" /></SelectTrigger>
             <SelectContent>
               {openExpenses.length === 0 && <div className="p-2 text-xs text-muted-foreground">Nenhuma conta em aberto</div>}
-              {openExpenses.map((e) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {(e.supplier_name || e.category_name)}
-                  {e.installment_index && e.installment_total ? ` ${e.installment_index}/${e.installment_total}` : ""}
-                  {" — "}{formatBRL(Number(e.amount))}
-                </SelectItem>
-              ))}
+              {openExpenses.map((e) => {
+                const label = e.investment_name || e.supplier_name || e.category_name;
+                return (
+                  <SelectItem key={e.id} value={e.id}>
+                    {e.is_investment ? "💎 " : ""}{label}
+                    {e.installment_index && e.installment_total ? ` ${e.installment_index}/${e.installment_total}` : ""}
+                    {" — "}{formatBRL(Number(e.amount))}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>

@@ -19,7 +19,7 @@ interface Props {
   eventName?: string | null;
 }
 
-const QUICK_CATS = ["DJ", "Segurança", "Som", "Cachê", "Bar", "Marketing", "Aluguel", "Outros"];
+const QUICK_CATS = ["DJ", "Segurança", "Cachê", "Bar", "Marketing", "Aluguel", "Outros"];
 
 export function QuickEventCostCard({ eventId, eventName }: Props) {
   const { user } = useAuth();
@@ -98,7 +98,7 @@ export function QuickEventCostCard({ eventId, eventName }: Props) {
         </div>
 
         <Button variant="outline" size="sm" onClick={() => setSupplierOpen(true)} className="w-full">
-          <ShoppingBag className="h-4 w-4 mr-1" /> Consumo de fornecedor (abate parcela)
+          <ShoppingBag className="h-4 w-4 mr-1" /> Abater consumo na parcela do investimento
         </Button>
 
         {recent.length > 0 && (
