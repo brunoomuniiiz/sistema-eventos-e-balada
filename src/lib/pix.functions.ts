@@ -101,3 +101,88 @@ export const cancelPixCharge = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Admin: consulta o pagamento no Mercado Pago e devolve o status real.
+ * Não altera nada — só inspeciona. Útil para o painel de conciliação.
+ */
+export const inspectMpForOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const userId = (context as { userId: string }).userId;
+    const ownerId = await getOwnerId(userId);
+
+    const { data: charge } = await supabaseAdmin
+      .from("pix_charges")
+      .select("id, mp_payment_id, status, amount")
+      .eq("order_id", data.orderId)
+      .eq("user_id", ownerId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!charge?.mp_payment_id) {
+      return { found: false as const, reason: "Sem mp_payment_id salvo" };
+    }
+    try {
+      const mp = await getMpPayment(charge.mp_payment_id);
+      return {
+        found: true as const,
+        mp_payment_id: String(mp.id),
+        mp_status: mp.status,
+        mapped: mapMpStatus(mp.status),
+        amount: mp.transaction_amount,
+        local_status: charge.status,
+      };
+    } catch (e) {
+      return { found: false as const, reason: e instanceof Error ? e.message : "Falha MP" };
+    }
+  });
+
+/**
+ * Admin: força reconciliação puxando o status real do MP e aplicando o
+ * mesmo fluxo do webhook (atualiza pix_charges + lojinha_orders + libera reserva).
+ */
+export const reconcileOrderFromMp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const userId = (context as { userId: string }).userId;
+    const ownerId = await getOwnerId(userId);
+
+    const { data: charge } = await supabaseAdmin
+      .from("pix_charges")
+      .select("id, mp_payment_id, user_id, order_id, origin")
+      .eq("order_id", data.orderId)
+      .eq("user_id", ownerId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!charge?.mp_payment_id) throw new Error("Pedido sem mp_payment_id");
+
+    const mp = await getMpPayment(charge.mp_payment_id);
+    const result = await applyMpPaymentToCharge(mp);
+
+    // Mesmo se a cobrança antes estava abandoned/cancelled e o MP aprovou,
+    // garante o pedido marcado como pago.
+    if (mapMpStatus(mp.status) === "approved" && charge.order_id && charge.origin === "lojinha") {
+      const nowIso = new Date().toISOString();
+      await supabaseAdmin
+        .from("lojinha_orders")
+        .update({
+          status: "paid",
+          paid_at: nowIso,
+          mp_payment_id: String(mp.id),
+          reconciled_at: nowIso,
+          reconciled_by: userId,
+          reconciled_note: "Conciliado via painel — pagamento aprovado no Mercado Pago",
+        })
+        .eq("id", charge.order_id)
+        .in("status", ["pending", "abandoned"]);
+    }
+
+    return { ok: true, mp_status: mp.status, applied: result.updated };
+  });
+
