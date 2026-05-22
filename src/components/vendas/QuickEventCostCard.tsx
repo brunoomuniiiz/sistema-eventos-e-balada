@@ -27,6 +27,7 @@ export function QuickEventCostCard({ eventId, eventName }: Props) {
   const [amount, setAmount] = useState(0);
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [supplierOpen, setSupplierOpen] = useState(false);
 
   const { data: recent = [] } = useQuery({
     queryKey: ["event-costs-recent", eventId],
