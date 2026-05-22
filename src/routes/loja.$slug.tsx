@@ -9,8 +9,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
-import { getStorefront, createOrder, type StorefrontProduct } from "@/lojinha/api";
+import { getStorefront, createOrder, findPendingForCustomer, customerAbandonOrder, type StorefrontProduct } from "@/lojinha/api";
 import { getCart, setCart, getCartToken, getCustomer, saveCustomer, resetCart, type CartItem } from "@/lojinha/lib/cart";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/loja/$slug")({
   component: StorefrontPage,
@@ -109,6 +110,12 @@ function StorefrontPage() {
   }
 
 
+  const [pendingPrompt, setPendingPrompt] = useState<null | {
+    order_id: string;
+    total: number;
+    created_at: string;
+  }>(null);
+
   async function handleCheckout() {
     if (!customer.name.trim() || !customer.phone.trim()) {
       toast.error("Preencha nome e WhatsApp");
@@ -117,13 +124,50 @@ function StorefrontPage() {
     saveCustomer(customer);
     setCreating(true);
     try {
+      // 1) Já tem pedido pendente desse telefone? Bloqueia.
+      const existing = await findPendingForCustomer(slug, customer.phone);
+      if (existing.found) {
+        setPendingPrompt({
+          order_id: existing.order_id,
+          total: existing.total,
+          created_at: existing.created_at,
+        });
+        return;
+      }
       const res = await createOrder(slug, token, customer, cart);
-      // Limpa carrinho local (reserva fica até pagar; aqui simplificamos)
       resetCart(slug);
       navigate({ to: "/loja/$slug_/pedido/$orderId", params: { slug, orderId: res.order_id } });
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message ?? "Erro ao criar pedido");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleResumePending() {
+    if (!pendingPrompt) return;
+    const id = pendingPrompt.order_id;
+    setPendingPrompt(null);
+    navigate({ to: "/loja/$slug_/pedido/$orderId", params: { slug, orderId: id } });
+  }
+
+  async function handleAbandonPending() {
+    if (!pendingPrompt) return;
+    setCreating(true);
+    try {
+      const r = await customerAbandonOrder(pendingPrompt.order_id, customer.phone);
+      if (!r.ok) {
+        toast.error("Não foi possível abandonar o pedido anterior");
+        return;
+      }
+      setPendingPrompt(null);
+      // Tenta criar o novo agora
+      const res = await createOrder(slug, token, customer, cart);
+      resetCart(slug);
+      navigate({ to: "/loja/$slug_/pedido/$orderId", params: { slug, orderId: res.order_id } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
     } finally {
       setCreating(false);
     }
@@ -334,6 +378,26 @@ function StorefrontPage() {
       <p className="text-center text-xs text-muted-foreground py-4">
         <Link to="/" className="hover:underline">NightOps Lojinha</Link>
       </p>
+
+      <AlertDialog open={!!pendingPrompt} onOpenChange={(o) => !o && setPendingPrompt(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você já tem um pedido em aberto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Encontramos um pedido de {pendingPrompt ? formatBRL(pendingPrompt.total) : ""} aguardando pagamento neste número de WhatsApp.
+              Deseja continuar pagando esse pedido ou abandonar e fazer um novo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel onClick={() => handleAbandonPending()} disabled={creating}>
+              Abandonar e fazer novo
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleResumePending()} style={{ background: accent }}>
+              Pagar pedido anterior
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
