@@ -58,6 +58,9 @@ type ExpenseRow = {
   description: string | null;
   supplier_name: string | null;
   recurrence: string;
+  installment_index: number | null;
+  installment_total: number | null;
+  is_investment: boolean;
 };
 
 export function ExpensesTab({ kind }: { kind: Kind }) {
@@ -79,7 +82,7 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
       // Busca por competência (reference_month) com fallback para expense_date
       const { data, error } = await supabase
         .from("bar_expenses")
-        .select("id, category_name, amount, paid, paid_at, paid_amount, interest_amount, reference_month, expense_date, payment_method, description, supplier_name, recurrence")
+        .select("id, category_name, amount, paid, paid_at, paid_amount, interest_amount, reference_month, expense_date, payment_method, description, supplier_name, recurrence, installment_index, installment_total, is_investment")
         .eq("kind", kind)
         .or(`and(reference_month.gte.${start},reference_month.lte.${end}),and(reference_month.is.null,expense_date.gte.${start},expense_date.lte.${end})`)
         .order("reference_month", { ascending: false, nullsFirst: false })
@@ -233,9 +236,19 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm">{r.category_name}</span>
+                      {r.installment_index && r.installment_total && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {r.installment_index}/{r.installment_total}
+                        </Badge>
+                      )}
                       {r.recurrence === "monthly" && (
                         <Badge variant="secondary" className="gap-1 text-[10px]">
                           <Repeat className="h-3 w-3" /> mensal
+                        </Badge>
+                      )}
+                      {r.is_investment && (
+                        <Badge className="text-[10px] bg-primary/20 text-primary border-primary/30">
+                          investimento
                         </Badge>
                       )}
                       {r.supplier_name && (
