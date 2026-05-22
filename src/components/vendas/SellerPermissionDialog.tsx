@@ -21,6 +21,7 @@ export type SellerRow = {
   aceita_pix: boolean;
   aceita_cartao: boolean;
   aceita_credito_promoter: boolean;
+  pode_lancar_consumacao: boolean;
   lojinha_can_sell: boolean;
   can_discount: boolean | null;
   max_discount_percent: number | null;
