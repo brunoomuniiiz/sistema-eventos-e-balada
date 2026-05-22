@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowDownRight } from "lucide-react";
 
 const PAYMENTS = [
   { v: "dinheiro", l: "Dinheiro" },
@@ -35,21 +35,46 @@ export function PayExpenseDialog({
   const [paidAmount, setPaidAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("pix");
 
+  const original = Number(expense?.amount ?? 0);
+
+  // Abatimentos lançados para essa despesa (ex: consumo do cara do som)
+  const { data: offsets = [] } = useQuery({
+    queryKey: ["expense-offsets", expense?.id],
+    enabled: open && !!expense?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("expense_offsets")
+        .select("id, amount, description, source_type, created_at")
+        .eq("expense_id", expense!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const offsetsTotal = offsets.reduce((s, o) => s + Number(o.amount), 0);
+  const suggested = Math.max(0, original - offsetsTotal);
+
   useEffect(() => {
     if (open && expense) {
       setPaidAt(new Date().toISOString().slice(0, 10));
-      setPaidAmount(Number(expense.amount));
-      setPaymentMethod(expense.payment_method ?? "pix");
+      setPaymentMethod(
+        expense.payment_method && expense.payment_method !== "a_pagar" ? expense.payment_method : "pix",
+      );
     }
   }, [open, expense]);
 
-  const original = Number(expense?.amount ?? 0);
-  const interest = Math.max(0, paidAmount - original);
+  useEffect(() => {
+    // Atualiza a sugestão quando offsets carregam
+    if (open) setPaidAmount(suggested > 0 ? suggested : original);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, suggested, original]);
+
+  const interest = Math.max(0, paidAmount - suggested);
 
   const save = useMutation({
     mutationFn: async () => {
       if (!expense) throw new Error("Nenhuma despesa");
-      if (paidAmount <= 0) throw new Error("Informe um valor pago válido");
+      if (paidAmount < 0) throw new Error("Valor inválido");
       const { error } = await supabase.from("bar_expenses")
         .update({
           paid: true,
@@ -65,6 +90,7 @@ export function PayExpenseDialog({
       toast.success("Pagamento registrado");
       qc.invalidateQueries({ queryKey: ["bar-expenses"] });
       qc.invalidateQueries({ queryKey: ["bar-expenses-month-summary"] });
+      qc.invalidateQueries({ queryKey: ["bar-expenses-interest-month"] });
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -77,10 +103,31 @@ export function PayExpenseDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Registrar pagamento</DialogTitle>
-          <p className="text-xs text-muted-foreground">{expense.category_name} · Valor original {formatBRL(original)}</p>
+          <p className="text-xs text-muted-foreground">
+            {expense.category_name} · Valor original {formatBRL(original)}
+          </p>
         </DialogHeader>
 
         <div className="space-y-3">
+          {offsets.length > 0 && (
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/30 text-sm space-y-1">
+              <div className="flex items-center gap-2 font-medium text-primary">
+                <ArrowDownRight className="h-4 w-4" />
+                Abatimentos neste compromisso
+              </div>
+              {offsets.map((o) => (
+                <div key={o.id} className="flex justify-between text-xs">
+                  <span className="text-muted-foreground truncate">{o.description ?? o.source_type}</span>
+                  <span className="font-semibold">-{formatBRL(Number(o.amount))}</span>
+                </div>
+              ))}
+              <div className="flex justify-between pt-1 mt-1 border-t border-primary/20 text-xs">
+                <span>Sugestão a pagar</span>
+                <span className="font-bold text-primary">{formatBRL(suggested)}</span>
+              </div>
+            </div>
+          )}
+
           <div>
             <Label>Data do pagamento</Label>
             <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
