@@ -43,6 +43,12 @@ function CupomPage() {
     daily_number: number | null;
     pickup_token: string | null;
     created_at: string;
+    category: string | null;
+    consumacao_target: string | null;
+  };
+  const isConsumacao = sale.category === "consumacao";
+  const TARGET_LABEL: Record<string, string> = {
+    banda: "BANDA", dj: "DJ", seguranca: "SEGURANÇA", funcionario: "FUNCIONÁRIO", sorteio: "SORTEIO",
   };
   const bar = data.bar as { bar_name: string | null } | null;
   const items = data.items as { product_name: string; quantity: number; unit_price: number }[];
