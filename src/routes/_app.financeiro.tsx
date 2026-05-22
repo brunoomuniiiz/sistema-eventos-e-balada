@@ -76,7 +76,7 @@ function FinanceiroPage() {
     },
   });
 
-  // Custos do mês corrente (fixos + variáveis) para o resumo do topo
+  // Custos do mês corrente (fixos + variáveis + juros) para o resumo do topo
   const { data: monthExpenses } = useQuery({
     queryKey: ["bar-expenses-month-summary", ownerId],
     enabled: !!ownerId && can("financeiro"),
@@ -84,18 +84,28 @@ function FinanceiroPage() {
       const d = new Date();
       const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
       const end = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-      const { data, error } = await supabase
-        .from("bar_expenses")
-        .select("kind, amount")
-        .gte("expense_date", start)
-        .lte("expense_date", end);
-      if (error) throw error;
+      const [byCompetence, interestRes] = await Promise.all([
+        supabase
+          .from("bar_expenses")
+          .select("kind, amount, reference_month, expense_date")
+          .or(`and(reference_month.gte.${start},reference_month.lte.${end}),and(reference_month.is.null,expense_date.gte.${start},expense_date.lte.${end})`),
+        supabase
+          .from("bar_expenses")
+          .select("interest_amount")
+          .eq("paid", true)
+          .gt("interest_amount", 0)
+          .gte("paid_at", `${start}T00:00:00`)
+          .lte("paid_at", `${end}T23:59:59`),
+      ]);
+      if (byCompetence.error) throw byCompetence.error;
+      if (interestRes.error) throw interestRes.error;
       let fixed = 0, variable = 0;
-      for (const r of data ?? []) {
+      for (const r of byCompetence.data ?? []) {
         if (r.kind === "fixed") fixed += Number(r.amount);
         else variable += Number(r.amount);
       }
-      return { fixed, variable };
+      const interest = (interestRes.data ?? []).reduce((s, r) => s + Number(r.interest_amount ?? 0), 0);
+      return { fixed, variable, interest };
     },
   });
 
