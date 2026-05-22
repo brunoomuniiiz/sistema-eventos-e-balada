@@ -220,6 +220,7 @@ function FinanceiroPage() {
         <MiniStat icon={Repeat} label="Custos fixos (mês)" value={formatBRL(monthExpenses?.fixed ?? 0)} />
         <MiniStat icon={Receipt} label="Custos variáveis (mês)" value={formatBRL(monthExpenses?.variable ?? 0)} />
         <MiniStat icon={TrendingDown} label="Juros pagos (mês)" value={formatBRL(monthExpenses?.interest ?? 0)} />
+        <MiniStat icon={Sparkles} label="Investimentos pagos (mês)" value={formatBRL(monthExpenses?.investments ?? 0)} />
         <MiniStat
           icon={TrendingUp}
           label="Líquido real (mês)"
