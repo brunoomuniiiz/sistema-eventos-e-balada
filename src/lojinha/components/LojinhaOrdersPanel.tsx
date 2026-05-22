@@ -234,6 +234,28 @@ export function LojinhaOrdersPanel() {
                   </div>
                 </div>
 
+                {o.status === "pending" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/40 hover:bg-destructive/10" disabled={busy === o.id}>
+                        <XCircle className="h-4 w-4 mr-1" /> Cliente abandonou
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Marcar como abandonado?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          O pedido #{String(o.daily_number ?? "").padStart(3, "0")} sairá da lista de pendentes e o estoque será liberado. Ele aparecerá em "Abandonados" pro dono conferir.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleAbandon(o)}>Confirmar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+
                 {isPaid && !o.hasCombo && (
                   <Button
                     size="sm"
