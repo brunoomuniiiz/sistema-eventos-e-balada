@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck } from "lucide-react";
+import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck, Sparkles } from "lucide-react";
 
 export type SellerRow = {
   id: string;
@@ -20,6 +20,7 @@ export type SellerRow = {
   aceita_dinheiro: boolean;
   aceita_pix: boolean;
   aceita_cartao: boolean;
+  aceita_credito_promoter: boolean;
   lojinha_can_sell: boolean;
   can_discount: boolean | null;
   max_discount_percent: number | null;
@@ -51,6 +52,7 @@ type Draft = {
   aceita_dinheiro: boolean;
   aceita_pix: boolean;
   aceita_cartao: boolean;
+  aceita_credito_promoter: boolean;
   can_discount: boolean;
   max_discount_percent: number;
 };
@@ -68,6 +70,7 @@ function initialDraft(r: SellerRow | null): Draft {
     aceita_dinheiro: r?.aceita_dinheiro ?? true,
     aceita_pix: r?.aceita_pix ?? true,
     aceita_cartao: r?.aceita_cartao ?? true,
+    aceita_credito_promoter: r?.aceita_credito_promoter ?? false,
     can_discount: r?.can_discount ?? false,
     max_discount_percent: Number(r?.max_discount_percent ?? 0),
   };
@@ -161,6 +164,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
               <Toggle icon={<Banknote className="h-4 w-4" />} label="Dinheiro" checked={d.aceita_dinheiro} onChange={(v) => set("aceita_dinheiro", v)} />
               <Toggle icon={<QrCode className="h-4 w-4" />} label="Pix" checked={d.aceita_pix} onChange={(v) => set("aceita_pix", v)} />
               <Toggle icon={<CreditCard className="h-4 w-4" />} label="Cartão (débito e crédito)" checked={d.aceita_cartao} onChange={(v) => set("aceita_cartao", v)} />
+              <Toggle icon={<Sparkles className="h-4 w-4" />} label="Crédito promoter" sub="Abater saldo de promoter como pagamento" checked={d.aceita_credito_promoter} onChange={(v) => set("aceita_credito_promoter", v)} />
             </Section>
 
             <Separator />
