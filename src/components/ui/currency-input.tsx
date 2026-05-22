@@ -1,4 +1,4 @@
-import { useEffect, useState, forwardRef } from "react";
+import { useEffect, useRef, useState, forwardRef } from "react";
 import { Input } from "@/components/ui/input";
 
 interface CurrencyInputProps {
@@ -23,8 +23,10 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
     { value, onChange, autoFocus, className, disabled, placeholder, id },
     ref,
   ) {
-    // internal cents (integer)
     const [cents, setCents] = useState<number>(Math.round((value || 0) * 100));
+    // Quando o input acabou de receber foco, o próximo dígito digitado SUBSTITUI o valor
+    // ao invés de empilhar. Resolve o caso "clicar em 370 e digitar 400 deveria virar 400".
+    const replaceOnNext = useRef(false);
 
     useEffect(() => {
       const incoming = Math.round((value || 0) * 100);
@@ -40,27 +42,29 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Backspace") {
         e.preventDefault();
+        replaceOnNext.current = false;
         update(Math.floor(cents / 10));
         return;
       }
       if (e.key >= "0" && e.key <= "9") {
         e.preventDefault();
         const digit = Number(e.key);
-        const next = cents * 10 + digit;
-        // cap (R$ 99.999.999,99)
+        const base = replaceOnNext.current ? 0 : cents;
+        replaceOnNext.current = false;
+        const next = base * 10 + digit;
         if (next > 9_999_999_999) return;
         update(next);
       }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      // fallback for mobile: extract digits
       const digits = e.target.value.replace(/\D/g, "");
       if (digits === "") {
         update(0);
         return;
       }
       const next = Math.min(parseInt(digits, 10), 9_999_999_999);
+      replaceOnNext.current = false;
       update(next);
     };
 
@@ -78,11 +82,14 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         onKeyDown={handleKeyDown}
         onChange={handleChange}
         onFocus={(e) => {
-          // Select all so digitar substitui o valor inteiro (UX pedida: clicar em 370 e digitar 400 vira 400)
+          replaceOnNext.current = true;
           const el = e.target;
           requestAnimationFrame(() => {
             try { el.select(); } catch { /* noop */ }
           });
+        }}
+        onBlur={() => {
+          replaceOnNext.current = false;
         }}
       />
     );
