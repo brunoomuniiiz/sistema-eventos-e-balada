@@ -230,17 +230,17 @@ export function PurchaseSheet({
       }
 
       const { error } = await supabase.rpc("register_stock_purchase", {
-        _supplier_id: finalSupplierId,
-        _supplier_name: finalSupplierName,
+        _supplier_id: finalSupplierId as never,
+        _supplier_name: finalSupplierName as never,
         _location_id: defaultLoc.id,
         _items: cart as never,
-        _expense_category_id: finalCategoryId,
+        _expense_category_id: finalCategoryId as never,
         _expense_category_name: finalCategoryName,
         _payment_method: paymentMethod,
         _paid: paid,
         _expense_date: expenseDate,
-        _due_date: paid ? null : (dueDate || null),
-        _notes: notes.trim() || null,
+        _due_date: (paid ? null : (dueDate || null)) as never,
+        _notes: (notes.trim() || null) as never,
       });
       if (error) throw error;
 
