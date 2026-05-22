@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getMpPayment } from "@/lib/mp.server";
+import { applyMpPaymentToCharge, getMpPayment } from "@/lib/mp.server";
 
 /**
  * Webhook do Mercado Pago.
@@ -31,7 +30,6 @@ export const Route = createFileRoute("/api/public/mp-webhook")({
         const xReq = request.headers.get("x-request-id") || "";
 
         if (secret && xSig) {
-          // parse "ts=...,v1=..."
           const parts = Object.fromEntries(
             xSig.split(",").map((kv) => {
               const [k, ...rest] = kv.trim().split("=");
@@ -56,7 +54,6 @@ export const Route = createFileRoute("/api/public/mp-webhook")({
           }
         }
 
-        // Busca o pagamento real no MP (fonte da verdade)
         let mp;
         try {
           mp = await getMpPayment(dataId);
@@ -65,53 +62,10 @@ export const Route = createFileRoute("/api/public/mp-webhook")({
           return new Response("ok", { status: 200 });
         }
 
-        const mapStatus = (s: string): "approved" | "rejected" | "pending" | "cancelled" => {
-          if (s === "approved" || s === "authorized") return "approved";
-          if (s === "rejected" || s === "cancelled" || s === "refunded" || s === "charged_back")
-            return "rejected";
-          return "pending";
-        };
-        const newStatus = mapStatus(mp.status);
-
-        const update: {
-          status: string;
-          updated_at: string;
-          paid_at?: string;
-          error_message?: string;
-        } = {
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-        };
-        if (newStatus === "approved") update.paid_at = new Date().toISOString();
-        if (newStatus === "rejected") update.error_message = mp.status_detail;
-
-        const { data: updated, error } = await supabaseAdmin
-          .from("pix_charges")
-          .update(update)
-          .eq("mp_payment_id", String(mp.id))
-          .select("id, order_id, origin")
-          .maybeSingle();
-        if (error) console.error("[mp-webhook] update error", error);
-
-        // Se foi aprovado e a cobrança está vinculada a um pedido da Lojinha,
-        // marca o pedido como pago (dispara a entrega de QR codes).
-        if (newStatus === "approved" && updated?.order_id && updated.origin === "lojinha") {
-          const { error: orderErr } = await supabaseAdmin
-            .from("lojinha_orders")
-            .update({ status: "paid", paid_at: new Date().toISOString(), mp_payment_id: String(mp.id) })
-            .eq("id", updated.order_id)
-            .in("status", ["pending"]);
-          if (orderErr) console.error("[mp-webhook] order update error", orderErr);
+        const result = await applyMpPaymentToCharge(mp);
+        if (!result.updated) {
+          console.warn("[mp-webhook] cobrança não encontrada para mp_payment_id", mp.id);
         }
-
-        // Libera a reserva de estoque do checkout em qualquer desfecho diferente de pending.
-        if (newStatus !== "pending" && updated?.order_id && updated.origin === "lojinha") {
-          const { error: relErr } = await supabaseAdmin.rpc("lojinha_release_order_reservation", {
-            _order_id: updated.order_id,
-          });
-          if (relErr) console.error("[mp-webhook] release reservation error", relErr);
-        }
-
 
         return new Response("ok", { status: 200 });
       },
