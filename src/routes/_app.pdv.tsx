@@ -54,7 +54,7 @@ type CartItem = {
 
 export function PdvView() {
   const { user } = useAuth();
-  const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, acceptedMethods, canPromoterCredit, loading } = usePermissions();
+  const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, acceptedMethods, canPromoterCredit, canConsumacao, loading } = usePermissions();
   const qc = useQueryClient();
 
   const [cart, setCart] = useState<CartItem[]>([]);
