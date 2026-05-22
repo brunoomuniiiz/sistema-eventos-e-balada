@@ -115,6 +115,7 @@ export function QuickEventCostCard({ eventId, eventName }: Props) {
           </div>
         )}
       </CardContent>
+      <SupplierConsumptionSheet open={supplierOpen} onOpenChange={setSupplierOpen} eventId={eventId} />
     </Card>
   );
 }
