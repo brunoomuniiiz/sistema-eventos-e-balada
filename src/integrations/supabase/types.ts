@@ -97,13 +97,16 @@ export type Database = {
           due_date: string | null
           expense_date: string
           id: string
+          interest_amount: number
           kind: string
           notes: string | null
           paid: boolean
+          paid_amount: number | null
           paid_at: string | null
           payment_method: string | null
           recurrence: string
           recurrence_parent_id: string | null
+          reference_month: string | null
           supplier_id: string | null
           supplier_name: string | null
           updated_at: string
@@ -119,13 +122,16 @@ export type Database = {
           due_date?: string | null
           expense_date?: string
           id?: string
+          interest_amount?: number
           kind: string
           notes?: string | null
           paid?: boolean
+          paid_amount?: number | null
           paid_at?: string | null
           payment_method?: string | null
           recurrence?: string
           recurrence_parent_id?: string | null
+          reference_month?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           updated_at?: string
@@ -141,13 +147,16 @@ export type Database = {
           due_date?: string | null
           expense_date?: string
           id?: string
+          interest_amount?: number
           kind?: string
           notes?: string | null
           paid?: boolean
+          paid_amount?: number | null
           paid_at?: string | null
           payment_method?: string | null
           recurrence?: string
           recurrence_parent_id?: string | null
+          reference_month?: string | null
           supplier_id?: string | null
           supplier_name?: string | null
           updated_at?: string
