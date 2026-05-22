@@ -70,6 +70,8 @@ export function PdvView() {
   const [searchQ, setSearchQ] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [pixOpen, setPixOpen] = useState(false);
+  const [promoterPickerOpen, setPromoterPickerOpen] = useState(false);
+  const [promoterPickerMax, setPromoterPickerMax] = useState(0);
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
