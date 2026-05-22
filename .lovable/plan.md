@@ -1,54 +1,38 @@
-## Diagnóstico confirmado
+## O que encontrei
 
-O PIX de R$ 2 foi aprovado no Mercado Pago, mas ficou `pending` no app:
-
-- `mp_payment_id`: `159808142013`
-- Mercado Pago: `approved / accredited`
-- Banco do app: `pix_charges.status = pending`
-- Pedido: `lojinha_orders.status = pending`
-
-Isso indica que o webhook não está atualizando a cobrança/pedido. A tela de sucesso depende do pedido virar `paid`, então ela nunca apareceu.
+- A compra de R$ 0,05 criou uma cobrança PIX (`160597013162`) e o app ficou consultando apenas o banco. Como o webhook não atualizou, a tela nunca virou “pagamento confirmado”.
+- O fallback que consulta o Mercado Pago direto foi adicionado só no PIX público da lojinha; o PIX autenticado do PDV/garçom ainda não faz essa conciliação automática.
+- O pedido conciliado saiu de “Abandonados” porque o painel esconde conciliados por padrão, mas ele não entrou no histórico porque continuou com status `abandoned`. Hoje “Apenas marcar” só marca conferido, não transforma em pago.
+- O botão flutuante “Ver como” usa `z-index` alto e fica por cima do carrinho do PDV/garçom.
+- A lojinha online voltou a listar os produtos, mas o PIX pode não abrir por erro na criação da cobrança/reserva ou porque a UI só mostra um card genérico, sem detalhe persistente.
 
 ## Plano de correção
 
-### 1. Corrigir agora o pedido pago de R$ 2
-- Atualizar a cobrança `159808142013` para `approved`.
-- Atualizar o pedido vinculado para `paid`, com `paid_at` e `mp_payment_id`.
-- Liberar a reserva de estoque do pedido.
-- Isso deve fazer a página do pedido mostrar a tela de pagamento confirmado.
+1. Corrigir confirmação automática do PIX no PDV e no balcão/garçom
+   - Atualizar `getPixChargeStatus` para, quando a cobrança estiver `pending`, consultar o Mercado Pago pelo `mp_payment_id`.
+   - Se o Mercado Pago retornar aprovado, aplicar a mesma rotina do webhook e devolver `approved` para a tela virar “Pagamento confirmado”.
+   - Se retornar rejeitado/cancelado, refletir isso na tela em vez de ficar parado.
 
-### 2. Criar fallback de conciliação automática na tela do pedido
-- No `getPublicPixChargeStatus`, além de ler o banco, consultar o Mercado Pago quando a cobrança ainda estiver `pending`.
-- Se o Mercado Pago disser `approved`, aplicar a mesma lógica do webhook:
-  - marcar `pix_charges` como `approved`
-  - marcar `lojinha_orders` como `paid`
-  - gravar `paid_at`
-  - liberar reserva
-- Assim, mesmo que o webhook falhe, o polling da própria tela confirma o pagamento.
+2. Ajustar pedidos conciliados para não “sumirem”
+   - Separar claramente duas ações em “Abandonados”:
+     - “Apenas marcar conferido”: mantém abandonado e só some quando “Ocultar conciliados” estiver ativo.
+     - “Conciliar como pago”: só quando o Mercado Pago estiver aprovado, muda o pedido para `paid`, preenche `paid_at/mp_payment_id`, e ele aparece em “Pedidos” e depois no “Histórico”.
+   - Corrigir o pedido de R$ 2 já aprovado no Mercado Pago que ficou `abandoned`, mudando para `paid` com o `mp_payment_id` correto para aparecer novamente.
 
-### 3. Corrigir o webhook para pedidos da lojinha
-- Extrair a lógica de “pagamento aprovado” para um helper reutilizável, evitando diferença entre webhook e fallback.
-- Garantir que o webhook também libere reserva e atualize pedido quando `origin = lojinha`.
-- Melhorar logs quando o webhook recebe evento mas não atualiza nenhuma cobrança.
+3. Tornar o PIX da lojinha online mais resiliente e visível
+   - Mostrar o erro real quando o PIX não abre, com botão “Tentar gerar PIX novamente”.
+   - Evitar tela silenciosa caso a cobrança seja criada sem QR/copia-e-cola.
+   - Manter a expiração de 24h para pedidos online.
 
-### 4. Aumentar expiração do PIX
-- Mudar o padrão de `createMpPixPayment` de 30 minutos para 24 horas, ou definir explicitamente no PIX da lojinha.
-- Minha recomendação: **24h para lojinha online** e manter **30min no PDV**, porque PDV é venda presencial.
+4. Corrigir “Ver como” sobrepondo o carrinho
+   - Reposicionar o botão “Ver como” quando houver carrinho aberto/ativo no mobile, ou reduzir sua prioridade visual para não cobrir o checkout.
+   - Priorizar o carrinho e botões de cobrança acima do “Ver como”.
 
-### 5. Adicionar conciliação manual no admin
-- No painel de pedidos/abandonados da lojinha, exibir cobranças pendentes/abandonadas com `mp_payment_id`.
-- Adicionar botão “Verificar Mercado Pago”.
-- Se o pagamento estiver aprovado no Mercado Pago, liberar botão “Conciliar como pago”.
-- Isso resolve casos em que o cliente pagou, saiu da tela, ou o webhook caiu.
+5. Verificação final
+   - Conferir no banco os pedidos recentes e PIX recentes.
+   - Validar que o polling do PIX autenticado agora reconcilia com Mercado Pago.
+   - Validar que o pedido conciliado como pago aparece em “Pedidos/Histórico” e que o carrinho não fica atrás do “Ver como”.
 
-### 6. Produtos novos da lojinha
-- Ajustar `lojinha_get_storefront`: produtos sem linha em `product_stock` na location da lojinha não devem sumir como estoque zero automaticamente.
-- Para produto sem controle real de estoque ou sem registro de estoque, tratar como disponível.
-- Manter quantidade real para itens que têm estoque cadastrado.
+## Observação importante
 
-## Resultado esperado
-
-- O pedido de R$ 2 entra como pago agora.
-- Próximos PIX pagos aparecem como sucesso mesmo se o webhook atrasar/falhar.
-- Você terá uma tela para reconciliar manualmente pagamentos aprovados no Mercado Pago.
-- Produtos novos aparecem na lojinha online quando estiverem marcados como visíveis.
+Também recomendo configurar/conferir o webhook do Mercado Pago apontando para `/api/public/mp-webhook`; mesmo com o fallback corrigido, o webhook é o caminho principal para atualizar pagamentos sem depender do usuário manter a tela aberta.
