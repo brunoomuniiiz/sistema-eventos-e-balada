@@ -207,10 +207,16 @@ function FinanceiroPage() {
         <MiniStat icon={ShoppingBag} label="Eventos com lançamento" value={String(rows.length)} />
         <MiniStat icon={Repeat} label="Custos fixos (mês)" value={formatBRL(monthExpenses?.fixed ?? 0)} />
         <MiniStat icon={Receipt} label="Custos variáveis (mês)" value={formatBRL(monthExpenses?.variable ?? 0)} />
+        <MiniStat icon={TrendingDown} label="Juros pagos (mês)" value={formatBRL(monthExpenses?.interest ?? 0)} />
         <MiniStat
           icon={TrendingUp}
           label="Líquido real (mês)"
-          value={formatBRL(totals.net - (monthExpenses?.fixed ?? 0) - (monthExpenses?.variable ?? 0))}
+          value={formatBRL(
+            totals.net
+              - (monthExpenses?.fixed ?? 0)
+              - (monthExpenses?.variable ?? 0)
+              - (monthExpenses?.interest ?? 0),
+          )}
         />
       </div>
 
