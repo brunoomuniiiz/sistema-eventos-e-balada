@@ -48,6 +48,19 @@ export function EventCostsManager({ eventId }: { eventId: string }) {
     },
   });
 
+  const { data: consumacao } = useQuery({
+    queryKey: ["event-consumacao-dre", eventId],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_event_consumacao" as never, { _event_id: eventId } as never);
+      if (error) throw error;
+      return data as unknown as {
+        by_target: Array<{ target: string; qty: number; cost: number; retail: number }>;
+        totals: { qty: number; cost: number; retail: number };
+      } | null;
+    },
+  });
+
   const addMut = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
