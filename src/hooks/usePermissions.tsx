@@ -120,6 +120,7 @@ export function usePermissions() {
     aceitaCartao,
     aceitaCreditoPromoter,
     canPromoterCredit: aceitaCreditoPromoter,
+    canConsumacao,
     canAddProducts,
     lojinhaCanSell,
     lojinhaPaymentMethods,
