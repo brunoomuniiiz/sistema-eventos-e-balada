@@ -84,10 +84,10 @@ function FinanceiroPage() {
       const d = new Date();
       const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
       const end = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-      const [byCompetence, interestRes] = await Promise.all([
+      const [byCompetence, interestRes, investRes] = await Promise.all([
         supabase
           .from("bar_expenses")
-          .select("kind, amount, reference_month, expense_date")
+          .select("kind, amount, reference_month, expense_date, is_investment")
           .or(`and(reference_month.gte.${start},reference_month.lte.${end}),and(reference_month.is.null,expense_date.gte.${start},expense_date.lte.${end})`),
         supabase
           .from("bar_expenses")
@@ -96,16 +96,28 @@ function FinanceiroPage() {
           .gt("interest_amount", 0)
           .gte("paid_at", `${start}T00:00:00`)
           .lte("paid_at", `${end}T23:59:59`),
+        supabase
+          .from("bar_expenses")
+          .select("paid_amount, amount")
+          .eq("is_investment", true)
+          .eq("paid", true)
+          .gte("paid_at", `${start}T00:00:00`)
+          .lte("paid_at", `${end}T23:59:59`),
       ]);
       if (byCompetence.error) throw byCompetence.error;
       if (interestRes.error) throw interestRes.error;
+      if (investRes.error) throw investRes.error;
       let fixed = 0, variable = 0;
       for (const r of byCompetence.data ?? []) {
+        if (r.is_investment) continue; // investimentos não entram no custo do mês
         if (r.kind === "fixed") fixed += Number(r.amount);
         else variable += Number(r.amount);
       }
       const interest = (interestRes.data ?? []).reduce((s, r) => s + Number(r.interest_amount ?? 0), 0);
-      return { fixed, variable, interest };
+      const investments = (investRes.data ?? []).reduce(
+        (s, r) => s + Number(r.paid_amount ?? r.amount ?? 0), 0,
+      );
+      return { fixed, variable, interest, investments };
     },
   });
 
