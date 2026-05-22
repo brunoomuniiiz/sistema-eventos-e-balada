@@ -156,18 +156,31 @@ function PixCheckoutPanel({ orderId, onPaid }: { orderId: string; onPaid: () => 
   const [simulating, setSimulating] = useState(false);
   const [charge, setCharge] = useState<Charge | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
-  const startedRef = useRef(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
+    let cancelled = false;
+    setLoading(true);
+    setErrorMsg(null);
     create({ data: { orderId } })
-      .then((c) => setCharge(c as Charge))
-      .catch((e: Error) => toast.error(e.message || "Falha ao gerar PIX"))
-      .finally(() => setLoading(false));
-  }, [orderId, create]);
+      .then((c) => {
+        if (cancelled) return;
+        setCharge(c as Charge);
+      })
+      .catch((e: Error) => {
+        if (cancelled) return;
+        const msg = e.message || "Falha ao gerar PIX";
+        setErrorMsg(msg);
+        toast.error(msg);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [orderId, create, attempt]);
 
   // Polling de status
   useEffect(() => {
@@ -215,12 +228,34 @@ function PixCheckoutPanel({ orderId, onPaid }: { orderId: string; onPaid: () => 
     );
   }
 
-  if (!charge) {
+  if (!charge || (errorMsg && !charge)) {
     return (
       <Card className="border-destructive/40 bg-destructive/5">
-        <CardContent className="p-4">
+        <CardContent className="p-4 space-y-3">
           <div className="font-medium">Não foi possível gerar o PIX</div>
-          <p className="text-xs text-muted-foreground">Atualize a página para tentar novamente.</p>
+          {errorMsg && (
+            <p className="text-xs text-muted-foreground break-words">{errorMsg}</p>
+          )}
+          <Button size="sm" className="w-full" onClick={() => setAttempt((n) => n + 1)}>
+            Tentar gerar novamente
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            Se persistir, recarregue a página ou avise o estabelecimento.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!charge.qr_code && !charge.qr_code_base64) {
+    return (
+      <Card className="border-destructive/40 bg-destructive/5">
+        <CardContent className="p-4 space-y-3">
+          <div className="font-medium">PIX gerado, mas sem QR</div>
+          <p className="text-xs text-muted-foreground">A conta do Mercado Pago precisa de uma chave PIX habilitada. Tente de novo em alguns instantes.</p>
+          <Button size="sm" className="w-full" onClick={() => setAttempt((n) => n + 1)}>
+            Tentar novamente
+          </Button>
         </CardContent>
       </Card>
     );
