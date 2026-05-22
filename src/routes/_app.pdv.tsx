@@ -654,6 +654,20 @@ export function PdvView() {
               onChange={setPayments}
               canSellCash={canSellCash}
               acceptedMethods={acceptedMethods}
+              canPromoterCredit={canPromoterCredit}
+              onPickPromoterCredit={(max) => {
+                setPromoterPickerMax(max);
+                setPromoterPickerOpen(true);
+              }}
+            />
+
+            <PromoterCreditPicker
+              open={promoterPickerOpen}
+              onOpenChange={setPromoterPickerOpen}
+              maxAmount={promoterPickerMax}
+              onPick={(promoter_id, promoter_name, amount) => {
+                setPayments([...payments, { method: "promoter_credit", amount, promoter_id, promoter_name }]);
+              }}
             />
           </div>
 
