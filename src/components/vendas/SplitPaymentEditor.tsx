@@ -63,6 +63,12 @@ export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acc
 
   const pickMethod = (method: PaymentMethod) => {
     if (wizardAmount <= 0) return;
+    if (method === "promoter_credit") {
+      // delega para o parent abrir o picker de promoter
+      onPickPromoterCredit?.(wizardAmount);
+      closeWizard();
+      return;
+    }
     onChange([...payments, { method, amount: +wizardAmount.toFixed(2) }]);
     closeWizard();
   };
@@ -73,6 +79,7 @@ export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acc
 
   const availableMethods = METHODS.filter((m) => {
     if (m.key === "dinheiro" && !canSellCash) return false;
+    if (m.key === "promoter_credit") return !!canPromoterCredit;
     if (acceptedMethods && !acceptedMethods.includes(m.key)) return false;
     return true;
   });
