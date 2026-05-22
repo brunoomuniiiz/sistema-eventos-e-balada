@@ -54,6 +54,7 @@ type Draft = {
   aceita_pix: boolean;
   aceita_cartao: boolean;
   aceita_credito_promoter: boolean;
+  pode_lancar_consumacao: boolean;
   can_discount: boolean;
   max_discount_percent: number;
 };
