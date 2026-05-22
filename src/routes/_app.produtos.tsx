@@ -469,7 +469,18 @@ function ProdutosPage() {
     );
   };
 
-  const list = tab === "simple" ? simpleProducts : comboProducts;
+  const baseList = tab === "simple" ? simpleProducts : comboProducts;
+  const list = useMemo(() => {
+    const s = query.trim().toLowerCase();
+    if (!s) return baseList;
+    const cats = new Map(categories.map((c) => [c.id, c.name.toLowerCase()]));
+    return baseList.filter((p) => {
+      const catName = p.category_id ? (cats.get(p.category_id) ?? "") : "";
+      return p.name.toLowerCase().includes(s)
+        || (p.unit ?? "").toLowerCase().includes(s)
+        || catName.includes(s);
+    });
+  }, [baseList, query, categories]);
   const onlineCount = list.filter((p) => p.sell_online !== false).length;
 
   return (
@@ -478,11 +489,18 @@ function ProdutosPage() {
         title="Produtos"
         subtitle="Cadastro de bebidas, comidas e combos"
         actions={
-          canAddProducts ? (
-            <Button onClick={() => openNew(tab)}>
-              <Plus className="h-4 w-4" /> Novo {tab === "combo" ? "combo" : "produto"}
-            </Button>
-          ) : null
+          <div className="flex items-center gap-2">
+            {canAddProducts && (
+              <Button variant="outline" onClick={() => setPurchaseOpen(true)}>
+                <ShoppingCart className="h-4 w-4" /> Registrar compra
+              </Button>
+            )}
+            {canAddProducts && (
+              <Button onClick={() => openNew(tab)}>
+                <Plus className="h-4 w-4" /> Novo {tab === "combo" ? "combo" : "produto"}
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -495,6 +513,26 @@ function ProdutosPage() {
         <TabsContent value="combo" />
       </Tabs>
 
+      <div className="mb-3 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          className="pl-9"
+          placeholder="Buscar por nome, categoria ou unidade..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label="Limpar busca"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
         <Store className="h-3.5 w-3.5 text-emerald-500" />
         <span>
@@ -506,7 +544,7 @@ function ProdutosPage() {
       {list.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">
           <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
-          Nenhum {tab === "combo" ? "combo" : "produto"} cadastrado
+          {query ? `Nenhum resultado para "${query}"` : `Nenhum ${tab === "combo" ? "combo" : "produto"} cadastrado`}
         </CardContent></Card>
       ) : (
         <div className="grid gap-3">{list.map(renderCard)}</div>
