@@ -228,7 +228,7 @@ export function LojinhaAbandonedPanel() {
                     </>
                   )}
                   <Button size="sm" variant="outline" onClick={() => { setEditing(o); setNote(""); }}>
-                    <CheckCircle2 className="h-3 w-3 mr-1" /> Apenas marcar
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar conferido
                   </Button>
                 </div>
               )}
