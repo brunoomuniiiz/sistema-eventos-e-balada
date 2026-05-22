@@ -118,7 +118,10 @@ export function LiveDashboardPanel() {
       </Card>
 
       {openEvent && (
-        <QuickEventCostCard eventId={openEvent.id} eventName={openEvent.name} />
+        <>
+          <QuickEventCostCard eventId={openEvent.id} eventName={openEvent.name} />
+          <ConsumacaoLivePanel eventId={openEvent.id} eventName={openEvent.name} />
+        </>
       )}
 
 
