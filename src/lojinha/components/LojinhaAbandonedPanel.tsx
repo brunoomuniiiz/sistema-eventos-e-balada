@@ -36,6 +36,9 @@ export function LojinhaAbandonedPanel() {
   const [showReconciled, setShowReconciled] = useState(false);
   const [editing, setEditing] = useState<AbandonedOrder | null>(null);
   const [note, setNote] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const inspect = useServerFn(inspectMpForOrder);
+  const reconcileFromMp = useServerFn(reconcileOrderFromMp);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["lojinha-abandoned", user?.id, showReconciled],
