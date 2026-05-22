@@ -48,7 +48,7 @@ function VendasPage() {
 
   const showPdvCaixa = canPdvCaixa;
   const showPdvGarcom = canVenderGarcom;
-  const defaultTab = showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : canValidarQr ? "scanner" : canVerPedidos ? "pedidos" : "historico";
+  const defaultTab = isManager ? "painel" : showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : canValidarQr ? "scanner" : canVerPedidos ? "pedidos" : "historico";
   const currentTab = tab ?? defaultTab;
 
   return (
@@ -60,6 +60,8 @@ function VendasPage() {
         className="space-y-4"
       >
         <TabsList className="flex-wrap h-auto">
+          {isManager && <TabsTrigger value="painel"><Activity className="h-4 w-4 mr-1.5" /> Painel ao vivo</TabsTrigger>}
+          {isManager && <TabsTrigger value="caixas"><Wallet className="h-4 w-4 mr-1.5" /> Caixas</TabsTrigger>}
           {showPdvCaixa && <TabsTrigger value="pdv"><ShoppingCart className="h-4 w-4 mr-1.5" /> PDV Caixa</TabsTrigger>}
           {showPdvGarcom && <TabsTrigger value="vender"><Store className="h-4 w-4 mr-1.5" /> Vender (garçom)</TabsTrigger>}
           {canValidarQr && <TabsTrigger value="scanner"><ScanLine className="h-4 w-4 mr-1.5" /> Validar QR</TabsTrigger>}
@@ -70,6 +72,9 @@ function VendasPage() {
           {isOwner && <TabsTrigger value="devices"><Smartphone className="h-4 w-4 mr-1.5" /> Maquininhas</TabsTrigger>}
           {isOwner && <TabsTrigger value="config"><Settings className="h-4 w-4 mr-1.5" /> Configuração</TabsTrigger>}
         </TabsList>
+
+        {isManager && <TabsContent value="painel"><LiveDashboardPanel /></TabsContent>}
+        {isManager && <TabsContent value="caixas"><CaixasAdminPanel /></TabsContent>}
 
         {showPdvCaixa && (
           <TabsContent value="pdv">
