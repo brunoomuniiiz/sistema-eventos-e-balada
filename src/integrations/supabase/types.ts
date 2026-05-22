@@ -97,7 +97,11 @@ export type Database = {
           due_date: string | null
           expense_date: string
           id: string
+          installment_group_id: string | null
+          installment_index: number | null
+          installment_total: number | null
           interest_amount: number
+          is_investment: boolean
           kind: string
           notes: string | null
           paid: boolean
@@ -122,7 +126,11 @@ export type Database = {
           due_date?: string | null
           expense_date?: string
           id?: string
+          installment_group_id?: string | null
+          installment_index?: number | null
+          installment_total?: number | null
           interest_amount?: number
+          is_investment?: boolean
           kind: string
           notes?: string | null
           paid?: boolean
@@ -147,7 +155,11 @@ export type Database = {
           due_date?: string | null
           expense_date?: string
           id?: string
+          installment_group_id?: string | null
+          installment_index?: number | null
+          installment_total?: number | null
           interest_amount?: number
+          is_investment?: boolean
           kind?: string
           notes?: string | null
           paid?: boolean
@@ -818,6 +830,53 @@ export type Database = {
           whatsapp_group_url?: string | null
         }
         Relationships: []
+      }
+      expense_offsets: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expense_id: string
+          id: string
+          reference_month: string | null
+          source_id: string | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expense_id: string
+          id?: string
+          reference_month?: string | null
+          source_id?: string | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expense_id?: string
+          id?: string
+          reference_month?: string | null
+          source_id?: string | null
+          source_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_offsets_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "bar_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guest_list_entries: {
         Row: {
