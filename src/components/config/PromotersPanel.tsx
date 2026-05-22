@@ -306,15 +306,19 @@ function PromoterHistoryDialog({ promoter, onOpenChange }: { promoter: Promoter 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("promoter_credits")
-        .select("id, amount, source, status, gender, created_at, event_id, events:event_id(name)")
+        .select("id, amount, source, status, gender, created_at, event_id")
         .eq("promoter_id", promoter!.id)
         .order("created_at", { ascending: false })
         .limit(80);
       if (error) throw error;
-      return data as Array<{
-        id: string; amount: number; source: string; status: string; gender: string | null;
-        created_at: string; event_id: string; events: { name: string } | null;
-      }>;
+      const rows = data ?? [];
+      const eventIds = Array.from(new Set(rows.map((r) => r.event_id))).filter(Boolean);
+      let map: Record<string, string> = {};
+      if (eventIds.length > 0) {
+        const { data: evs } = await supabase.from("events").select("id, name").in("id", eventIds);
+        map = Object.fromEntries((evs ?? []).map((e) => [e.id, e.name]));
+      }
+      return rows.map((r) => ({ ...r, event_name: map[r.event_id] ?? null }));
     },
   });
 
@@ -353,7 +357,7 @@ function PromoterHistoryDialog({ promoter, onOpenChange }: { promoter: Promoter 
                   {c.status}
                 </Badge>
                 <span className="flex-1 truncate text-xs text-muted-foreground">
-                  {c.events?.name ?? "—"} · {c.source}{c.gender ? ` · ${c.gender}` : ""}
+                  {c.event_name ?? "—"} · {c.source}{c.gender ? ` · ${c.gender}` : ""}
                 </span>
                 <span className="text-[11px] text-muted-foreground whitespace-nowrap">
                   {format(new Date(c.created_at), "dd/MM HH:mm", { locale: ptBR })}
