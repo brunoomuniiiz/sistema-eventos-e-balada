@@ -22,6 +22,7 @@ import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
 import { WithdrawalDialog } from "@/components/vendas/WithdrawalDialog";
 import { SplitPaymentEditor, isSplitValid, dominantMethod, type PaymentLine } from "@/components/vendas/SplitPaymentEditor";
 import { PixQrDialog } from "@/components/vendas/PixQrDialog";
+import { PromoterCreditPicker } from "@/components/vendas/PromoterCreditPicker";
 import { useQuery as useQueryRQ } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_app/pdv")({
@@ -52,7 +53,7 @@ type CartItem = {
 
 export function PdvView() {
   const { user } = useAuth();
-  const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, acceptedMethods, loading } = usePermissions();
+  const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, acceptedMethods, canPromoterCredit, loading } = usePermissions();
   const qc = useQueryClient();
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -69,6 +70,8 @@ export function PdvView() {
   const [searchQ, setSearchQ] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [pixOpen, setPixOpen] = useState(false);
+  const [promoterPickerOpen, setPromoterPickerOpen] = useState(false);
+  const [promoterPickerMax, setPromoterPickerMax] = useState(0);
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
@@ -295,20 +298,38 @@ export function PdvView() {
       if (itemsErr) throw itemsErr;
 
       let remaining = total;
-      const payRows: { user_id: string; sale_id: string; method: string; amount: number }[] = [];
+      const payRows: { user_id: string; sale_id: string; method: string; amount: number; promoter_id?: string }[] = [];
       const ordered = [...payments].sort((a, b) =>
         a.method === "dinheiro" ? 1 : b.method === "dinheiro" ? -1 : 0
       );
       for (const p of ordered) {
         const amt = p.method === "dinheiro" ? Math.min(p.amount, Math.max(0, remaining)) : p.amount;
         if (amt > 0) {
-          payRows.push({ user_id: ownerId, sale_id: sale.id, method: p.method, amount: +amt.toFixed(2) });
+          payRows.push({
+            user_id: ownerId,
+            sale_id: sale.id,
+            method: p.method,
+            amount: +amt.toFixed(2),
+            ...(p.promoter_id ? { promoter_id: p.promoter_id } : {}),
+          });
           remaining = +(remaining - amt).toFixed(2);
         }
       }
       if (payRows.length > 0) {
         const { error: payErr } = await supabase.from("sale_payments").insert(payRows);
         if (payErr) throw payErr;
+      }
+
+      // Registra consumo de crédito para cada linha promoter_credit
+      for (const p of payments) {
+        if (p.method === "promoter_credit" && p.promoter_id && p.amount > 0) {
+          const { error: rErr } = await supabase.rpc("redeem_promoter_credit", {
+            _promoter_id: p.promoter_id,
+            _sale_id: sale.id,
+            _amount: p.amount,
+          });
+          if (rErr) throw rErr;
+        }
       }
 
       const dailyNo = (sale as { daily_number?: number | null }).daily_number ?? null;

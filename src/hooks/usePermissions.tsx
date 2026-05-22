@@ -33,7 +33,7 @@ export function usePermissions() {
       if (!user) return null;
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash, can_authorize, role_preset, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_pedidos, vendas_historico, vendas_fechamento, vendas_abre_caixa, vendas_sangria")
+        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash, can_authorize, role_preset, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao, aceita_credito_promoter, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_pedidos, vendas_historico, vendas_fechamento, vendas_abre_caixa, vendas_sangria")
         .eq("user_id", user.id);
       if (error) throw error;
       if (!data || data.length === 0) return null;
@@ -58,6 +58,7 @@ export function usePermissions() {
     aceita_dinheiro?: boolean;
     aceita_pix?: boolean;
     aceita_cartao?: boolean;
+    aceita_credito_promoter?: boolean;
     pode_adicionar_bebidas?: boolean;
     can_sell_cash?: boolean;
     vendas_pdv_caixa?: boolean;
@@ -72,6 +73,7 @@ export function usePermissions() {
   const aceitaDinheiro = isOwner || row?.aceita_dinheiro !== false;
   const aceitaPix = isOwner || row?.aceita_pix !== false;
   const aceitaCartao = isOwner || row?.aceita_cartao !== false;
+  const aceitaCreditoPromoter = isOwner || !!row?.aceita_credito_promoter;
   const acceptedMethods: AcceptedMethod[] = [];
   if (aceitaDinheiro) acceptedMethods.push("dinheiro");
   if (aceitaCartao) acceptedMethods.push("debito", "credito");
@@ -114,6 +116,8 @@ export function usePermissions() {
     aceitaDinheiro,
     aceitaPix,
     aceitaCartao,
+    aceitaCreditoPromoter,
+    canPromoterCredit: aceitaCreditoPromoter,
     canAddProducts,
     lojinhaCanSell,
     lojinhaPaymentMethods,

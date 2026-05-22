@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { Banknote, CreditCard, Smartphone, Plus, Trash2, ArrowLeft, X } from "lucide-react";
+import { Banknote, CreditCard, Smartphone, Plus, Trash2, ArrowLeft, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { formatBRL } from "@/lib/format";
 
-export type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix";
+export type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix" | "promoter_credit";
 
 export interface PaymentLine {
   method: PaymentMethod;
   amount: number;
+  promoter_id?: string;
+  promoter_name?: string;
 }
 
 const METHODS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
@@ -16,6 +18,7 @@ const METHODS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = 
   { key: "debito", label: "Débito", icon: CreditCard },
   { key: "credito", label: "Crédito", icon: CreditCard },
   { key: "pix", label: "Pix", icon: Smartphone },
+  { key: "promoter_credit", label: "Crédito promoter", icon: Sparkles },
 ];
 
 interface Props {
@@ -24,9 +27,11 @@ interface Props {
   onChange: (next: PaymentLine[]) => void;
   canSellCash: boolean;
   acceptedMethods?: PaymentMethod[];
+  canPromoterCredit?: boolean;
+  onPickPromoterCredit?: (maxAmount: number) => void;
 }
 
-export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acceptedMethods }: Props) {
+export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acceptedMethods, canPromoterCredit, onPickPromoterCredit }: Props) {
   const paid = payments.reduce((s, p) => s + p.amount, 0);
   const dinheiroPaid = payments
     .filter((p) => p.method === "dinheiro")
@@ -58,6 +63,12 @@ export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acc
 
   const pickMethod = (method: PaymentMethod) => {
     if (wizardAmount <= 0) return;
+    if (method === "promoter_credit") {
+      // delega para o parent abrir o picker de promoter
+      onPickPromoterCredit?.(wizardAmount);
+      closeWizard();
+      return;
+    }
     onChange([...payments, { method, amount: +wizardAmount.toFixed(2) }]);
     closeWizard();
   };
@@ -68,6 +79,7 @@ export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acc
 
   const availableMethods = METHODS.filter((m) => {
     if (m.key === "dinheiro" && !canSellCash) return false;
+    if (m.key === "promoter_credit") return !!canPromoterCredit;
     if (acceptedMethods && !acceptedMethods.includes(m.key)) return false;
     return true;
   });
@@ -185,7 +197,12 @@ export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acc
                 className="flex items-center gap-2 p-3 rounded-lg border bg-card"
               >
                 <meta.icon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium flex-1">{meta.label}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">{meta.label}</div>
+                  {p.promoter_name && (
+                    <div className="text-[10px] text-muted-foreground truncate">{p.promoter_name}</div>
+                  )}
+                </div>
                 <span className="font-semibold">{formatBRL(p.amount)}</span>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeLine(idx)}>
                   <Trash2 className="h-3.5 w-3.5" />
