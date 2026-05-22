@@ -23,13 +23,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon, EyeOff, Store } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Layers, X, Upload, Image as ImageIcon, EyeOff, Store, Search, ShoppingCart } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { toggleProductOnline } from "@/lojinha/api";
 
 import { EstoqueView } from "./_app.estoque";
 import { CategoriasManager } from "@/components/produtos/CategoriasManager";
+import { PurchaseSheet } from "@/components/estoque/PurchaseSheet";
 
 export const Route = createFileRoute("/_app/produtos")({
   component: ProdutosShell,
