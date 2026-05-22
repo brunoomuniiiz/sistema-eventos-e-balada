@@ -29,21 +29,23 @@ export const Route = createFileRoute("/_app/vendas")({
 });
 
 function VendasPage() {
-  const { ownerId, can, isOwner, lojinhaCanSell, canSellCash, loading } = usePermissions();
+  const {
+    ownerId, isOwner, canSellCash, loading,
+    canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico, canFechamento,
+  } = usePermissions();
   const [closing, setClosing] = useState(false);
   const { tab } = useSearch({ from: "/_app/vendas" });
   const navigate = useNavigate();
 
   if (loading) return null;
-  const hasVendas = can("vendas");
-  const hasLojinha = can("lojinha");
-  if (!hasVendas && !hasLojinha) {
+  const hasAny = canPdvCaixa || canVenderGarcom || canValidarQr || canVerPedidos || canVerHistorico || canFechamento;
+  if (!hasAny) {
     return <PageHeader title="Vendas" subtitle="Você não tem permissão para acessar esta página" />;
   }
 
-  const showPdvCaixa = hasVendas; // PDV do caixa presencial
-  const showPdvGarcom = hasLojinha && lojinhaCanSell; // PDV mobile do garçom (maquininha)
-  const defaultTab = showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : "scanner";
+  const showPdvCaixa = canPdvCaixa;
+  const showPdvGarcom = canVenderGarcom;
+  const defaultTab = showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : canValidarQr ? "scanner" : canVerPedidos ? "pedidos" : "historico";
   const currentTab = tab ?? defaultTab;
 
   return (
@@ -57,10 +59,10 @@ function VendasPage() {
         <TabsList className="flex-wrap h-auto">
           {showPdvCaixa && <TabsTrigger value="pdv"><ShoppingCart className="h-4 w-4 mr-1.5" /> PDV Caixa</TabsTrigger>}
           {showPdvGarcom && <TabsTrigger value="vender"><Store className="h-4 w-4 mr-1.5" /> Vender (garçom)</TabsTrigger>}
-          <TabsTrigger value="scanner"><ScanLine className="h-4 w-4 mr-1.5" /> Validar QR</TabsTrigger>
-          <TabsTrigger value="pedidos"><Package className="h-4 w-4 mr-1.5" /> Pedidos</TabsTrigger>
-          <TabsTrigger value="historico"><Receipt className="h-4 w-4 mr-1.5" /> Histórico</TabsTrigger>
-          {showPdvCaixa && canSellCash && <TabsTrigger value="fechamento"><LockKeyhole className="h-4 w-4 mr-1.5" /> Fechamento</TabsTrigger>}
+          {canValidarQr && <TabsTrigger value="scanner"><ScanLine className="h-4 w-4 mr-1.5" /> Validar QR</TabsTrigger>}
+          {canVerPedidos && <TabsTrigger value="pedidos"><Package className="h-4 w-4 mr-1.5" /> Pedidos</TabsTrigger>}
+          {canVerHistorico && <TabsTrigger value="historico"><Receipt className="h-4 w-4 mr-1.5" /> Histórico</TabsTrigger>}
+          {canFechamento && canSellCash && <TabsTrigger value="fechamento"><LockKeyhole className="h-4 w-4 mr-1.5" /> Fechamento</TabsTrigger>}
           {isOwner && <TabsTrigger value="abandonados"><AlertTriangle className="h-4 w-4 mr-1.5" /> Abandonados</TabsTrigger>}
           {isOwner && <TabsTrigger value="devices"><Smartphone className="h-4 w-4 mr-1.5" /> Maquininhas</TabsTrigger>}
           {isOwner && <TabsTrigger value="config"><Settings className="h-4 w-4 mr-1.5" /> Configuração</TabsTrigger>}
@@ -74,10 +76,10 @@ function VendasPage() {
         {showPdvGarcom && (
           <TabsContent value="vender"><LojinhaPosView /></TabsContent>
         )}
-        <TabsContent value="scanner"><LojinhaScanner /></TabsContent>
-        <TabsContent value="pedidos"><LojinhaOrdersPanel /></TabsContent>
-        <TabsContent value="historico"><SalesHistory ownerId={ownerId} /></TabsContent>
-        {showPdvCaixa && canSellCash && (
+        {canValidarQr && <TabsContent value="scanner"><LojinhaScanner /></TabsContent>}
+        {canVerPedidos && <TabsContent value="pedidos"><LojinhaOrdersPanel /></TabsContent>}
+        {canVerHistorico && <TabsContent value="historico"><SalesHistory ownerId={ownerId} /></TabsContent>}
+        {canFechamento && canSellCash && (
           <TabsContent value="fechamento" className="space-y-4">
             <Card>
               <CardContent className="p-6 space-y-4">

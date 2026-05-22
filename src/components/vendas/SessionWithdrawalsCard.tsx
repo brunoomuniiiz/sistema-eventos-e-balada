@@ -8,9 +8,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowDownToLine, Plus } from "lucide-react";
 import { WithdrawalDialog } from "@/components/vendas/WithdrawalDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export function SessionWithdrawalsCard() {
   const qc = useQueryClient();
+  const { canSangria } = usePermissions();
   const [open, setOpen] = useState(false);
 
   const { data: session } = useQuery({
@@ -56,9 +58,11 @@ export function SessionWithdrawalsCard() {
             </h3>
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold">{formatBRL(total)}</span>
-              <Button size="sm" onClick={() => setOpen(true)} disabled={!sessionId}>
-                <Plus className="h-4 w-4" /> Nova sangria
-              </Button>
+              {canSangria && (
+                <Button size="sm" onClick={() => setOpen(true)} disabled={!sessionId}>
+                  <Plus className="h-4 w-4" /> Nova sangria
+                </Button>
+              )}
             </div>
           </div>
           {!sessionId ? (
