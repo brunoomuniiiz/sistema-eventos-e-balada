@@ -74,8 +74,8 @@ export function AppLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 md:ml-64 pb-24 md:pb-8">
-        <header className="md:hidden sticky top-0 z-30 glass border-b border-border px-4 py-3 flex items-center justify-between">
+      <main className="flex-1 md:ml-64 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-8">
+        <header className="md:hidden sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85 border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-primary grid place-items-center">
               <Sparkles className="h-4 w-4 text-primary-foreground" />
@@ -92,7 +92,7 @@ export function AppLayout() {
         </div>
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-border overflow-x-auto">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 border-t border-border shadow-[0_-4px_20px_-8px_rgba(0,0,0,0.5)] overflow-x-auto pb-[env(safe-area-inset-bottom)]">
         <div className="flex min-w-full">
           {visibleItems.map((item) => {
             const active = location.pathname === item.to;

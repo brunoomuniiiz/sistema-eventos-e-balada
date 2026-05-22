@@ -11,6 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { formatBRL } from "@/lib/format";
+import { AlertTriangle } from "lucide-react";
 
 type Kind = "fixed" | "variable";
 
@@ -25,6 +29,30 @@ const PAYMENTS = [
 
 const NEW = "__new__";
 
+function currentMonthValue() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthOptions(n = 18) {
+  const arr: { value: string; label: string }[] = [];
+  const d = new Date();
+  // 3 meses no futuro, n-3 no passado
+  for (let i = -3; i < n - 3; i++) {
+    const dt = new Date(d.getFullYear(), d.getMonth() - i, 1);
+    arr.push({
+      value: `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`,
+      label: format(dt, "MMMM 'de' yyyy", { locale: ptBR }),
+    });
+  }
+  return arr;
+}
+
+function monthValueToDate(ym: string) {
+  const [y, m] = ym.split("-").map(Number);
+  return `${y}-${String(m).padStart(2, "0")}-01`;
+}
+
 export function ExpenseFormDialog({
   open, onOpenChange, kind,
 }: { open: boolean; onOpenChange: (b: boolean) => void; kind: Kind }) {
@@ -35,10 +63,12 @@ export function ExpenseFormDialog({
   const [newCategoryName, setNewCategoryName] = useState("");
   const [amount, setAmount] = useState<number>(0);
   const [description, setDescription] = useState("");
-  const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [referenceMonth, setReferenceMonth] = useState(currentMonthValue);
   const [dueDate, setDueDate] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [paid, setPaid] = useState(true);
+  const [paidAt, setPaidAt] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paidAmount, setPaidAmount] = useState<number>(0);
   const [recurrence, setRecurrence] = useState<"once" | "monthly">("once");
   const [supplierId, setSupplierId] = useState("");
   const [newSupplierName, setNewSupplierName] = useState("");
@@ -47,11 +77,18 @@ export function ExpenseFormDialog({
   useEffect(() => {
     if (open) {
       setCategoryId(""); setNewCategoryName(""); setAmount(0); setDescription("");
-      setExpenseDate(new Date().toISOString().slice(0, 10)); setDueDate("");
-      setPaymentMethod("pix"); setPaid(true); setRecurrence("once");
+      setReferenceMonth(currentMonthValue()); setDueDate("");
+      setPaymentMethod("pix"); setPaid(true);
+      setPaidAt(new Date().toISOString().slice(0, 10)); setPaidAmount(0);
+      setRecurrence("once");
       setSupplierId(""); setNewSupplierName(""); setNotes("");
     }
   }, [open, kind]);
+
+  // Mantém valor pago sincronizado com original quando o usuário ainda não mexeu
+  useEffect(() => {
+    if (paid && paidAmount === 0 && amount > 0) setPaidAmount(amount);
+  }, [amount, paid, paidAmount]);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["bar-expense-categories", user?.id, kind],
@@ -77,11 +114,16 @@ export function ExpenseFormDialog({
     },
   });
 
+  const interest = useMemo(
+    () => (paid && paidAmount > amount ? Math.max(0, paidAmount - amount) : 0),
+    [paid, paidAmount, amount],
+  );
+
   const save = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
       const value = amount;
-      if (!value || value <= 0) throw new Error("Informe um valor válido");
+      if (!value || value <= 0) throw new Error("Informe um valor original válido");
 
       let finalCategoryId: string | null = null;
       let finalCategoryName = "";
@@ -118,6 +160,12 @@ export function ExpenseFormDialog({
         }
       }
 
+      const refMonthDate = monthValueToDate(referenceMonth);
+      const finalPaidAmount = paid ? (paidAmount > 0 ? paidAmount : value) : null;
+      const finalInterest = paid && finalPaidAmount && finalPaidAmount > value
+        ? finalPaidAmount - value
+        : 0;
+
       const { error } = await supabase.from("bar_expenses").insert({
         user_id: user.id,
         kind,
@@ -127,11 +175,14 @@ export function ExpenseFormDialog({
         supplier_name: finalSupplierName,
         amount: value,
         description: description.trim() || null,
-        expense_date: expenseDate,
+        expense_date: refMonthDate,
+        reference_month: refMonthDate,
         due_date: dueDate || null,
         payment_method: paymentMethod || null,
         paid,
-        paid_at: paid ? new Date().toISOString() : null,
+        paid_at: paid ? new Date(paidAt + "T12:00:00").toISOString() : null,
+        paid_amount: finalPaidAmount,
+        interest_amount: finalInterest,
         recurrence,
         notes: notes.trim() || null,
         created_by: user.id,
@@ -141,6 +192,7 @@ export function ExpenseFormDialog({
     onSuccess: () => {
       toast.success("Lançamento salvo");
       qc.invalidateQueries({ queryKey: ["bar-expenses"] });
+      qc.invalidateQueries({ queryKey: ["bar-expenses-month-summary"] });
       qc.invalidateQueries({ queryKey: ["bar-expense-categories"] });
       qc.invalidateQueries({ queryKey: ["suppliers"] });
       onOpenChange(false);
@@ -173,8 +225,9 @@ export function ExpenseFormDialog({
             </div>
 
             <div>
-              <Label>Valor</Label>
+              <Label>Valor original</Label>
               <CurrencyInput value={amount} onChange={setAmount} />
+              <p className="text-[10px] text-muted-foreground mt-1">Sem juros/multa — afeta o lucro do mês de competência</p>
             </div>
             <div>
               <Label>Forma de pagamento</Label>
@@ -186,12 +239,19 @@ export function ExpenseFormDialog({
               </Select>
             </div>
 
-            <div>
-              <Label>Data de competência</Label>
-              <Input type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} />
+            <div className="col-span-2">
+              <Label>Mês de competência</Label>
+              <Select value={referenceMonth} onValueChange={setReferenceMonth}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {monthOptions(18).map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">A que mês esta despesa pertence (ex: conta de luz de fevereiro paga em março)</p>
             </div>
+
             {kind === "fixed" && (
-              <div>
+              <div className="col-span-2">
                 <Label>Vencimento (opcional)</Label>
                 <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
               </div>
@@ -217,7 +277,7 @@ export function ExpenseFormDialog({
             <div className="col-span-2">
               <Label>Descrição (opcional)</Label>
               <Input value={description} onChange={(e) => setDescription(e.target.value)}
-                placeholder={kind === "fixed" ? "Ex: Conta de luz - novembro" : "Ex: Compra de Heineken 600ml"} />
+                placeholder={kind === "fixed" ? "Ex: Conta de luz - fevereiro" : "Ex: Compra de Heineken 600ml"} />
             </div>
 
             <div className="col-span-2 flex items-center justify-between p-3 rounded-lg border">
@@ -227,6 +287,29 @@ export function ExpenseFormDialog({
               </div>
               <Switch checked={paid} onCheckedChange={setPaid} />
             </div>
+
+            {paid && (
+              <>
+                <div>
+                  <Label>Data do pagamento</Label>
+                  <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Valor pago</Label>
+                  <CurrencyInput value={paidAmount} onChange={setPaidAmount} />
+                </div>
+
+                {interest > 0 && (
+                  <div className="col-span-2 flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-sm">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <div>
+                      <div className="font-medium">Juros / multa: {formatBRL(interest)}</div>
+                      <div className="text-xs opacity-80">Separado no relatório do mês do pagamento.</div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             {kind === "fixed" && (
               <div className="col-span-2 flex items-center justify-between p-3 rounded-lg border">
