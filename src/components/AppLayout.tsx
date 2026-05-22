@@ -18,6 +18,14 @@ const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?
 ];
 
 export function AppLayout() {
+  return (
+    <ViewAsProvider>
+      <AppLayoutInner />
+    </ViewAsProvider>
+  );
+}
+
+function AppLayoutInner() {
   const { user, signOut } = useAuth();
   const { can, isOwner } = usePermissions();
   const location = useLocation();
