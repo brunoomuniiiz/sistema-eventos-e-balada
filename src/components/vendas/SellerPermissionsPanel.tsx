@@ -62,6 +62,7 @@ export function SellerPermissionsPanel() {
                 if (m.aceita_pix) pays.push("Pix");
                 if (m.aceita_cartao) pays.push("Cartão");
                 if (pays.length) chips.push(pays.join(" · "));
+                if (m.pode_lancar_consumacao) chips.push("Consumação");
               }
               return (
                 <button
