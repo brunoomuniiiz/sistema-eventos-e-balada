@@ -8,6 +8,7 @@ import { formatBRL } from "@/lib/format";
 import { Activity, ArrowDownToLine, Banknote, CreditCard, QrCode, Trophy, Package, Layers } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { QuickEventCostCard } from "@/components/vendas/QuickEventCostCard";
 
 type Period = "today" | "yesterday" | "event" | "7d" | "30d";
 
@@ -114,6 +115,11 @@ export function LiveDashboardPanel() {
           </div>
         </CardContent>
       </Card>
+
+      {openEvent && (
+        <QuickEventCostCard eventId={openEvent.id} eventName={openEvent.name} />
+      )}
+
 
       {isLoading && !data ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground">Carregando…</CardContent></Card>
