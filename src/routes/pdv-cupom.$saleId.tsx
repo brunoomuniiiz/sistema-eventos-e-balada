@@ -18,7 +18,7 @@ function CupomPage() {
     queryKey: ["pdv-cupom", saleId],
     queryFn: async () => {
       const [{ data: sale }, { data: items }, { data: bar }] = await Promise.all([
-        supabase.from("sales").select("*").eq("id", saleId).maybeSingle(),
+        supabase.from("sales").select("id, total, payment_method, daily_number, pickup_token, created_at, category, consumacao_target").eq("id", saleId).maybeSingle(),
         supabase.from("sale_items").select("product_name, quantity, unit_price").eq("sale_id", saleId).order("created_at"),
         supabase.from("bar_settings").select("bar_name").maybeSingle(),
       ]);
