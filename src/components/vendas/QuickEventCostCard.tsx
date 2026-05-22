@@ -97,6 +97,10 @@ export function QuickEventCostCard({ eventId, eventName }: Props) {
           </Button>
         </div>
 
+        <Button variant="outline" size="sm" onClick={() => setSupplierOpen(true)} className="w-full">
+          <ShoppingBag className="h-4 w-4 mr-1" /> Consumo de fornecedor (abate parcela)
+        </Button>
+
         {recent.length > 0 && (
           <div className="space-y-1 pt-2 border-t">
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Últimos custos da noite</div>
