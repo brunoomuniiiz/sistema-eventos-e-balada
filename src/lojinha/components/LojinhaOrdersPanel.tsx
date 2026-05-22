@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Package, CheckCircle2, Printer } from "lucide-react";
+import { Loader2, Package, CheckCircle2, Printer, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,8 +10,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatBRL } from "@/lib/format";
-import { markOrderDelivered } from "@/lojinha/api";
+import { markOrderDelivered, abandonLojinhaOrder } from "@/lojinha/api";
 import { printReceipt, qrSvgString } from "@/lib/order-print";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
@@ -164,6 +165,25 @@ export function LojinhaOrdersPanel() {
     }
   }
 
+  async function handleAbandon(o: OrderRow) {
+    setBusy(o.id);
+    try {
+      const r = await abandonLojinhaOrder(o.id);
+      if (r.ok) {
+        toast.success(`Pedido #${String(o.daily_number ?? "").padStart(3, "0")} marcado como abandonado`);
+        qc.invalidateQueries({ queryKey: ["lojinha-orders"] });
+        qc.invalidateQueries({ queryKey: ["lojinha-abandoned"] });
+      } else {
+        toast.error(r.reason ?? "Não foi possível abandonar");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
   return (
     <div className="space-y-3">
       <Tabs value={filter} onValueChange={setFilter}>
@@ -213,6 +233,28 @@ export function LojinhaOrdersPanel() {
                     <Badge className={`mt-1 text-[10px] ${s.color}`}>{s.label}</Badge>
                   </div>
                 </div>
+
+                {o.status === "pending" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="w-full text-destructive border-destructive/40 hover:bg-destructive/10" disabled={busy === o.id}>
+                        <XCircle className="h-4 w-4 mr-1" /> Cliente abandonou
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Marcar como abandonado?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          O pedido #{String(o.daily_number ?? "").padStart(3, "0")} sairá da lista de pendentes e o estoque será liberado. Ele aparecerá em "Abandonados" pro dono conferir.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleAbandon(o)}>Confirmar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
 
                 {isPaid && !o.hasCombo && (
                   <Button

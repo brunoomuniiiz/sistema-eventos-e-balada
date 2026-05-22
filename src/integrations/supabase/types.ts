@@ -929,6 +929,7 @@ export type Database = {
           mp_payment_id: string | null
           mp_point_intent_id: string | null
           mp_preference_id: string | null
+          mp_refund_id: string | null
           paid_at: string | null
           pickup_code: string | null
           pickup_token: string | null
@@ -936,6 +937,11 @@ export type Database = {
           reconciled_at: string | null
           reconciled_by: string | null
           reconciled_note: string | null
+          refund_amount: number | null
+          refunded_at: string | null
+          refunded_by: string | null
+          refunded_by_name: string | null
+          refunded_reason: string | null
           seller_name: string | null
           seller_user_id: string | null
           status: string
@@ -962,6 +968,7 @@ export type Database = {
           mp_payment_id?: string | null
           mp_point_intent_id?: string | null
           mp_preference_id?: string | null
+          mp_refund_id?: string | null
           paid_at?: string | null
           pickup_code?: string | null
           pickup_token?: string | null
@@ -969,6 +976,11 @@ export type Database = {
           reconciled_at?: string | null
           reconciled_by?: string | null
           reconciled_note?: string | null
+          refund_amount?: number | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          refunded_by_name?: string | null
+          refunded_reason?: string | null
           seller_name?: string | null
           seller_user_id?: string | null
           status?: string
@@ -995,6 +1007,7 @@ export type Database = {
           mp_payment_id?: string | null
           mp_point_intent_id?: string | null
           mp_preference_id?: string | null
+          mp_refund_id?: string | null
           paid_at?: string | null
           pickup_code?: string | null
           pickup_token?: string | null
@@ -1002,6 +1015,11 @@ export type Database = {
           reconciled_at?: string | null
           reconciled_by?: string | null
           reconciled_note?: string | null
+          refund_amount?: number | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          refunded_by_name?: string | null
+          refunded_reason?: string | null
           seller_name?: string | null
           seller_user_id?: string | null
           status?: string
@@ -1521,6 +1539,10 @@ export type Database = {
       }
       sales: {
         Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_by_name: string | null
+          cancelled_reason: string | null
           category: string
           closing_id: string | null
           created_at: string
@@ -1542,11 +1564,16 @@ export type Database = {
           released_by: string | null
           released_by_name: string | null
           session_id: string | null
+          status: string
           total: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_by_name?: string | null
+          cancelled_reason?: string | null
           category?: string
           closing_id?: string | null
           created_at?: string
@@ -1568,11 +1595,16 @@ export type Database = {
           released_by?: string | null
           released_by_name?: string | null
           session_id?: string | null
+          status?: string
           total?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cancelled_by_name?: string | null
+          cancelled_reason?: string | null
           category?: string
           closing_id?: string | null
           created_at?: string
@@ -1594,6 +1626,7 @@ export type Database = {
           released_by?: string | null
           released_by_name?: string | null
           session_id?: string | null
+          status?: string
           total?: number
           updated_at?: string
           user_id?: string
@@ -2001,6 +2034,7 @@ export type Database = {
         }
       }
       _sector_permission: { Args: { _sector: string }; Returns: string }
+      abandon_lojinha_order: { Args: { _order_id: string }; Returns: Json }
       add_guest_to_event: {
         Args: {
           _companions?: Json
@@ -2029,6 +2063,10 @@ export type Database = {
       authorize_open_sector: {
         Args: { _notes?: string; _opening_amount: number; _sector: string }
         Returns: string
+      }
+      cancel_local_sale: {
+        Args: { _reason: string; _sale_id: string }
+        Returns: Json
       }
       checkin_guest: {
         Args: { _checked: boolean; _entry_id: string }
@@ -2170,10 +2208,40 @@ export type Database = {
         }
         Returns: Json
       }
-      lojinha_create_pos_order: {
-        Args: { _device_id: string; _items: Json; _payment_method: string }
-        Returns: Json
+      lojinha_create_pending_order: {
+        Args: {
+          _cart_token: string
+          _customer_email: string
+          _customer_name: string
+          _customer_phone: string
+          _items: Json
+        }
+        Returns: {
+          id: string
+          pickup_code: string
+          pickup_token: string
+          total: number
+        }[]
       }
+      lojinha_create_pos_order:
+        | {
+            Args: {
+              _customer_name: string
+              _items: Json
+              _seller_name?: string
+            }
+            Returns: {
+              daily_number: number
+              id: string
+              pickup_code: string
+              pickup_token: string
+              total: number
+            }[]
+          }
+        | {
+            Args: { _device_id: string; _items: Json; _payment_method: string }
+            Returns: Json
+          }
       lojinha_generate_pickup_code: { Args: never; Returns: string }
       lojinha_get_order: { Args: { _order_id: string }; Returns: Json }
       lojinha_get_storefront: { Args: { _slug: string }; Returns: Json }
