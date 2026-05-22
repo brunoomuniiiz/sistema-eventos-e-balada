@@ -165,6 +165,25 @@ export function LojinhaOrdersPanel() {
     }
   }
 
+  async function handleAbandon(o: OrderRow) {
+    setBusy(o.id);
+    try {
+      const r = await abandonLojinhaOrder(o.id);
+      if (r.ok) {
+        toast.success(`Pedido #${String(o.daily_number ?? "").padStart(3, "0")} marcado como abandonado`);
+        qc.invalidateQueries({ queryKey: ["lojinha-orders"] });
+        qc.invalidateQueries({ queryKey: ["lojinha-abandoned"] });
+      } else {
+        toast.error(r.reason ?? "Não foi possível abandonar");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
   return (
     <div className="space-y-3">
       <Tabs value={filter} onValueChange={setFilter}>
