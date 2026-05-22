@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Package, CheckCircle2, Printer } from "lucide-react";
+import { Loader2, Package, CheckCircle2, Printer, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,8 +10,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatBRL } from "@/lib/format";
-import { markOrderDelivered } from "@/lojinha/api";
+import { markOrderDelivered, abandonLojinhaOrder } from "@/lojinha/api";
 import { printReceipt, qrSvgString } from "@/lib/order-print";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
