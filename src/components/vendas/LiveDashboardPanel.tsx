@@ -9,6 +9,7 @@ import { Activity, ArrowDownToLine, Banknote, CreditCard, QrCode, Trophy, Packag
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { QuickEventCostCard } from "@/components/vendas/QuickEventCostCard";
+import { ConsumacaoLivePanel } from "@/components/vendas/ConsumacaoLivePanel";
 
 type Period = "today" | "yesterday" | "event" | "7d" | "30d";
 
