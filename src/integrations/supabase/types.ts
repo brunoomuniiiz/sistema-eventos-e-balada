@@ -1937,6 +1937,107 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_purchase_items: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          product_name_snapshot: string
+          purchase_id: string
+          quantity: number
+          total_cost: number
+          unit_cost: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          product_name_snapshot: string
+          purchase_id: string
+          quantity: number
+          total_cost: number
+          unit_cost: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          product_name_snapshot?: string
+          purchase_id?: string
+          quantity?: number
+          total_cost?: number
+          unit_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_purchase_items_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "stock_purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_purchases: {
+        Row: {
+          created_at: string
+          created_by: string
+          created_by_name: string | null
+          expense_id: string | null
+          id: string
+          location_id: string
+          notes: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          reversed_by_name: string | null
+          status: string
+          supplier_id: string | null
+          supplier_name: string | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          created_by_name?: string | null
+          expense_id?: string | null
+          id?: string
+          location_id: string
+          notes?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          reversed_by_name?: string | null
+          status?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          created_by_name?: string | null
+          expense_id?: string | null
+          id?: string
+          location_id?: string
+          notes?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          reversed_by_name?: string | null
+          status?: string
+          supplier_id?: string | null
+          supplier_name?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock_transfers: {
         Row: {
           created_at: string
@@ -2512,6 +2613,22 @@ export type Database = {
         }
         Returns: string
       }
+      register_stock_purchase: {
+        Args: {
+          _due_date: string
+          _expense_category_id: string
+          _expense_category_name: string
+          _expense_date: string
+          _items: Json
+          _location_id: string
+          _notes: string
+          _paid: boolean
+          _payment_method: string
+          _supplier_id: string
+          _supplier_name: string
+        }
+        Returns: string
+      }
       register_withdrawal: {
         Args: { _amount: number; _grant_token: string; _reason: string }
         Returns: string
@@ -2530,6 +2647,10 @@ export type Database = {
         Returns: string
       }
       request_open_sector: { Args: { _sector: string }; Returns: string }
+      reverse_stock_purchase: {
+        Args: { _purchase_id: string }
+        Returns: boolean
+      }
       seed_default_bar_expense_categories: {
         Args: { _user_id: string }
         Returns: undefined
