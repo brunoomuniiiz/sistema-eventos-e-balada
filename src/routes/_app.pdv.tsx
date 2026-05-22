@@ -23,6 +23,7 @@ import { WithdrawalDialog } from "@/components/vendas/WithdrawalDialog";
 import { SplitPaymentEditor, isSplitValid, dominantMethod, type PaymentLine } from "@/components/vendas/SplitPaymentEditor";
 import { PixQrDialog } from "@/components/vendas/PixQrDialog";
 import { PromoterCreditPicker } from "@/components/vendas/PromoterCreditPicker";
+import { ConsumacaoTargetDialog, type ConsumacaoTarget } from "@/components/vendas/ConsumacaoTargetDialog";
 import { useQuery as useQueryRQ } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_app/pdv")({
@@ -53,7 +54,7 @@ type CartItem = {
 
 export function PdvView() {
   const { user } = useAuth();
-  const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, acceptedMethods, canPromoterCredit, loading } = usePermissions();
+  const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, acceptedMethods, canPromoterCredit, canConsumacao, loading } = usePermissions();
   const qc = useQueryClient();
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -72,6 +73,7 @@ export function PdvView() {
   const [pixOpen, setPixOpen] = useState(false);
   const [promoterPickerOpen, setPromoterPickerOpen] = useState(false);
   const [promoterPickerMax, setPromoterPickerMax] = useState(0);
+  const [consumacaoOpen, setConsumacaoOpen] = useState(false);
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
@@ -352,6 +354,55 @@ export function PdvView() {
       setCartOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao registrar venda");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const saveConsumacao = async (target: ConsumacaoTarget) => {
+    if (!user || !ownerId) return;
+    if (!locationId || !session) return toast.error("Abra o caixa antes");
+    if (cart.length === 0) return toast.error("Adicione produtos");
+    const evId = eventId === "none" ? null : eventId;
+    if (!evId) return toast.error("Vincule a sessão a um evento para lançar consumação");
+    setSubmitting(true);
+    try {
+      const { data: sale, error: saleErr } = await supabase
+        .from("sales")
+        .insert({
+          user_id: ownerId,
+          employee_name: user.email ?? null,
+          payment_method: "dinheiro",
+          total: 0,
+          location_id: locationId,
+          event_id: evId,
+          category: "consumacao",
+          consumacao_target: target,
+          session_id: session.id,
+        } as never)
+        .select()
+        .single();
+      if (saleErr) throw saleErr;
+      const items = cart.map((i) => ({
+        user_id: ownerId,
+        sale_id: sale.id,
+        product_id: i.product_id,
+        product_name: i.product_name,
+        unit_price: i.unit_price,
+        quantity: i.quantity,
+        subtotal: 0,
+        cost_price_snapshot: i.cost_price,
+      }));
+      const { error: itemsErr } = await supabase.from("sale_items").insert(items);
+      if (itemsErr) throw itemsErr;
+      toast.success(`Consumação registrada (${target})`);
+      setCart([]);
+      setPayments([]);
+      qc.invalidateQueries({ queryKey: ["pdv-stock-total"] });
+      qc.invalidateQueries({ queryKey: ["event-consumacao", evId] });
+      setCartOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao lançar consumação");
     } finally {
       setSubmitting(false);
     }
@@ -694,9 +745,25 @@ export function PdvView() {
               <Wallet className="h-5 w-5" />
               {submitting ? "Registrando..." : `Finalizar ${formatBRL(total)}`}
             </Button>
+            {canConsumacao && eventId !== "none" && cart.length > 0 && (
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full h-12 text-sm font-semibold"
+                onClick={() => setConsumacaoOpen(true)}
+                disabled={submitting}
+              >
+                Lançar como Consumação (sem cobrar)
+              </Button>
+            )}
           </div>
         </SheetContent>
       </Sheet>
+      <ConsumacaoTargetDialog
+        open={consumacaoOpen}
+        onOpenChange={setConsumacaoOpen}
+        onPick={(target) => { void saveConsumacao(target); }}
+      />
     </div>
   );
 }

@@ -1710,6 +1710,7 @@ export type Database = {
           cancelled_reason: string | null
           category: string
           closing_id: string | null
+          consumacao_target: string | null
           created_at: string
           daily_date: string | null
           daily_number: number | null
@@ -1741,6 +1742,7 @@ export type Database = {
           cancelled_reason?: string | null
           category?: string
           closing_id?: string | null
+          consumacao_target?: string | null
           created_at?: string
           daily_date?: string | null
           daily_number?: number | null
@@ -1772,6 +1774,7 @@ export type Database = {
           cancelled_reason?: string | null
           category?: string
           closing_id?: string | null
+          consumacao_target?: string | null
           created_at?: string
           daily_date?: string | null
           daily_number?: number | null
@@ -2068,6 +2071,7 @@ export type Database = {
           owner_id: string
           permissions: string[]
           pode_adicionar_bebidas: boolean
+          pode_lancar_consumacao: boolean
           role: Database["public"]["Enums"]["app_role"]
           role_preset: string | null
           updated_at: string
@@ -2100,6 +2104,7 @@ export type Database = {
           owner_id: string
           permissions?: string[]
           pode_adicionar_bebidas?: boolean
+          pode_lancar_consumacao?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           role_preset?: string | null
           updated_at?: string
@@ -2132,6 +2137,7 @@ export type Database = {
           owner_id?: string
           permissions?: string[]
           pode_adicionar_bebidas?: boolean
+          pode_lancar_consumacao?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           role_preset?: string | null
           updated_at?: string
@@ -2276,6 +2282,7 @@ export type Database = {
           quantity: number
         }[]
       }
+      get_event_consumacao: { Args: { _event_id: string }; Returns: Json }
       get_event_landing: { Args: { _slug: string }; Returns: Json }
       get_guest_list_info: {
         Args: { _slug: string }
