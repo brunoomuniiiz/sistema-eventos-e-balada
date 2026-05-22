@@ -116,6 +116,8 @@ export function usePermissions() {
     aceitaDinheiro,
     aceitaPix,
     aceitaCartao,
+    aceitaCreditoPromoter,
+    canPromoterCredit: aceitaCreditoPromoter,
     canAddProducts,
     lojinhaCanSell,
     lojinhaPaymentMethods,
