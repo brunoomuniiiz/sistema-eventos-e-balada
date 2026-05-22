@@ -171,6 +171,11 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
             </Section>
 
             <Separator />
+            <Section title="Consumação interna" subtitle="Permite lançar bebidas para banda, DJ, segurança, funcionário ou sorteio — sai do estoque sem inflar o faturamento.">
+              <Toggle icon={<Beer className="h-4 w-4" />} label="Pode lançar consumação" sub="Aparece um botão extra no checkout do PDV" checked={d.pode_lancar_consumacao} onChange={(v) => set("pode_lancar_consumacao", v)} />
+            </Section>
+
+            <Separator />
             <Section title="Desconto">
               <Toggle icon={<Percent className="h-4 w-4" />} label="Pode dar desconto" checked={d.can_discount} onChange={(v) => set("can_discount", v)} />
               {d.can_discount && (
