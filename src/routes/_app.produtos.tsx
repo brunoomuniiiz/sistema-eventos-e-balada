@@ -281,7 +281,7 @@ function ProdutosPage() {
       cost_price: cost,
       stock_quantity: isCombo ? 0 : stock,
       product_type: form.product_type,
-      track_stock: isCombo ? false : true,
+      track_stock: isCombo ? false : form.track_stock,
       description: form.description.trim() || null,
       pickup_description: form.pickup_description.trim() || null,
       photo_url: form.photo_url.trim() || null,
