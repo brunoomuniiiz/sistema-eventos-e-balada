@@ -2119,6 +2119,10 @@ export type Database = {
           total_entries: number
         }[]
       }
+      get_live_dashboard: {
+        Args: { _from: string; _to: string }
+        Returns: Json
+      }
       get_my_open_session: { Args: never; Returns: Json }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
       get_portaria_summary: { Args: { _event_id: string }; Returns: Json }
@@ -2318,6 +2322,15 @@ export type Database = {
       }
       register_withdrawal: {
         Args: { _amount: number; _grant_token: string; _reason: string }
+        Returns: string
+      }
+      register_withdrawal_for_session: {
+        Args: {
+          _amount: number
+          _grant_token: string
+          _reason: string
+          _session_id: string
+        }
         Returns: string
       }
       request_close_sector: {
