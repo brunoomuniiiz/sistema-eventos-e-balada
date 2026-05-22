@@ -378,6 +378,26 @@ function StorefrontPage() {
       <p className="text-center text-xs text-muted-foreground py-4">
         <Link to="/" className="hover:underline">NightOps Lojinha</Link>
       </p>
+
+      <AlertDialog open={!!pendingPrompt} onOpenChange={(o) => !o && setPendingPrompt(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você já tem um pedido em aberto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Encontramos um pedido de {pendingPrompt ? formatBRL(pendingPrompt.total) : ""} aguardando pagamento neste número de WhatsApp.
+              Deseja continuar pagando esse pedido ou abandonar e fazer um novo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <AlertDialogCancel onClick={() => handleAbandonPending()} disabled={creating}>
+              Abandonar e fazer novo
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleResumePending()} style={{ background: accent }}>
+              Pagar pedido anterior
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
