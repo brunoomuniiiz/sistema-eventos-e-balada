@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { LockKeyhole, Store, ScanLine, Package, AlertTriangle, Smartphone, Settings, Receipt, ShoppingCart } from "lucide-react";
+import { LockKeyhole, Store, ScanLine, Package, AlertTriangle, Smartphone, Settings, Receipt, ShoppingCart, Activity, Wallet } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/PageHeader";
 import { PdvView } from "./_app.pdv";
@@ -18,6 +18,8 @@ import { LojinhaAbandonedPanel } from "@/lojinha/components/LojinhaAbandonedPane
 import { LojinhaDevicesPanel } from "@/lojinha/components/LojinhaDevicesPanel";
 import { LojinhaSettingsPanel } from "@/lojinha/components/LojinhaSettingsPanel";
 import { SellerPermissionsPanel } from "@/components/vendas/SellerPermissionsPanel";
+import { LiveDashboardPanel } from "@/components/vendas/LiveDashboardPanel";
+import { CaixasAdminPanel } from "@/components/vendas/CaixasAdminPanel";
 
 type VendasSearch = { tab?: string };
 
