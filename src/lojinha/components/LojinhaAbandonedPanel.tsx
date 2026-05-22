@@ -204,9 +204,33 @@ export function LojinhaAbandonedPanel() {
               )}
 
               {!o.reconciled_at && (
-                <Button size="sm" variant="outline" className="w-full" onClick={() => { setEditing(o); setNote(""); }}>
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> Marcar como conciliado
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {o.mp_payment_id && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busyId === o.id}
+                        onClick={() => checkMp(o.id)}
+                      >
+                        {busyId === o.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Search className="h-3 w-3 mr-1" />}
+                        Verificar no MP
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        disabled={busyId === o.id}
+                        onClick={() => reconcileFromMercadoPago(o.id)}
+                      >
+                        {busyId === o.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Wallet className="h-3 w-3 mr-1" />}
+                        Conciliar pelo MP
+                      </Button>
+                    </>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => { setEditing(o); setNote(""); }}>
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Apenas marcar
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
