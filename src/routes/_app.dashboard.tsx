@@ -211,7 +211,7 @@ function Dashboard() {
             <Link to="/lojinha">Abrir</Link>
           </Button>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-3 relative">
+        <CardContent className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-3 relative">
           <div>
             <div className="text-xs text-muted-foreground">Vendido hoje</div>
             <div className="text-xl font-bold font-display">{formatBRL(lojinhaStats?.paidTotal ?? 0)}</div>
