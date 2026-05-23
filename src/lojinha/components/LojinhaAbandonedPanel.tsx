@@ -40,6 +40,8 @@ export function LojinhaAbandonedPanel() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const inspect = useServerFn(inspectMpForOrder);
   const reconcileFromMp = useServerFn(reconcileOrderFromMp);
+  const delOne = useServerFn(deleteLojinhaOrder);
+  const delAll = useServerFn(deleteAllLojinhaOrders);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["lojinha-abandoned", user?.id, showReconciled],
