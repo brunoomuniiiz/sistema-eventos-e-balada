@@ -1,63 +1,63 @@
-## Objetivo
-Trazer o lançamento de **consumação interna** (banda, DJ, segurança, funcionário, sorteio) direto para o painel `/vendas` (ao lado do "Custo rápido") e amarrar a consumação do **Gledson (som)** como abatimento automático da parcela do investimento do som — usando o **preço de venda** (balcão) como valor abatido.
+# Deixar o app 100% responsivo (mobile / tablet / desktop)
 
-Regras gerais:
-- custo interno da consumação = `cost_price` do produto no momento (snapshot);
-- baixa de estoque automática (via `sale_items`);
-- valor de venda = R$ 0 no faturamento;
-- abatimento na parcela do som = soma do **preço balcão** (`unit_price × qty`) dos itens cujo destino é "segurança" **com recipient = Gledson** (ou marcador equivalente — ver §5).
+Consigo sim. Vou fazer uma passada sistemática em **todas as rotas e painéis**, sem mudar lógica de negócio — só layout/CSS.
 
-## 1. Banco
+## Escopo (todas as abas)
 
-Migration:
-- `ALTER TABLE sales ADD COLUMN consumacao_recipient_name text NULL;`
-- Atualizar `get_event_consumacao(_event_id)` para incluir `recipient_name` em `items[]` e adicionar `by_recipient` (target + recipient).
-- Nova RPC `get_supplier_consumacao_history(_expense_id uuid, _from date, _to date)` que retorna, por dia, os itens de consumação cujo destino aponta para o fornecedor/investimento alvo (ver §5), com `qty`, `cost_total`, `retail_total`. Usada na aba "Histórico" da parcela.
+**Rotas `/_app/*`:**
+- `/dashboard`, `/ao-vivo`, `/vendas`, `/pdv`, `/produtos`, `/estoque`
+- `/eventos` (lista + detalhe), `/portaria`, `/pedidos-liberar`
+- `/financeiro` (Despesas, Investimento, Mensal), `/configuracao`
+- `/funcionarios`, `/promoters`, `/lojinha`, `/admin-caixas`, `/bar-settings`
 
-Sem mudança de RLS.
+**Rotas públicas:** `/loja/:slug`, `/loja/:slug/pedido/:id`, `/e/:slug`, `/lista/:slug`, `/auth`, `/pdv-cupom/:id`
 
-## 2. Card "Consumação interna" no painel /vendas
+**Componentes pesados que costumam quebrar:**
+- `LiveDashboardPanel`, `QuickConsumacaoCard`, `QuickEventCostCard`, `ConsumacaoLivePanel`
+- `SalesHistory`, `LojinhaOrdersPanel`, `LojinhaAbandonedPanel`, `LojinhaPosView`
+- `ExpensesTab`, `InvestmentTab`, `SupplierConsumptionSheet`
+- `EventCostsManager`, `EventLandingManager`, `EventPromotersManager`
+- `TeamPanel`, `PromotersPanel`, `CaixasAdminPanel`, `SellerPermissionsPanel`
+- Todos os Dialog/Sheet (formulários do financeiro, PDV, estoque)
 
-Novo `src/components/vendas/QuickConsumacaoCard.tsx`, renderizado em `LiveDashboardPanel.tsx` logo após `QuickEventCostCard`, quando há evento aberto e o usuário tem `pode_lancar_consumacao` (ou é dono).
+## Padrões que vou aplicar
 
-- Chips de destino: Banda · DJ · Segurança · Funcionário · Sorteio.
-- Campo "Nome de quem pegou" (texto livre, opcional), placeholder por destino (ex.: segurança → "ex.: Gledson (som)").
-- Mini-buscador de produto + qtd (lista local, sem split de pagamento).
-- Resumo: total de itens, custo estimado e valor balcão.
-- Botão "Lançar consumação" → cria `sales` (`category='consumacao'`, `consumacao_target`, `consumacao_recipient_name`, `total=0`, `event_id`, `location_id` da sessão aberta ou estoque padrão do bar) + `sale_items` com `cost_price_snapshot` atual. Invalida `event-consumacao` e estoque.
+1. **Containers**: `max-w-7xl mx-auto px-4 md:px-8` consistente; remover larguras fixas em `px`.
+2. **Grids**: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3/4` em vez de `grid-cols-N` cru. Cards de KPI viram `grid-cols-2 md:grid-cols-4`.
+3. **Tabelas grandes** (ranking vendedor, histórico de vendas, consumação, lojinha, financeiro):
+   - Wrapper `overflow-x-auto` + `min-w-[640px]` na `<table>`
+   - **OU** layout alternativo em mobile: lista de cards (`hidden md:table` + `md:hidden` card list) quando a tabela tem muitas colunas críticas (ex: "Entrada por funcionário", `SalesHistory`, `LojinhaOrdersPanel`).
+4. **Headers/Toolbars** com filtros: `flex-wrap gap-2`, selects passam a `w-full sm:w-auto`, botões viram `flex-1 sm:flex-none`.
+5. **Dialogs e Sheets**: `max-w-[95vw] sm:max-w-lg`, conteúdo com `max-h-[85vh] overflow-y-auto`, footer sticky em mobile.
+6. **Typography**: títulos `text-2xl md:text-3xl`, números grandes `text-3xl md:text-4xl`.
+7. **PDV (`/pdv`)**: grid de produtos `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`, carrinho vira drawer em mobile (botão flutuante com badge de itens) e sidebar em `lg+`.
+8. **Lojinha cliente** (`/loja/:slug`): grid `grid-cols-2 md:grid-cols-3 lg:grid-cols-4`, carrinho como sheet em mobile.
+9. **Sidebar do app**: já tem bottom nav mobile + sidebar desktop — vou só revisar overflow do bottom nav em telas pequenas (≤360px) e o scroll horizontal dos itens.
+10. **Inputs de moeda/data**: largura fluida, `inputMode` correto pra abrir teclado numérico no celular.
+11. **Imagens**: `w-full h-auto object-cover` + `aspect-*` em produtos/eventos.
+12. **Safe-area iOS**: `pb-[env(safe-area-inset-bottom)]` em barras fixas (já feito no AppLayout, vou conferir nos drawers).
 
-## 3. PDV — mesmo campo de nome
+## Breakpoints alvo
 
-- `ConsumacaoTargetDialog`: após escolher destino, passo extra com input "Nome de quem pegou" (opcional). `onPick` passa `{ target, recipientName }`.
-- `_app.pdv.tsx > saveConsumacao` grava `consumacao_recipient_name`.
+- **Mobile**: 360–767px (foco principal — é onde os vendedores usam)
+- **Tablet**: 768–1023px
+- **Desktop**: ≥1024px
 
-## 4. Painel ao vivo
+## Como vou executar
 
-- `ConsumacaoLivePanel`: coluna "Para quem" no detalhamento (ex.: "Segurança · Gledson"). Agrupamento por destino mantém-se; aparece chip com o nome quando preenchido.
+1. Varrer rota por rota, abrir cada arquivo, aplicar os padrões acima cirurgicamente.
+2. Não mexer em RPC, hooks de dados, regras de negócio — só `className` e estrutura JSX quando precisar de layout alternativo mobile/desktop.
+3. Conferir no preview em 375px, 768px e 1280px após cada bloco de rotas.
 
-## 5. Abatimento automático na parcela do som
+## Entrega em ondas (pra não virar 1 mega-commit)
 
-Hoje já existe `SupplierConsumptionSheet` (botão "Abater consumo na parcela do investimento") que cria `expense_offsets`. Vamos automatizar para a consumação interna:
+- **Onda 1**: Shell + telas mais usadas no celular → `/pdv`, `/ao-vivo`, `/vendas`, `/portaria`, `/loja/:slug`
+- **Onda 2**: Admin no tablet/desktop → `/dashboard`, `/financeiro`, `/produtos`, `/estoque`, `/eventos`
+- **Onda 3**: Config e secundárias → `/configuracao`, `/funcionarios`, `/promoters`, `/lojinha` admin, `/admin-caixas`, dialogs restantes
 
-- Em `bar_expenses` (parcelas/investimentos), adicionar campo opcional **`auto_consumacao_recipient text`** — ex.: "Gledson". Permite ao dono marcar uma parcela como "abater automaticamente toda consumação cujo destino é segurança e recipient = X".
-- Trigger ou job na inserção de `sale_items` de uma `sales` com `category='consumacao'` + `consumacao_target='seguranca'` + `consumacao_recipient_name='<X>'`: criar `expense_offsets` para cada parcela em aberto que tenha `auto_consumacao_recipient = '<X>'`, com `amount = quantity × unit_price` (preço de balcão), `source_type='consumacao'`, `source_id=sale_id`.
-- Saldo da parcela = `amount + interest - paid_amount - SUM(expense_offsets.amount)` (já é assim no código atual de saldo).
+## Fora do escopo
 
-UI:
-- Em `InvestmentFormDialog` / `PayExpenseDialog` (parcela): novo campo "Abater consumação automática de" com input texto (placeholder "ex.: Gledson") + select de destino (default "Segurança").
-- Em `ExpensesTab` (ou na sheet de detalhes da parcela): nova **aba "Histórico de consumação"** com filtro de período (de/até) listando dia a dia os itens consumidos pelo recipient configurado, mostrando `qty`, `valor balcão` (abatido) e `custo`. Usa `get_supplier_consumacao_history`.
+- Redesign visual (cores, fontes, hierarquia) — só responsividade.
+- Mudanças em queries, permissões ou fluxos.
 
-## 6. Arquivos afetados
-- `supabase/migrations/...` — coluna `consumacao_recipient_name`, coluna `auto_consumacao_recipient` em `bar_expenses`, atualização de `get_event_consumacao`, nova RPC `get_supplier_consumacao_history`, trigger de auto-offset.
-- `src/components/vendas/QuickConsumacaoCard.tsx` (novo).
-- `src/components/vendas/LiveDashboardPanel.tsx` — render do novo card.
-- `src/components/vendas/ConsumacaoTargetDialog.tsx` — passo do nome.
-- `src/components/vendas/ConsumacaoLivePanel.tsx` — exibir recipient.
-- `src/routes/_app.pdv.tsx` — propagar recipientName.
-- `src/components/financeiro/InvestmentFormDialog.tsx` e/ou `PayExpenseDialog.tsx` — configurar recipient automático.
-- `src/components/financeiro/ExpensesTab.tsx` (ou nova sheet) — aba "Histórico de consumação" com filtro de datas.
-
-## 7. Validação
-- Lanço consumação "Segurança · Gledson" com 5 latas (custo R$ 30, balcão R$ 75) → estoque cai, faturamento intocado, painel mostra "Segurança · Gledson · custo R$ 30 · balcão R$ 75".
-- A parcela do som (marcada com `auto_consumacao_recipient='Gledson'`) recebe um `expense_offset` automático de R$ 75 e o saldo a pagar cai R$ 75.
-- Aba "Histórico de consumação" da parcela lista o dia/hora, produtos, qtd, balcão e custo, com filtro de período.
+Posso começar pela **Onda 1** assim que aprovar?
