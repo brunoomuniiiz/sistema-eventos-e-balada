@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { CompactTabsList, CompactTabsTrigger } from "@/components/ui/compact-tabs";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
@@ -39,11 +40,11 @@ export const Route = createFileRoute("/_app/produtos")({
 function ProdutosShell() {
   return (
     <Tabs defaultValue="catalogo" className="space-y-4">
-      <TabsList>
-        <TabsTrigger value="catalogo">Catálogo</TabsTrigger>
-        <TabsTrigger value="categorias">Categorias</TabsTrigger>
-        <TabsTrigger value="estoque">Estoque</TabsTrigger>
-      </TabsList>
+      <CompactTabsList>
+        <CompactTabsTrigger value="catalogo" short="Cat.">Catálogo</CompactTabsTrigger>
+        <CompactTabsTrigger value="categorias" short="Categ.">Categorias</CompactTabsTrigger>
+        <CompactTabsTrigger value="estoque" short="Estq.">Estoque</CompactTabsTrigger>
+      </CompactTabsList>
       <TabsContent value="catalogo"><ProdutosPage /></TabsContent>
       <TabsContent value="categorias"><CategoriasManager /></TabsContent>
       <TabsContent value="estoque"><EstoqueView /></TabsContent>
@@ -505,10 +506,10 @@ function ProdutosPage() {
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "simple" | "combo")} className="mb-4">
-        <TabsList>
-          <TabsTrigger value="simple">Produtos ({simpleProducts.length})</TabsTrigger>
-          <TabsTrigger value="combo">Combos ({comboProducts.length})</TabsTrigger>
-        </TabsList>
+        <CompactTabsList>
+          <CompactTabsTrigger value="simple" short={`Prod. (${simpleProducts.length})`}>Produtos ({simpleProducts.length})</CompactTabsTrigger>
+          <CompactTabsTrigger value="combo" short={`Combos (${comboProducts.length})`}>Combos ({comboProducts.length})</CompactTabsTrigger>
+        </CompactTabsList>
         <TabsContent value="simple" />
         <TabsContent value="combo" />
       </Tabs>

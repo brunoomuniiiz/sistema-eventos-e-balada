@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { CompactTabsList, CompactTabsTrigger } from "@/components/ui/compact-tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -93,11 +94,11 @@ export function EstoqueView() {
     <div>
       <PageHeader title="Estoque" subtitle="Quantidades por local, transferências e inventários" />
       <Tabs defaultValue="locais">
-        <TabsList>
-          <TabsTrigger value="locais"><MapPin className="h-4 w-4" /> Locais</TabsTrigger>
-          <TabsTrigger value="transferir"><ArrowRightLeft className="h-4 w-4" /> Transferir</TabsTrigger>
-          <TabsTrigger value="inventario"><ClipboardList className="h-4 w-4" /> Inventário</TabsTrigger>
-        </TabsList>
+        <CompactTabsList>
+          <CompactTabsTrigger value="locais" icon={MapPin} short="Locais">Locais</CompactTabsTrigger>
+          <CompactTabsTrigger value="transferir" icon={ArrowRightLeft} short="Transf.">Transferir</CompactTabsTrigger>
+          <CompactTabsTrigger value="inventario" icon={ClipboardList} short="Inv.">Inventário</CompactTabsTrigger>
+        </CompactTabsList>
 
         <TabsContent value="locais" className="space-y-4 mt-4">
           <LocaisTab

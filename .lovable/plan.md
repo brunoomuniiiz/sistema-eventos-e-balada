@@ -1,63 +1,88 @@
-# Deixar o app 100% responsivo (mobile / tablet / desktop)
+## Objetivo
+Deixar a navegação por abas (Vendas, Ao vivo, Dashboard, Eventos, Produtos, Portaria) confortável em telas estreitas e tornar o PDV Caixa + Vender (garçom) com a mesma pegada da Lojinha (rápido, "tap-friendly", ótimo no celular).
 
-Consigo sim. Vou fazer uma passada sistemática em **todas as rotas e painéis**, sem mudar lógica de negócio — só layout/CSS.
+## 1. Componente novo: `<CompactTabsList>` (sigla → nome completo no ativo)
 
-## Escopo (todas as abas)
+Criar `src/components/ui/compact-tabs.tsx` envolvendo `TabsList`/`TabsTrigger` do shadcn com regras:
 
-**Rotas `/_app/*`:**
-- `/dashboard`, `/ao-vivo`, `/vendas`, `/pdv`, `/produtos`, `/estoque`
-- `/eventos` (lista + detalhe), `/portaria`, `/pedidos-liberar`
-- `/financeiro` (Despesas, Investimento, Mensal), `/configuracao`
-- `/funcionarios`, `/promoters`, `/lojinha`, `/admin-caixas`, `/bar-settings`
+- Cada trigger recebe `label` (completo) + `short` (sigla/abrev opcional, ex.: "Pag.", "Conf.", "Hist.").
+- Em telas `<sm`: mostra **ícone + `short`** (ou ícone só, se não tiver short e o label for longo).
+- Aba **ativa sempre mostra label completo** (auto-expande), as outras ficam compactas → fica claro onde estou sem ocupar espaço.
+- `flex-wrap` permitido: se mesmo abreviado não couber, quebra pra 2 linhas (texto com `leading-tight whitespace-normal text-[11px]`).
+- Em `sm+` mostra label completo normal.
+- Touch target mínimo 40px de altura.
 
-**Rotas públicas:** `/loja/:slug`, `/loja/:slug/pedido/:id`, `/e/:slug`, `/lista/:slug`, `/auth`, `/pdv-cupom/:id`
+Comportamento "abreviado → toca expande": como ao tocar a aba ela vira ativa, o `short` é substituído pelo nome inteiro automaticamente.
 
-**Componentes pesados que costumam quebrar:**
-- `LiveDashboardPanel`, `QuickConsumacaoCard`, `QuickEventCostCard`, `ConsumacaoLivePanel`
-- `SalesHistory`, `LojinhaOrdersPanel`, `LojinhaAbandonedPanel`, `LojinhaPosView`
-- `ExpensesTab`, `InvestmentTab`, `SupplierConsumptionSheet`
-- `EventCostsManager`, `EventLandingManager`, `EventPromotersManager`
-- `TeamPanel`, `PromotersPanel`, `CaixasAdminPanel`, `SellerPermissionsPanel`
-- Todos os Dialog/Sheet (formulários do financeiro, PDV, estoque)
+## 2. Aplicar em todas as páginas com abas
 
-## Padrões que vou aplicar
+Substituir `TabsList` por `CompactTabsList` em:
 
-1. **Containers**: `max-w-7xl mx-auto px-4 md:px-8` consistente; remover larguras fixas em `px`.
-2. **Grids**: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3/4` em vez de `grid-cols-N` cru. Cards de KPI viram `grid-cols-2 md:grid-cols-4`.
-3. **Tabelas grandes** (ranking vendedor, histórico de vendas, consumação, lojinha, financeiro):
-   - Wrapper `overflow-x-auto` + `min-w-[640px]` na `<table>`
-   - **OU** layout alternativo em mobile: lista de cards (`hidden md:table` + `md:hidden` card list) quando a tabela tem muitas colunas críticas (ex: "Entrada por funcionário", `SalesHistory`, `LojinhaOrdersPanel`).
-4. **Headers/Toolbars** com filtros: `flex-wrap gap-2`, selects passam a `w-full sm:w-auto`, botões viram `flex-1 sm:flex-none`.
-5. **Dialogs e Sheets**: `max-w-[95vw] sm:max-w-lg`, conteúdo com `max-h-[85vh] overflow-y-auto`, footer sticky em mobile.
-6. **Typography**: títulos `text-2xl md:text-3xl`, números grandes `text-3xl md:text-4xl`.
-7. **PDV (`/pdv`)**: grid de produtos `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`, carrinho vira drawer em mobile (botão flutuante com badge de itens) e sidebar em `lg+`.
-8. **Lojinha cliente** (`/loja/:slug`): grid `grid-cols-2 md:grid-cols-3 lg:grid-cols-4`, carrinho como sheet em mobile.
-9. **Sidebar do app**: já tem bottom nav mobile + sidebar desktop — vou só revisar overflow do bottom nav em telas pequenas (≤360px) e o scroll horizontal dos itens.
-10. **Inputs de moeda/data**: largura fluida, `inputMode` correto pra abrir teclado numérico no celular.
-11. **Imagens**: `w-full h-auto object-cover` + `aspect-*` em produtos/eventos.
-12. **Safe-area iOS**: `pb-[env(safe-area-inset-bottom)]` em barras fixas (já feito no AppLayout, vou conferir nos drawers).
+- `src/routes/_app.vendas.tsx` — Caixas, PDV (PDV), Vender (Garçom → "Garçom"), Validar QR (QR), Pedidos (Ped.), Histórico (Hist.), Abandonados (Aband.), Configuração (Conf.)
+- `src/routes/_app.ao-vivo.tsx` — (sem abas próprias; o painel interno tem cards + filtro de período)
+- `src/routes/_app.dashboard.tsx`, `_app.financeiro.tsx`, `_app.produtos.tsx`, `_app.estoque.tsx`, `_app.eventos.$eventId.tsx`, `_app.portaria.tsx`, `_app.configuracao.tsx`, `_app.funcionarios.tsx`, `_app.promoters.tsx`, `_app.lojinha.tsx`.
 
-## Breakpoints alvo
+Mapa de siglas comuns:
+- Pagamento → Pag.
+- Configuração → Conf.
+- Histórico → Hist.
+- Produtos → Prod.
+- Estoque → Estq.
+- Eventos → Eve.
+- Financeiro → Fin.
+- Funcionários → Func.
+- Promoters → Promo.
+- Categorias → Cat.
+- Investimento → Inv.
+- Despesas → Desp.
+- Consumação → Cons.
+- Abandonados → Aband.
+- Permissões → Perm.
 
-- **Mobile**: 360–767px (foco principal — é onde os vendedores usam)
-- **Tablet**: 768–1023px
-- **Desktop**: ≥1024px
+## 3. Painel ao vivo — botões/cards mais enxutos
 
-## Como vou executar
+Em `LiveDashboardPanel.tsx`:
+- O `Select` de período fica `h-9 w-full sm:w-[180px]` (full no mobile, fixo no desktop) e o título quebra abaixo se necessário (`flex-wrap`).
+- Cards `MethodCard`: label aceita sigla. Ex.: "Dinheiro (bruto)" → "Dinh." no mobile, expandido em `sm+`. Mesma técnica: classe `sm:hidden` / `hidden sm:inline`.
+- "Mix por canal" e "Ranking" já são `grid md:grid-cols-2` — manter.
+- `QuickEventCostCard` e `QuickConsumacaoCard`: revisar para tabs internas usarem `CompactTabsList`.
 
-1. Varrer rota por rota, abrir cada arquivo, aplicar os padrões acima cirurgicamente.
-2. Não mexer em RPC, hooks de dados, regras de negócio — só `className` e estrutura JSX quando precisar de layout alternativo mobile/desktop.
-3. Conferir no preview em 375px, 768px e 1280px após cada bloco de rotas.
+## 4. PDV Caixa + Vender (garçom) — pegada Lojinha no celular
 
-## Entrega em ondas (pra não virar 1 mega-commit)
+Padrão Lojinha hoje (`LojinhaPosView`): chips de categoria horizontais + grid 2 colunas com foto, busca grande, FAB do carrinho, sheet de checkout em passos (cart → método → aguardando).
 
-- **Onda 1**: Shell + telas mais usadas no celular → `/pdv`, `/ao-vivo`, `/vendas`, `/portaria`, `/loja/:slug`
-- **Onda 2**: Admin no tablet/desktop → `/dashboard`, `/financeiro`, `/produtos`, `/estoque`, `/eventos`
-- **Onda 3**: Config e secundárias → `/configuracao`, `/funcionarios`, `/promoters`, `/lojinha` admin, `/admin-caixas`, dialogs restantes
+Mudanças no `_app.pdv.tsx` para ficar igual:
 
-## Fora do escopo
+1. **Header compacto no mobile**: substituir `<PageHeader title="Venda Rápida" subtitle=...>` por uma barra sticky fina com status do caixa + botão "Sangria" colapsado num menu.
+2. **Card "Caixa aberto"**: encolher no mobile (só ícone + total + botão Sangria como `icon`), expande detalhes em `sm+`.
+3. **Grid de produtos**: já é `grid-cols-2 sm:grid-cols-3...`. Aumentar área tocável: padding `p-3` no mobile, `p-4` em `sm+`. Adicionar miniatura `photo_url` (igual lojinha) quando existir.
+4. **Chips de categoria**: trocar fonte para `text-xs sm:text-sm`, padding `px-2.5 py-1` no mobile.
+5. **Busca**: input `h-11` no mobile com `inputMode="search"`.
+6. **FAB carrinho**: já existe; mover pra `bottom-24` no mobile pra não colidir com a nav inferior + safe-area.
+7. **Sheet de checkout**: passar a usar **passos** como na lojinha (Carrinho → Pagamento → Confirmação) em vez de um único scroll comprido — em mobile é mais fácil. Em `sm+` mantém scroll único.
+8. **SplitPaymentEditor**: revisar os botões de método de pagamento — usar grid `grid-cols-2 sm:grid-cols-4`, labels com sigla ("Dinh.", "Déb.", "Créd.", "Prom.") + ícone, label completo aparece em `sm+` ou no botão ativo.
+9. **Botão "Finalizar"**: já é `h-14`, manter. "Lançar como Consumação" vira botão `outline` mais discreto (`h-11`) no mobile.
 
-- Redesign visual (cores, fontes, hierarquia) — só responsividade.
-- Mudanças em queries, permissões ou fluxos.
+Para `LojinhaPosView` (Vender garçom): já está próximo do ideal. Pequenos ajustes:
+- Garantir `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4` (hoje pode estar diferente, validar).
+- FAB carrinho em `bottom-24` no mobile.
+- Passo "method" com botões grandões `h-16` lado a lado.
 
-Posso começar pela **Onda 1** assim que aprovar?
+## 5. Sidebar/Bottom-nav (AppLayout)
+
+- Bottom-nav atual já tem ícone + label `text-[10px]`. Adicionar `truncate max-w-[68px]` para evitar quebra feia.
+- Para itens com label longo (`Configuração`, `Financeiro`) usar versão curta no mobile via `<span className="sm:hidden">Conf.</span><span className="hidden sm:inline">Configuração</span>` no array de `navItems`.
+
+## 6. Ordem de execução
+
+1. Criar `CompactTabsList`.
+2. Aplicar em `/vendas` (prioridade — é o caso mais visível) + `/ao-vivo`.
+3. Reformar PDV mobile (grid, FAB, sheet por passos, métodos de pagamento curtos).
+4. Replicar `CompactTabsList` nas demais páginas com abas.
+5. Ajustes finais no bottom-nav.
+
+## Notas técnicas
+
+- Nenhuma mudança em banco, RPC, regras de venda, permissões ou cálculo. Só apresentação/UX.
+- Os labels curtos não substituem `value` das `TabsTrigger` — só o texto exibido. Roteamento via `?tab=` continua igual.
+- Animação simples (`transition-[width,opacity]`) quando label troca curto↔longo.

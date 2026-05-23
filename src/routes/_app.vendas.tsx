@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { CompactTabsList, CompactTabsTrigger } from "@/components/ui/compact-tabs";
 import { Store, ScanLine, Package, AlertTriangle, Settings, Receipt, ShoppingCart, Wallet } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/PageHeader";
@@ -51,16 +52,16 @@ function VendasPage() {
         onValueChange={(v) => navigate({ to: "/vendas", search: { tab: v }, replace: true })}
         className="space-y-4"
       >
-        <TabsList className="flex-wrap h-auto">
-          {isManager && <TabsTrigger value="caixas"><Wallet className="h-4 w-4 mr-1.5" /> Caixas</TabsTrigger>}
-          {showPdvCaixa && <TabsTrigger value="pdv"><ShoppingCart className="h-4 w-4 mr-1.5" /> PDV Caixa</TabsTrigger>}
-          {showPdvGarcom && <TabsTrigger value="vender"><Store className="h-4 w-4 mr-1.5" /> Vender (garçom)</TabsTrigger>}
-          {canValidarQr && <TabsTrigger value="scanner"><ScanLine className="h-4 w-4 mr-1.5" /> Validar QR</TabsTrigger>}
-          {canVerPedidos && <TabsTrigger value="pedidos"><Package className="h-4 w-4 mr-1.5" /> Pedidos</TabsTrigger>}
-          {canVerHistorico && <TabsTrigger value="historico"><Receipt className="h-4 w-4 mr-1.5" /> Histórico</TabsTrigger>}
-          {isOwner && <TabsTrigger value="abandonados"><AlertTriangle className="h-4 w-4 mr-1.5" /> Abandonados</TabsTrigger>}
-          {isOwner && <TabsTrigger value="config"><Settings className="h-4 w-4 mr-1.5" /> Configuração</TabsTrigger>}
-        </TabsList>
+        <CompactTabsList>
+          {isManager && <CompactTabsTrigger value="caixas" icon={Wallet} short="Cx.">Caixas</CompactTabsTrigger>}
+          {showPdvCaixa && <CompactTabsTrigger value="pdv" icon={ShoppingCart} short="PDV">PDV Caixa</CompactTabsTrigger>}
+          {showPdvGarcom && <CompactTabsTrigger value="vender" icon={Store} short="Garçom">Vender (garçom)</CompactTabsTrigger>}
+          {canValidarQr && <CompactTabsTrigger value="scanner" icon={ScanLine} short="QR">Validar QR</CompactTabsTrigger>}
+          {canVerPedidos && <CompactTabsTrigger value="pedidos" icon={Package} short="Ped.">Pedidos</CompactTabsTrigger>}
+          {canVerHistorico && <CompactTabsTrigger value="historico" icon={Receipt} short="Hist.">Histórico</CompactTabsTrigger>}
+          {isOwner && <CompactTabsTrigger value="abandonados" icon={AlertTriangle} short="Aband.">Abandonados</CompactTabsTrigger>}
+          {isOwner && <CompactTabsTrigger value="config" icon={Settings} short="Conf.">Configuração</CompactTabsTrigger>}
+        </CompactTabsList>
 
         {isManager && <TabsContent value="caixas"><CaixasAdminPanel /></TabsContent>}
 

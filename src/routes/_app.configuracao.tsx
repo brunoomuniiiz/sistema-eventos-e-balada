@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/PageHeader";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { CompactTabsList, CompactTabsTrigger } from "@/components/ui/compact-tabs";
 import { BarIdentityPanel } from "@/components/config/BarIdentityPanel";
 import { TeamPanel } from "@/components/config/TeamPanel";
 import { PromotersPanel } from "@/components/config/PromotersPanel";
@@ -18,12 +19,12 @@ function ConfiguracaoPage() {
     <div className="space-y-6">
       <PageHeader title="Configuração" subtitle="Identidade do bar, funcionários, promoters e maquininhas" />
       <Tabs defaultValue="identidade">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="identidade"><Settings className="h-4 w-4 mr-1.5" /> Identidade</TabsTrigger>
-          <TabsTrigger value="funcionarios"><UserCog className="h-4 w-4 mr-1.5" /> Funcionários</TabsTrigger>
-          <TabsTrigger value="promoters"><Users className="h-4 w-4 mr-1.5" /> Promoters</TabsTrigger>
-          {isOwner && <TabsTrigger value="maquininhas"><Smartphone className="h-4 w-4 mr-1.5" /> Maquininhas</TabsTrigger>}
-        </TabsList>
+        <CompactTabsList>
+          <CompactTabsTrigger value="identidade" icon={Settings} short="Ident.">Identidade</CompactTabsTrigger>
+          <CompactTabsTrigger value="funcionarios" icon={UserCog} short="Func.">Funcionários</CompactTabsTrigger>
+          <CompactTabsTrigger value="promoters" icon={Users} short="Promo.">Promoters</CompactTabsTrigger>
+          {isOwner && <CompactTabsTrigger value="maquininhas" icon={Smartphone} short="Maq.">Maquininhas</CompactTabsTrigger>}
+        </CompactTabsList>
         <TabsContent value="identidade" className="mt-4"><BarIdentityPanel /></TabsContent>
         <TabsContent value="funcionarios" className="mt-4"><TeamPanel /></TabsContent>
         <TabsContent value="promoters" className="mt-4"><PromotersPanel /></TabsContent>

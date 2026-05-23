@@ -14,7 +14,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { CompactTabsList, CompactTabsTrigger } from "@/components/ui/compact-tabs";
 import { formatBRL, formatPercent, calcHookahShare } from "@/lib/format";
 
 import { MensalView } from "./_app.mensal";
@@ -235,14 +236,14 @@ function FinanceiroPage() {
       </div>
 
       <Tabs defaultValue="eventos">
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="eventos">Por evento</TabsTrigger>
-          <TabsTrigger value="bar">Bar avulso</TabsTrigger>
-          <TabsTrigger value="fixos">Custos fixos</TabsTrigger>
-          <TabsTrigger value="variaveis">Custos variáveis</TabsTrigger>
-          <TabsTrigger value="investimento">Investimento</TabsTrigger>
-          <TabsTrigger value="mensal">Mensal</TabsTrigger>
-        </TabsList>
+        <CompactTabsList>
+          <CompactTabsTrigger value="eventos" short="Eve.">Por evento</CompactTabsTrigger>
+          <CompactTabsTrigger value="bar" short="Bar">Bar avulso</CompactTabsTrigger>
+          <CompactTabsTrigger value="fixos" short="Fixos">Custos fixos</CompactTabsTrigger>
+          <CompactTabsTrigger value="variaveis" short="Var.">Custos variáveis</CompactTabsTrigger>
+          <CompactTabsTrigger value="investimento" short="Inv.">Investimento</CompactTabsTrigger>
+          <CompactTabsTrigger value="mensal" short="Mês">Mensal</CompactTabsTrigger>
+        </CompactTabsList>
 
         <TabsContent value="eventos" className="mt-4">
           {isLoading ? (

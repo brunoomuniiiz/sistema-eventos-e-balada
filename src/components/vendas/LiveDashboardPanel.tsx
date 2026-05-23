@@ -139,11 +139,11 @@ export function LiveDashboardPanel() {
                 <span className="text-xs text-muted-foreground">{data.totals.n_sales} vendas</span>
               </div>
               <div className="text-4xl font-display font-bold">{formatBRL(data.totals.total)}</div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
-                <MethodCard icon={<Banknote className="h-4 w-4" />} label="Dinheiro (bruto)" value={data.totals.dinheiro} total={data.totals.total} />
-                <MethodCard icon={<QrCode className="h-4 w-4" />} label="Pix" value={data.totals.pix} total={data.totals.total} />
-                <MethodCard icon={<CreditCard className="h-4 w-4" />} label="Débito" value={data.totals.debito} total={data.totals.total} />
-                <MethodCard icon={<CreditCard className="h-4 w-4" />} label="Crédito" value={data.totals.credito} total={data.totals.total} />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 pt-2">
+                <MethodCard icon={<Banknote className="h-4 w-4" />} label="Dinheiro (bruto)" shortLabel="Dinh." value={data.totals.dinheiro} total={data.totals.total} />
+                <MethodCard icon={<QrCode className="h-4 w-4" />} label="Pix" shortLabel="Pix" value={data.totals.pix} total={data.totals.total} />
+                <MethodCard icon={<CreditCard className="h-4 w-4" />} label="Débito" shortLabel="Déb." value={data.totals.debito} total={data.totals.total} />
+                <MethodCard icon={<CreditCard className="h-4 w-4" />} label="Crédito" shortLabel="Créd." value={data.totals.credito} total={data.totals.total} />
               </div>
             </CardContent>
           </Card>
@@ -319,15 +319,23 @@ export function LiveDashboardPanel() {
   );
 }
 
-function MethodCard({ icon, label, value, total }: { icon: React.ReactNode; label: string; value: number; total: number }) {
+function MethodCard({ icon, label, shortLabel, value, total }: { icon: React.ReactNode; label: string; shortLabel?: string; value: number; total: number }) {
   const pct = total > 0 ? (Number(value) / Number(total)) * 100 : 0;
   return (
-    <div className="rounded-lg border p-3 space-y-1">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        {icon}<span>{label}</span>
+    <div className="rounded-lg border p-2.5 md:p-3 space-y-1 min-w-0">
+      <div className="flex items-center gap-1.5 text-[11px] md:text-xs text-muted-foreground">
+        {icon}
+        {shortLabel ? (
+          <>
+            <span className="sm:hidden truncate">{shortLabel}</span>
+            <span className="hidden sm:inline truncate">{label}</span>
+          </>
+        ) : (
+          <span className="truncate">{label}</span>
+        )}
       </div>
-      <div className="font-semibold">{formatBRL(value)}</div>
-      <div className="text-[11px] text-muted-foreground">{pct.toFixed(1)}% do total</div>
+      <div className="font-semibold text-sm md:text-base">{formatBRL(value)}</div>
+      <div className="text-[10px] md:text-[11px] text-muted-foreground">{pct.toFixed(1)}% do total</div>
     </div>
   );
 }
