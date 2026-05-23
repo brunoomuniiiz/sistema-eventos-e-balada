@@ -528,7 +528,7 @@ export function PdvView() {
           Nenhum produto cadastrado
         </Card>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {products
             .filter((p) => {
               if (categoryFilter === "all") return true;
@@ -545,8 +545,6 @@ export function PdvView() {
             const inCart = cart.find((i) => i.product_id === p.id);
             const isCombo = p.product_type === "combo";
             const comboStock = isCombo ? comboStockMap[p.id] : undefined;
-            // Combos: rastreados apenas se algum componente é rastreado efetivamente (comboStock !== null).
-            // Simples: só rastreado se track_stock E existe row em product_stock.
             const tracked = isCombo ? (comboStock !== null && comboStock !== undefined) : (p.track_stock && productsWithStockRows.has(p.id));
             const stockTotal = isCombo ? (comboStock ?? 0) : (stockMap[p.id] ?? 0);
             const outOfStock = tracked && stockTotal <= 0;
@@ -556,32 +554,51 @@ export function PdvView() {
                 key={p.id}
                 onClick={() => !outOfStock && addToCart(p)}
                 disabled={outOfStock}
-                className={`relative p-4 rounded-2xl border text-left transition-all active:scale-95 ${
+                className={`relative w-full text-left p-2 rounded-xl border flex gap-3 items-center transition-all active:scale-[0.98] ${
                   inCart
-                    ? "bg-primary/10 border-primary shadow-[0_0_0_2px_var(--color-primary)]"
+                    ? "bg-primary/10 border-primary"
                     : "bg-card border-border hover:border-primary/50"
                 } ${outOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
               >
-                {isCombo && (
-                  <Badge variant="secondary" className="absolute top-2 right-2 gap-1 text-[10px]">
-                    <Layers className="h-3 w-3" /> Combo
-                  </Badge>
-                )}
-                {inCart && (
-                  <div className="absolute top-2 left-2 h-6 w-6 rounded-full bg-primary text-primary-foreground grid place-items-center text-xs font-bold">
-                    {inCart.quantity}
+                {p.photo_url ? (
+                  <img src={p.photo_url} alt={p.name} className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg bg-secondary grid place-items-center shrink-0">
+                    {isCombo ? <Layers className="h-6 w-6 text-muted-foreground" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
                   </div>
                 )}
-                <div className="font-semibold leading-tight mt-6 line-clamp-2 min-h-[2.5rem]">{p.name}</div>
-                <div className="text-lg font-bold text-gradient mt-1">{formatBRL(Number(p.price))}</div>
-                {lowStock && (
-                  <div className="text-[11px] mt-0.5 text-amber-500">Últimas {stockTotal}</div>
-                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-sm truncate">{p.name}</span>
+                    {isCombo && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground shrink-0">Combo</span>
+                    )}
+                  </div>
+                  <div className="text-base font-bold text-gradient mt-0.5">{formatBRL(Number(p.price))}</div>
+                  {lowStock && (
+                    <div className="text-[11px] text-amber-500">Últimas {stockTotal}</div>
+                  )}
+                  {outOfStock && (
+                    <div className="text-[11px] text-destructive">Esgotado</div>
+                  )}
+                </div>
+                <div className="shrink-0 grid place-items-center">
+                  {inCart ? (
+                    <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center text-sm font-bold">
+                      {inCart.quantity}
+                    </div>
+                  ) : (
+                    <div className="h-9 w-9 rounded-full bg-primary/15 text-primary grid place-items-center">
+                      <Plus className="h-4 w-4" />
+                    </div>
+                  )}
+                </div>
               </button>
             );
           })}
         </div>
       )}
+
 
       {/* FAB do carrinho */}
       {cart.length > 0 && (
