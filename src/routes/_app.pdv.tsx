@@ -378,6 +378,7 @@ export function PdvView() {
           event_id: evId,
           category: "consumacao",
           consumacao_target: target,
+          consumacao_recipient_name: recipientName,
           session_id: session.id,
         } as never)
         .select()
