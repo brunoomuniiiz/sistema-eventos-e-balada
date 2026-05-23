@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
 import {
-  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search,
+  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search, Image as ImageIcon,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatBRL } from "@/lib/format";
