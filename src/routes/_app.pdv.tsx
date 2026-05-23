@@ -763,7 +763,7 @@ export function PdvView() {
       <ConsumacaoTargetDialog
         open={consumacaoOpen}
         onOpenChange={setConsumacaoOpen}
-        onPick={(target) => { void saveConsumacao(target); }}
+        onPick={(target, recipientName) => { void saveConsumacao(target, recipientName); }}
       />
     </div>
   );
