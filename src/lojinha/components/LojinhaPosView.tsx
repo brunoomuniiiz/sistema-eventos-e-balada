@@ -401,7 +401,7 @@ export function LojinhaPosView() {
           Nenhum produto disponível para venda online
         </CardContent></Card>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);
@@ -409,16 +409,36 @@ export function LojinhaPosView() {
               <button
                 key={p.id}
                 onClick={() => addToCart(p)}
-                className={`relative text-left rounded-xl border p-3 transition-all active:scale-95 ${inCart ? "border-primary bg-primary/5" : "border-border bg-card"}`}
+                className={`relative w-full text-left p-2 rounded-xl border flex gap-3 items-center transition-all active:scale-[0.98] ${inCart ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/50"}`}
               >
-                {inCart && <Badge className="absolute top-1.5 right-1.5">{inCart.quantity}</Badge>}
-                <div className="font-medium text-sm line-clamp-2 min-h-[2.5rem]">{p.name}</div>
-                <div className="text-primary font-bold mt-1">{formatBRL(price)}</div>
+                {p.photo_url ? (
+                  <img src={p.photo_url} alt={p.name} className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg object-cover shrink-0" />
+                ) : (
+                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg bg-secondary grid place-items-center shrink-0">
+                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm truncate">{p.name}</div>
+                  <div className="text-base font-bold text-primary mt-0.5">{formatBRL(price)}</div>
+                </div>
+                <div className="shrink-0 grid place-items-center">
+                  {inCart ? (
+                    <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center text-sm font-bold">
+                      {inCart.quantity}
+                    </div>
+                  ) : (
+                    <div className="h-9 w-9 rounded-full bg-primary/15 text-primary grid place-items-center">
+                      <Plus className="h-4 w-4" />
+                    </div>
+                  )}
+                </div>
               </button>
             );
           })}
         </div>
       )}
+
 
       {cart.length > 0 && (
         <div className="fixed bottom-20 md:bottom-4 left-0 right-0 px-4 z-40">
