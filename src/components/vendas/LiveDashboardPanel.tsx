@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { QuickEventCostCard } from "@/components/vendas/QuickEventCostCard";
 import { ConsumacaoLivePanel } from "@/components/vendas/ConsumacaoLivePanel";
+import { QuickConsumacaoCard } from "@/components/vendas/QuickConsumacaoCard";
 
 type Period = "today" | "yesterday" | "event" | "7d" | "30d";
 
