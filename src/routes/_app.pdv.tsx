@@ -551,21 +551,19 @@ export function PdvView() {
             const outOfStock = tracked && stockTotal <= 0;
             const lowStock = tracked && !outOfStock && stockTotal <= 10;
             return (
-              <button
+              <div
                 key={p.id}
-                onClick={() => !outOfStock && addToCart(p)}
-                disabled={outOfStock}
-                className={`relative w-full text-left p-2 rounded-xl border flex gap-3 items-center transition-all active:scale-[0.98] ${
+                className={`relative w-full p-3 rounded-xl border flex gap-3 items-center transition-all ${
                   inCart
                     ? "bg-primary/10 border-primary"
-                    : "bg-card border-border hover:border-primary/50"
-                } ${outOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
+                    : "bg-card border-border"
+                } ${outOfStock ? "opacity-40" : ""}`}
               >
                 {p.photo_url ? (
-                  <img src={p.photo_url} alt={p.name} className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg object-cover shrink-0" />
+                  <img src={p.photo_url} alt={p.name} className="h-20 w-20 rounded-lg object-cover shrink-0" />
                 ) : (
-                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg bg-secondary grid place-items-center shrink-0">
-                    {isCombo ? <Layers className="h-6 w-6 text-muted-foreground" /> : <ImageIcon className="h-6 w-6 text-muted-foreground" />}
+                  <div className="h-20 w-20 rounded-lg bg-secondary grid place-items-center shrink-0">
+                    {isCombo ? <Layers className="h-7 w-7 text-muted-foreground" /> : <ImageIcon className="h-7 w-7 text-muted-foreground" />}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -577,24 +575,32 @@ export function PdvView() {
                   </div>
                   <div className="text-base font-bold text-gradient mt-0.5">{formatBRL(Number(p.price))}</div>
                   {lowStock && (
-                    <div className="text-[11px] text-amber-500">Últimas {stockTotal}</div>
+                    <div className="text-[11px] text-amber-500 mt-0.5">Últimas {stockTotal}</div>
                   )}
                   {outOfStock && (
-                    <div className="text-[11px] text-destructive">Esgotado</div>
+                    <div className="text-[11px] text-destructive mt-0.5">Esgotado</div>
                   )}
                 </div>
-                <div className="shrink-0 grid place-items-center">
-                  {inCart ? (
-                    <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center text-sm font-bold">
-                      {inCart.quantity}
+                <div className="shrink-0">
+                  {outOfStock ? (
+                    <span className="text-xs font-medium text-destructive">Esgotado</span>
+                  ) : inCart ? (
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(p.id, -1)}>
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="font-bold w-5 text-center text-sm">{inCart.quantity}</span>
+                      <Button size="icon" className="h-7 w-7" onClick={() => addToCart(p)}>
+                        <Plus className="h-3 w-3" />
+                      </Button>
                     </div>
                   ) : (
-                    <div className="h-9 w-9 rounded-full bg-primary/15 text-primary grid place-items-center">
+                    <Button size="sm" onClick={() => addToCart(p)} className="active:scale-95">
                       <Plus className="h-4 w-4" />
-                    </div>
+                    </Button>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
