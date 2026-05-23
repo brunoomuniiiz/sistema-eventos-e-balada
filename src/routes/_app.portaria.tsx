@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { CompactTabsList, CompactTabsTrigger } from "@/components/ui/compact-tabs";
 import { toast } from "sonner";
 import {
   CalendarDays, Search, UserCheck, UserX, Crown, Users,
@@ -256,12 +257,12 @@ function PortariaPage() {
       </div>
 
       <Tabs defaultValue="lista" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="lista" className="gap-1"><Users className="h-4 w-4" />Lista VIP</TabsTrigger>
-          <TabsTrigger value="pagante" className="gap-1"><Ticket className="h-4 w-4" />Pagante</TabsTrigger>
-          <TabsTrigger value="caixa" className="gap-1"><Wallet className="h-4 w-4" />Caixa</TabsTrigger>
-          <TabsTrigger value="relatorio" className="gap-1"><BarChart3 className="h-4 w-4" />Relatório</TabsTrigger>
-        </TabsList>
+        <CompactTabsList>
+          <CompactTabsTrigger value="lista" icon={Users} short="Lista">Lista VIP</CompactTabsTrigger>
+          <CompactTabsTrigger value="pagante" icon={Ticket} short="Pag.">Pagante</CompactTabsTrigger>
+          <CompactTabsTrigger value="caixa" icon={Wallet} short="Cx.">Caixa</CompactTabsTrigger>
+          <CompactTabsTrigger value="relatorio" icon={BarChart3} short="Rel.">Relatório</CompactTabsTrigger>
+        </CompactTabsList>
 
         {/* LISTA */}
         <TabsContent value="lista" className="space-y-3">
