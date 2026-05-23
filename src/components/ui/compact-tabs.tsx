@@ -42,7 +42,7 @@ export const CompactTabsTrigger = React.forwardRef<
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        "group inline-flex items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 min-h-9 text-xs sm:text-sm font-medium",
+        "group inline-flex items-center justify-center gap-1 sm:gap-1.5 rounded-md px-2 py-1.5 sm:px-2.5 min-h-9 text-[11px] sm:text-sm font-medium",
         "ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "disabled:pointer-events-none disabled:opacity-50",
         "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
@@ -51,12 +51,11 @@ export const CompactTabsTrigger = React.forwardRef<
       )}
       {...props}
     >
-      {Icon && <Icon className="h-4 w-4 shrink-0" />}
-      {/* Mobile (curto) — escondido quando ativa, e escondido em sm+ */}
+      {Icon && <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />}
       {short ? (
         <>
-          <span className="sm:hidden group-data-[state=active]:hidden">{short}</span>
-          <span className="hidden sm:inline group-data-[state=active]:inline">{children}</span>
+          <span className="sm:hidden">{short}</span>
+          <span className="hidden sm:inline">{children}</span>
         </>
       ) : (
         <span>{children}</span>
