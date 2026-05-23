@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, AlertTriangle, CheckCircle2, Copy, Search, Wallet } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, Copy, Search, Wallet, Trash2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,9 +10,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBRL } from "@/lib/format";
-import { inspectMpForOrder, reconcileOrderFromMp } from "@/lib/pix.functions";
+import { inspectMpForOrder, reconcileOrderFromMp, deleteLojinhaOrder, deleteAllLojinhaOrders } from "@/lib/pix.functions";
 import { toast } from "sonner";
 
 type AbandonedOrder = {
