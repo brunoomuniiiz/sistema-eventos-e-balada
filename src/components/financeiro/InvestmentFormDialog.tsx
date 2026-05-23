@@ -66,6 +66,8 @@ export function InvestmentFormDialog({
   const [dueDay, setDueDay] = useState<string>("");
   const [alreadyPaidCount, setAlreadyPaidCount] = useState<number>(0);
   const [notes, setNotes] = useState("");
+  const [autoConsumacaoRecipient, setAutoConsumacaoRecipient] = useState("");
+  const [autoConsumacaoTarget, setAutoConsumacaoTarget] = useState<string>("seguranca");
 
   useEffect(() => {
     if (open) {
