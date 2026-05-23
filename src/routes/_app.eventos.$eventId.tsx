@@ -171,23 +171,24 @@ function EventDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <Button asChild variant="ghost" size="sm">
           <Link to="/eventos"><ArrowLeft className="h-4 w-4 mr-1.5" /> Eventos</Link>
         </Button>
         <div className="flex gap-2">
           <Button asChild variant="secondary" size="sm">
-            <Link to="/eventos"><Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar</Link>
+            <Link to="/eventos"><Pencil className="h-3.5 w-3.5 sm:mr-1.5" /> <span className="hidden sm:inline">Editar</span></Link>
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => { if (confirm(`Remover "${event.name}"?`)) deleteMut.mutate(); }}
           >
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Excluir
+            <Trash2 className="h-3.5 w-3.5 sm:mr-1.5" /> <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>
+
 
       {/* Hero */}
       <Card className="glass border-border/60 overflow-hidden">
