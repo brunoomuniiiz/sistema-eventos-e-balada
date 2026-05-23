@@ -2,8 +2,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Package, CheckCircle2, Printer, XCircle } from "lucide-react";
+import { Loader2, Package, CheckCircle2, Printer, XCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatBRL } from "@/lib/format";
 import { markOrderDelivered, abandonLojinhaOrder } from "@/lojinha/api";
+import { deleteLojinhaOrder, deleteAllLojinhaOrders } from "@/lib/pix.functions";
 import { printReceipt, qrSvgString } from "@/lib/order-print";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
@@ -183,6 +185,37 @@ export function LojinhaOrdersPanel() {
     }
   }
 
+  const delOne = useServerFn(deleteLojinhaOrder);
+  const delAll = useServerFn(deleteAllLojinhaOrders);
+
+  async function handleDelete(o: OrderRow) {
+    setBusy(o.id);
+    try {
+      const force = o.status === "paid" || o.status === "delivered";
+      await delOne({ data: { orderId: o.id, force } });
+      toast.success("Pedido excluído");
+      qc.invalidateQueries({ queryKey: ["lojinha-orders"] });
+      qc.invalidateQueries({ queryKey: ["lojinha-abandoned"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao excluir");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleDeleteAll(scope: "pending" | "all_test") {
+    setBusy("__all__");
+    try {
+      const r = await delAll({ data: { scope } });
+      toast.success(`${r.deleted} pedido(s) excluído(s)`);
+      qc.invalidateQueries({ queryKey: ["lojinha-orders"] });
+      qc.invalidateQueries({ queryKey: ["lojinha-abandoned"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao excluir em lote");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -194,6 +227,51 @@ export function LojinhaOrdersPanel() {
           <TabsTrigger value="all">Todos</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      <div className="flex justify-end gap-2">
+        {filter === "pending" && orders.length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="outline" className="text-destructive border-destructive/40" disabled={busy === "__all__"}>
+                <Trash2 className="h-3 w-3 mr-1" /> Excluir todos pendentes
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir TODOS os pendentes?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Vai apagar permanentemente {orders.length} pedido(s) pendente(s) e liberar reservas. Pagos não são afetados.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleDeleteAll("pending")}>Excluir tudo</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        {filter === "all" && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="outline" className="text-destructive border-destructive/40" disabled={busy === "__all__"}>
+                <Trash2 className="h-3 w-3 mr-1" /> Limpar TODOS (testes)
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Apagar TODOS os pedidos?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Isso apaga TODOS os pedidos da lojinha (inclusive pagos e entregues). Use só para limpar dados de teste — não dá pra desfazer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction className="bg-destructive" onClick={() => handleDeleteAll("all_test")}>Apagar tudo</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
 
       {isLoading && (
         <div className="grid place-items-center h-32"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
@@ -283,6 +361,31 @@ export function LojinhaOrdersPanel() {
                     <Printer className="h-3 w-3 mr-1" /> Reimprimir
                   </Button>
                 )}
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="ghost" className="w-full text-xs text-destructive hover:bg-destructive/10" disabled={busy === o.id}>
+                      <Trash2 className="h-3 w-3 mr-1" /> Excluir pedido
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir pedido #{String(o.daily_number ?? "").padStart(3, "0")}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Apaga permanentemente o pedido, itens, unidades e cobranças PIX vinculadas.
+                        {(o.status === "paid" || o.status === "delivered") && (
+                          <span className="block mt-2 text-destructive font-medium">
+                            ⚠ Este pedido está "{o.status}" — vai afetar o histórico.
+                          </span>
+                        )}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction className="bg-destructive" onClick={() => handleDelete(o)}>Excluir</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
           );

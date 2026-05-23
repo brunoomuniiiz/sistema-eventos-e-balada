@@ -205,3 +205,121 @@ export const reconcileOrderFromMp = createServerFn({ method: "POST" })
     return { ok: true, mp_status: mp.status, applied: result.updated };
   });
 
+/** Verifica se o user atual é owner do escopo (não staff). */
+async function assertOwner(userId: string): Promise<string> {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("owner_id, role")
+    .eq("user_id", userId)
+    .maybeSingle();
+  const ownerId = (data?.owner_id as string) ?? userId;
+  if (data && data.role && data.role !== "owner") {
+    throw new Error("Apenas o dono pode excluir pedidos");
+  }
+  return ownerId;
+}
+
+/**
+ * Admin: exclui um pedido da lojinha (e suas cargas/items/units).
+ * Por padrão bloqueia exclusão de pedidos pagos/entregues — precisa `force:true`.
+ */
+export const deleteLojinhaOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ orderId: z.string().uuid(), force: z.boolean().optional() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const userId = (context as { userId: string }).userId;
+    const ownerId = await assertOwner(userId);
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("lojinha_orders")
+      .select("id, status, user_id")
+      .eq("id", data.orderId)
+      .eq("user_id", ownerId)
+      .maybeSingle();
+    if (orderErr) throw new Error(orderErr.message);
+    if (!order) throw new Error("Pedido não encontrado");
+
+    const protectedStatuses = ["paid", "delivered"];
+    if (!data.force && protectedStatuses.includes(order.status)) {
+      throw new Error(
+        `Pedido está '${order.status}'. Confirme a exclusão forçada (afeta histórico).`,
+      );
+    }
+
+    if (order.status === "pending") {
+      await supabaseAdmin.rpc("lojinha_release_order_reservation", {
+        _order_id: order.id,
+      });
+    }
+
+    // Filhos primeiro (sem FK ON DELETE CASCADE garantida).
+    await supabaseAdmin.from("pix_charges").delete().eq("order_id", order.id);
+    await supabaseAdmin.from("lojinha_order_units").delete().eq("order_id", order.id);
+    await supabaseAdmin.from("lojinha_order_items").delete().eq("order_id", order.id);
+    await supabaseAdmin
+      .from("lojinha_stock_reservations")
+      .delete()
+      .eq("cart_token", order.id);
+
+    const { error: delErr } = await supabaseAdmin
+      .from("lojinha_orders")
+      .delete()
+      .eq("id", order.id);
+    if (delErr) throw new Error(delErr.message);
+
+    return { ok: true };
+  });
+
+/**
+ * Admin: exclui em lote conforme escopo.
+ * - 'abandoned'  : todos pedidos abandonados (conciliados ou não)
+ * - 'pending'    : todos pendentes (libera reservas)
+ * - 'all_test'   : TODOS pedidos do dono (uso para limpar testes)
+ */
+export const deleteAllLojinhaOrders = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ scope: z.enum(["abandoned", "pending", "all_test"]) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const userId = (context as { userId: string }).userId;
+    const ownerId = await assertOwner(userId);
+
+    let q = supabaseAdmin
+      .from("lojinha_orders")
+      .select("id, status")
+      .eq("user_id", ownerId);
+    if (data.scope === "abandoned") q = q.eq("status", "abandoned");
+    else if (data.scope === "pending") q = q.eq("status", "pending");
+
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    const orders = rows ?? [];
+    if (orders.length === 0) return { ok: true, deleted: 0 };
+
+    for (const o of orders) {
+      if (o.status === "pending") {
+        await supabaseAdmin.rpc("lojinha_release_order_reservation", {
+          _order_id: o.id,
+        });
+      }
+    }
+
+    const ids = orders.map((o) => o.id);
+    await supabaseAdmin.from("pix_charges").delete().in("order_id", ids);
+    await supabaseAdmin.from("lojinha_order_units").delete().in("order_id", ids);
+    await supabaseAdmin.from("lojinha_order_items").delete().in("order_id", ids);
+    await supabaseAdmin.from("lojinha_stock_reservations").delete().in("cart_token", ids);
+
+    const { error: delErr } = await supabaseAdmin
+      .from("lojinha_orders")
+      .delete()
+      .in("id", ids);
+    if (delErr) throw new Error(delErr.message);
+
+    return { ok: true, deleted: ids.length };
+  });
+
+

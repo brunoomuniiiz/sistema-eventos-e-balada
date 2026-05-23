@@ -1,38 +1,79 @@
-## O que encontrei
+# O que está acontecendo
 
-- A compra de R$ 0,05 criou uma cobrança PIX (`160597013162`) e o app ficou consultando apenas o banco. Como o webhook não atualizou, a tela nunca virou “pagamento confirmado”.
-- O fallback que consulta o Mercado Pago direto foi adicionado só no PIX público da lojinha; o PIX autenticado do PDV/garçom ainda não faz essa conciliação automática.
-- O pedido conciliado saiu de “Abandonados” porque o painel esconde conciliados por padrão, mas ele não entrou no histórico porque continuou com status `abandoned`. Hoje “Apenas marcar” só marca conferido, não transforma em pago.
-- O botão flutuante “Ver como” usa `z-index` alto e fica por cima do carrinho do PDV/garçom.
-- A lojinha online voltou a listar os produtos, mas o PIX pode não abrir por erro na criação da cobrança/reserva ou porque a UI só mostra um card genérico, sem detalhe persistente.
+## 1) PIX da lojinha online não abre — causa raiz encontrada
 
-## Plano de correção
+Erro: `function gen_random_bytes(integer) does not exist`.
 
-1. Corrigir confirmação automática do PIX no PDV e no balcão/garçom
-   - Atualizar `getPixChargeStatus` para, quando a cobrança estiver `pending`, consultar o Mercado Pago pelo `mp_payment_id`.
-   - Se o Mercado Pago retornar aprovado, aplicar a mesma rotina do webhook e devolver `approved` para a tela virar “Pagamento confirmado”.
-   - Se retornar rejeitado/cancelado, refletir isso na tela em vez de ficar parado.
+A extensão `pgcrypto` está instalada no schema **`extensions`** (padrão novo do Supabase), mas 7 funções do banco chamam `gen_random_bytes(...)` sem prefixo. Como o `search_path` dessas funções não inclui `extensions`, o Postgres não encontra a função e a criação do pedido falha — por isso você não passa nem do botão "Pagar com PIX" no carrinho.
 
-2. Ajustar pedidos conciliados para não “sumirem”
-   - Separar claramente duas ações em “Abandonados”:
-     - “Apenas marcar conferido”: mantém abandonado e só some quando “Ocultar conciliados” estiver ativo.
-     - “Conciliar como pago”: só quando o Mercado Pago estiver aprovado, muda o pedido para `paid`, preenche `paid_at/mp_payment_id`, e ele aparece em “Pedidos” e depois no “Histórico”.
-   - Corrigir o pedido de R$ 2 já aprovado no Mercado Pago que ficou `abandoned`, mudando para `paid` com o `mp_payment_id` correto para aparecer novamente.
+Funções afetadas (todas em `public`):
+- `lojinha_create_order` ← usada pela lojinha online (cliente final)
+- `lojinha_create_pending_order`
+- `lojinha_create_pos_order` (duas versões)
+- `lojinha_confirm_payment`
+- `lojinha_confirm_delivery_pos`
+- `assign_daily_number_and_token`
 
-3. Tornar o PIX da lojinha online mais resiliente e visível
-   - Mostrar o erro real quando o PIX não abre, com botão “Tentar gerar PIX novamente”.
-   - Evitar tela silenciosa caso a cobrança seja criada sem QR/copia-e-cola.
-   - Manter a expiração de 24h para pedidos online.
+Isso também explica por que ontem falhou tudo do zero: nada conseguia gerar o `pickup_token` aleatório.
 
-4. Corrigir “Ver como” sobrepondo o carrinho
-   - Reposicionar o botão “Ver como” quando houver carrinho aberto/ativo no mobile, ou reduzir sua prioridade visual para não cobrir o checkout.
-   - Priorizar o carrinho e botões de cobrança acima do “Ver como”.
+## 2) Não consigo excluir pedidos da lojinha
 
-5. Verificação final
-   - Conferir no banco os pedidos recentes e PIX recentes.
-   - Validar que o polling do PIX autenticado agora reconcilia com Mercado Pago.
-   - Validar que o pedido conciliado como pago aparece em “Pedidos/Histórico” e que o carrinho não fica atrás do “Ver como”.
+Verificado no código: **não existe** nenhum botão de "excluir pedido" nem em `LojinhaOrdersPanel` nem em `LojinhaAbandonedPanel`. Só existe "marcar conferido" e "conciliar pelo MP", que apenas mudam status — não removem.
 
-## Observação importante
+---
 
-Também recomendo configurar/conferir o webhook do Mercado Pago apontando para `/api/public/mp-webhook`; mesmo com o fallback corrigido, o webhook é o caminho principal para atualizar pagamentos sem depender do usuário manter a tela aberta.
+# Plano
+
+## Passo 1 — Migration: qualificar `extensions.gen_random_bytes`
+
+Recriar as 7 funções usando `extensions.gen_random_bytes(...)` no lugar de `gen_random_bytes(...)`, mantendo o resto do corpo idêntico. Mesma migration adiciona `SET search_path = public, extensions` em cada uma como defesa em profundidade.
+
+Sem mexer em `pgcrypto` em si (mover extensão entre schemas é arriscado e quebraria outras coisas).
+
+## Passo 2 — Excluir pedidos (admin)
+
+**Server function** `deleteLojinhaOrder(orderId)` em `src/lib/pix.functions.ts` (auth + verifica que é owner/admin):
+- Se `status='pending'`: chama `lojinha_release_order_reservation` antes
+- Apaga `pix_charges` do pedido, `lojinha_order_items`, `lojinha_order_units`, e por fim `lojinha_orders`
+- Bloqueia exclusão de pedidos `paid`/`delivered` por padrão (exige um flag `force:true` que vem do diálogo "tem certeza?" com aviso forte)
+
+**Server function** `deleteAllLojinhaOrders({ scope })` com escopos:
+- `'abandoned'` — só os abandonados
+- `'pending'` — pendentes (libera reservas)
+- `'all_test'` — todos (só com confirmação dupla)
+
+**UI:**
+- `LojinhaOrdersPanel`: ícone de lixeira em cada card → `AlertDialog` confirmando + nota "isso é permanente"
+- `LojinhaAbandonedPanel`: lixeira por item + botão "Limpar todos abandonados" no topo
+- Toast de sucesso/erro e refetch
+
+## Passo 3 — Validar
+
+- Reproduzir: ir como cliente na lojinha online, montar carrinho, clicar "Pagar com PIX" → deve criar pedido e abrir QR
+- Testar exclusão individual e em massa
+- Confirmar que histórico/financeiro não quebra (pedidos pagos ficam protegidos por padrão)
+
+---
+
+## Detalhes técnicos
+
+```sql
+-- exemplo de uma das 7 funções
+CREATE OR REPLACE FUNCTION public.lojinha_create_order(...)
+RETURNS ...
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+  ...
+  -- antes:  encode(gen_random_bytes(16), 'hex')
+  -- depois: encode(extensions.gen_random_bytes(16), 'hex')
+  ...
+$$;
+```
+
+Arquivos novos/alterados:
+- `supabase/migrations/<ts>_fix_gen_random_bytes.sql` (novo)
+- `src/lib/pix.functions.ts` (+ deleteLojinhaOrder, + deleteAllLojinhaOrders)
+- `src/lojinha/components/LojinhaOrdersPanel.tsx` (+ botão excluir)
+- `src/lojinha/components/LojinhaAbandonedPanel.tsx` (+ excluir individual e em massa)
