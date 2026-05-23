@@ -89,6 +89,8 @@ export type Database = {
       bar_expenses: {
         Row: {
           amount: number
+          auto_consumacao_recipient: string | null
+          auto_consumacao_target: string | null
           category_id: string | null
           category_name: string
           created_at: string
@@ -120,6 +122,8 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          auto_consumacao_recipient?: string | null
+          auto_consumacao_target?: string | null
           category_id?: string | null
           category_name: string
           created_at?: string
@@ -151,6 +155,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          auto_consumacao_recipient?: string | null
+          auto_consumacao_target?: string | null
           category_id?: string | null
           category_name?: string
           created_at?: string
@@ -1784,6 +1790,7 @@ export type Database = {
           cancelled_reason: string | null
           category: string
           closing_id: string | null
+          consumacao_recipient_name: string | null
           consumacao_target: string | null
           created_at: string
           daily_date: string | null
@@ -1816,6 +1823,7 @@ export type Database = {
           cancelled_reason?: string | null
           category?: string
           closing_id?: string | null
+          consumacao_recipient_name?: string | null
           consumacao_target?: string | null
           created_at?: string
           daily_date?: string | null
@@ -1848,6 +1856,7 @@ export type Database = {
           cancelled_reason?: string | null
           category?: string
           closing_id?: string | null
+          consumacao_recipient_name?: string | null
           consumacao_target?: string | null
           created_at?: string
           daily_date?: string | null
@@ -2507,6 +2516,10 @@ export type Database = {
         }
       }
       get_session_expected_totals: { Args: never; Returns: Json }
+      get_supplier_consumacao_history: {
+        Args: { _expense_id: string; _from?: string; _to?: string }
+        Returns: Json
+      }
       has_permission: {
         Args: { _owner_id: string; _permission: string; _user_id: string }
         Returns: boolean
