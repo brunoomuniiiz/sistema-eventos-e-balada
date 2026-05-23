@@ -242,8 +242,8 @@ export function LiveDashboardPanel() {
               {data.by_seller.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Sem vendas no período.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <table className="w-full text-sm min-w-[640px]">
                     <thead className="text-xs text-muted-foreground border-b">
                       <tr>
                         <th className="text-left py-2 pr-2">Funcionário</th>

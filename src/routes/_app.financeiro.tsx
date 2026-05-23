@@ -311,7 +311,7 @@ function FinanceiroPage() {
               <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
                 <Sparkles className="h-4 w-4" /> Vendas do PDV sem evento vinculado
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <Field label="Receita" value={formatBRL(barNoEvent.revenue)} />
                 <Field label="CMV" value={formatBRL(barNoEvent.cmv)} negative />
                 <Field label="Lucro bar" value={formatBRL(barNoEvent.profit)} accent />

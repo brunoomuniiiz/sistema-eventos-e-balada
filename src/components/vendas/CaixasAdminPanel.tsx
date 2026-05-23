@@ -45,7 +45,7 @@ export function CaixasAdminPanel() {
 
       {isLoading && <Card><CardContent className="p-6 text-muted-foreground">Carregando…</CardContent></Card>}
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-4">
         {bar && <SectorCard row={bar} label="Bar" />}
         {portaria && <SectorCard row={portaria} label="Portaria" />}
       </div>
@@ -98,16 +98,16 @@ function SectorCard({ row, label }: { row: SectorRow; label: string }) {
 
   return (
     <Card className="p-5 space-y-4">
-      <div className="flex items-center gap-3">
-        <Wallet className="h-5 w-5 text-primary" />
-        <div className="flex-1">
-          <div className="font-display font-bold text-lg">Caixa do {label}</div>
-          <div className="text-xs text-muted-foreground">
+      <div className="flex items-start gap-3">
+        <Wallet className="h-5 w-5 text-primary mt-1 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="font-display font-bold text-lg leading-tight">Caixa do {label}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
             {row.requested_by_name && `Solicitado por ${row.requested_by_name}`}
             {row.authorized_by_name && isOpen && ` · Aberto por ${row.authorized_by_name}`}
           </div>
         </div>
-        {statusBadge(row.status)}
+        <div className="shrink-0">{statusBadge(row.status)}</div>
       </div>
 
       {isOpen && (
