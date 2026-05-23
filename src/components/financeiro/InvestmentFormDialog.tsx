@@ -81,6 +81,8 @@ export function InvestmentFormDialog({
       setDueDay("");
       setAlreadyPaidCount(0);
       setNotes("");
+      setAutoConsumacaoRecipient("");
+      setAutoConsumacaoTarget("seguranca");
     }
   }, [open]);
 
