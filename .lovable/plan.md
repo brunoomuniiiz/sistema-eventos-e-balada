@@ -1,60 +1,43 @@
 ## Diagnóstico
 
-O motivo das abas "voltarem grandes" ao clicar é o `CompactTabsTrigger` (em `src/components/ui/compact-tabs.tsx`): hoje a aba **ativa** força o nome completo via `group-data-[state=active]:inline`. Como no mobile só cabem ~3 abas, quando uma vira ativa ela expande e empurra as demais para a 2ª linha / corta — exatamente o efeito de "ficou grande de novo" em Vendas, Produtos, Configuração e na sub-aba "Variáveis" do Financeiro.
+PDV (`src/routes/_app.pdv.tsx`) e Garçom (`src/lojinha/components/LojinhaPosView.tsx`) hoje renderizam os produtos como **cards quadrados em grade de 2 colunas** no mobile (`grid-cols-2`). Você quer o mesmo formato da lojinha pública (`src/routes/loja.$slug.tsx` linha 262): **1 coluna no mobile**, card em linha (foto à esquerda, nome+preço no meio, botão + à direita), mais denso e fácil de tocar com uma mão.
 
-A página do evento (`/_app/eventos/$eventId`) não tem abas — o que está "muito grande" é o título (`text-3xl md:text-4xl`), o flyer hero (`md:w-2/5` mas com `aspect-video` largo no mobile) e os paddings (`p-6 md:p-8`).
+O "rolar pro lado" provavelmente é o usuário escapando do hit-test do card (não overflow real) — mesmo assim, com 1 coluna o problema some.
 
 ## O que vai mudar
 
-### 1. `src/components/ui/compact-tabs.tsx` — abas sempre compactas no mobile
-- Remover o comportamento de "ativa expande". A regra fica:
-  - `< sm`: sempre mostra `short` (se existir); senão mostra `children`.
-  - `sm+`: sempre mostra `children`.
-- Trocar os spans:
-  ```tsx
-  {short ? (
-    <>
-      <span className="sm:hidden">{short}</span>
-      <span className="hidden sm:inline">{children}</span>
-    </>
-  ) : <span>{children}</span>}
-  ```
-- Reduzir o tamanho no mobile: `text-[11px] sm:text-sm`, `px-2 py-1.5 sm:px-2.5`, `min-h-9`.
-- Manter `flex-wrap` para garantir que, se mesmo assim não couber, quebra em 2 linhas sem cortar.
-- O indicador da ativa continua sendo o `data-[state=active]:bg-background data-[state=active]:shadow` — fica claro qual está selecionada sem precisar do texto inteiro.
+### 1. PDV — `src/routes/_app.pdv.tsx`
 
-Isso resolve sozinho Vendas (PDV/Garçom/Configuração/Histórico), Produtos (Cat./Categ./Estq.), Financeiro (Var.), Configuração, Estoque e Portaria.
+Substituir o card quadrado (linhas ~552-579) por um card em linha estilo lojinha:
 
-### 2. `src/routes/_app.financeiro.tsx` — siglas mais enxutas
-- 6 abas em uma linha de 360 px ficam apertadas. Encurtar:
-  - "Por evento" → `Eve.`
-  - "Bar avulso" → `Bar`
-  - "Custos fixos" → `Fixos`
-  - "Custos variáveis" → `Var.`
-  - "Investimento" → `Inv.`
-  - "Mensal" → `Mês`
-- Já está assim — só validar; com a correção do item 1 elas param de inflar.
-- Trocar o grid de MiniStat de `grid-cols-2 md:grid-cols-3` para `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4` (8 cards ficam mais leves no tablet).
+- Grid: trocar `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3` por `grid gap-2 sm:grid-cols-2 lg:grid-cols-3`.
+- Card vira `<button>` com `p-2 flex gap-3 items-center rounded-xl border ...`:
+  - Foto/placeholder `h-14 w-14 sm:h-16 sm:w-16 rounded-lg object-cover shrink-0` (placeholder com ícone `ShoppingBag`/`Layers` quando for combo, ou usar `photo_url` do produto se existir).
+  - Bloco central `flex-1 min-w-0`: nome `font-medium text-sm truncate`, preço `text-base font-bold text-gradient`, alerta de estoque baixo `text-[11px] text-amber-500` na mesma região.
+  - Lado direito `shrink-0`: badge `inCart.quantity` (igual ao "1, 2…" da lojinha) ou ícone `+` discreto; e badge "Combo" só como `text-[10px]` no rodapé do nome (não absoluto).
+- Adicionar `photo_url` à query de produtos do PDV (já existe na tabela, basta incluir no `select`). Sem foto cai no placeholder.
+- Manter `active:scale-95` e estados de selecionado (`border-primary bg-primary/10`) e esgotado (`opacity-40`).
 
-### 3. `src/routes/_app.produtos.tsx` — encolher mais um toque
-- Sigla "Categorias" passa de `Categ.` para `Cat2` não — manter `Categ.` mas com a fonte menor já fica ok pelo item 1.
-- O catálogo (header com botão "Novo produto" + busca + chips de categoria) hoje fica largo demais no mobile. Ajustar:
-  - O header de ações vira `flex-col sm:flex-row` com `gap-2`.
-  - Os chips de categoria recebem `overflow-x-auto -mx-4 px-4 pb-1 flex-nowrap` para rolar lateralmente sem quebrar o layout.
-  - Botão "Comprar" + "Novo produto" passam para `flex-1 sm:flex-none` no mobile.
+### 2. Garçom — `src/lojinha/components/LojinhaPosView.tsx`
 
-### 4. `src/routes/_app.eventos.$eventId.tsx` — diminuir hero e títulos no mobile
-- Título: `text-2xl sm:text-3xl md:text-4xl` (em vez de `text-3xl md:text-4xl`).
-- Hero card: trocar a aspect-ratio do flyer no mobile para `aspect-[4/3]` em vez de `aspect-video`, e reduzir paddings para `p-4 sm:p-6 md:p-8`.
-- Linha superior de botões "Eventos / Editar / Excluir": permitir `flex-wrap gap-2` e botões `size="sm"` com labels mais curtos no mobile (`Editar` → ícone só `<Pencil />` em `< sm` via `<span className="hidden sm:inline">`).
-- Resumo financeiro (4 cards): trocar `text-lg md:text-xl` para `text-base sm:text-lg md:text-xl` e `p-4` para `p-3 sm:p-4`.
-- Form "Faturamento do evento": já é `sm:grid-cols-2`, manter; só reduzir `CardHeader`/`CardTitle` para `text-base sm:text-lg`.
+Mesma mudança no grid (linha 404) e no card (linhas 405-420):
 
-### 5. Sem mudanças em
-- Lógica, queries, RLS, RPC, vendas, permissões, banco — nada disso.
-- O componente Lojinha (`LojinhaPosView`) — já está bom para o garçom.
+- Grid: `grid grid-cols-2 sm:grid-cols-3 gap-2` → `grid gap-2 sm:grid-cols-2 lg:grid-cols-3`.
+- Card em linha idêntico ao do PDV, aproveitando o `photo_url` que já está na query.
+- Manter o FAB do carrinho fixo no rodapé.
+
+### 3. Padding e ar do PDV no mobile (pequeno extra)
+
+- Barra "Caixa aberto" (linha 454): manter mas reduzir `p-3` → `p-2 sm:p-3` e o botão "Sangria" passa a `size="sm" variant="outline"` com label `<span className="sm:hidden">Sangrar</span><span className="hidden sm:inline">Sangria</span>` — só pra dar mais espaço pros cards.
+- Busca + chips ficam como estão.
+
+### Fora do escopo (não muda)
+
+- Lógica de venda, sheet de checkout, SplitPaymentEditor, permissões, estoque, RPC — nada disso.
+- Apenas a apresentação da lista de produtos do PDV e do Garçom.
 
 ## Resultado esperado
-- Toda barra de abas no app fica em **uma linha só** no celular de 360 px, mesmo com a aba ativa, e ainda dá pra ver de relance qual está selecionada (fundo + sombra).
-- Ao clicar nada "infla", nada quebra de linha por culpa do texto.
-- Página de evento e catálogo de produtos ficam confortáveis em telas estreitas.
+
+- No celular, lista vira coluna única, cada item compacto (~72 px de altura), igual à lojinha pública.
+- Em `sm+` continua 2 colunas; em `lg+` 3 colunas (tablet/desktop).
+- Mais produtos visíveis na primeira tela, sem rolagem lateral, e botão de adicionar/quantidade alinhado à direita.
