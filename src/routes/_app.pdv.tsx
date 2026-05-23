@@ -41,7 +41,9 @@ type Product = {
   cost_price: number;
   category_id: string | null;
   is_available: boolean;
+  photo_url: string | null;
 };
+
 type Category = { id: string; name: string; sort_order: number };
 
 type CartItem = {
