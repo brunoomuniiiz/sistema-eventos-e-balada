@@ -453,19 +453,20 @@ export function PdvView() {
       />
 
       {session && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 p-3 rounded-xl border bg-card/60">
+        <div className="mb-3 flex flex-wrap items-center gap-2 p-2 sm:p-3 rounded-xl border bg-card/60">
           <Wallet className="h-4 w-4 text-primary" />
-          <div className="text-xs">
+          <div className="text-xs min-w-0 flex-1">
             <div className="font-medium">Caixa aberto</div>
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground truncate">
               Inicial {formatBRL(Number(session.opening_amount))} · Vendas {formatBRL(Number(session.sales_total))} · Sangrias {formatBRL(Number(session.withdrawals_total))}
             </div>
           </div>
-          <Button size="sm" variant="outline" className="ml-auto" onClick={() => setOpenWithdraw(true)}>
+          <Button size="sm" variant="outline" onClick={() => setOpenWithdraw(true)}>
             Sangria
           </Button>
         </div>
       )}
+
       {!session && (
         <div className="mb-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-sm flex items-center gap-2">
           <Lock className="h-4 w-4 text-amber-500" />
