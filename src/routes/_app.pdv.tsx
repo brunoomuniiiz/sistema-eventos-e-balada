@@ -359,7 +359,7 @@ export function PdvView() {
     }
   };
 
-  const saveConsumacao = async (target: ConsumacaoTarget) => {
+  const saveConsumacao = async (target: ConsumacaoTarget, recipientName: string | null) => {
     if (!user || !ownerId) return;
     if (!locationId || !session) return toast.error("Abra o caixa antes");
     if (cart.length === 0) return toast.error("Adicione produtos");
