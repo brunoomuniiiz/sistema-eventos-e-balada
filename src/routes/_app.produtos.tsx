@@ -506,10 +506,10 @@ function ProdutosPage() {
       />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "simple" | "combo")} className="mb-4">
-        <TabsList>
-          <TabsTrigger value="simple">Produtos ({simpleProducts.length})</TabsTrigger>
-          <TabsTrigger value="combo">Combos ({comboProducts.length})</TabsTrigger>
-        </TabsList>
+        <CompactTabsList>
+          <CompactTabsTrigger value="simple" short={`Prod. (${simpleProducts.length})`}>Produtos ({simpleProducts.length})</CompactTabsTrigger>
+          <CompactTabsTrigger value="combo" short={`Combos (${comboProducts.length})`}>Combos ({comboProducts.length})</CompactTabsTrigger>
+        </CompactTabsList>
         <TabsContent value="simple" />
         <TabsContent value="combo" />
       </Tabs>
