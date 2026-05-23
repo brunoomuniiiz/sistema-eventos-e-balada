@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { QuickEventCostCard } from "@/components/vendas/QuickEventCostCard";
 import { ConsumacaoLivePanel } from "@/components/vendas/ConsumacaoLivePanel";
+import { QuickConsumacaoCard } from "@/components/vendas/QuickConsumacaoCard";
 
 type Period = "today" | "yesterday" | "event" | "7d" | "30d";
 
@@ -120,6 +121,7 @@ export function LiveDashboardPanel() {
       {openEvent && (
         <>
           <QuickEventCostCard eventId={openEvent.id} eventName={openEvent.name} />
+          <QuickConsumacaoCard eventId={openEvent.id} eventName={openEvent.name} />
           <ConsumacaoLivePanel eventId={openEvent.id} eventName={openEvent.name} />
         </>
       )}

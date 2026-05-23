@@ -359,7 +359,7 @@ export function PdvView() {
     }
   };
 
-  const saveConsumacao = async (target: ConsumacaoTarget) => {
+  const saveConsumacao = async (target: ConsumacaoTarget, recipientName: string | null) => {
     if (!user || !ownerId) return;
     if (!locationId || !session) return toast.error("Abra o caixa antes");
     if (cart.length === 0) return toast.error("Adicione produtos");
@@ -378,6 +378,7 @@ export function PdvView() {
           event_id: evId,
           category: "consumacao",
           consumacao_target: target,
+          consumacao_recipient_name: recipientName,
           session_id: session.id,
         } as never)
         .select()
@@ -762,7 +763,7 @@ export function PdvView() {
       <ConsumacaoTargetDialog
         open={consumacaoOpen}
         onOpenChange={setConsumacaoOpen}
-        onPick={(target) => { void saveConsumacao(target); }}
+        onPick={(target, recipientName) => { void saveConsumacao(target, recipientName); }}
       />
     </div>
   );
