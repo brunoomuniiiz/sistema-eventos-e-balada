@@ -45,7 +45,7 @@ export function CaixasAdminPanel() {
 
       {isLoading && <Card><CardContent className="p-6 text-muted-foreground">Carregando…</CardContent></Card>}
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-4">
         {bar && <SectorCard row={bar} label="Bar" />}
         {portaria && <SectorCard row={portaria} label="Portaria" />}
       </div>
