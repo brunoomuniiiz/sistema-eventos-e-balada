@@ -406,34 +406,39 @@ export function LojinhaPosView() {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);
             return (
-              <button
+              <div
                 key={p.id}
-                onClick={() => addToCart(p)}
-                className={`relative w-full text-left p-2 rounded-xl border flex gap-3 items-center transition-all active:scale-[0.98] ${inCart ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/50"}`}
+                className={`relative w-full p-3 rounded-xl border flex gap-3 items-center transition-all ${inCart ? "border-primary bg-primary/10" : "border-border bg-card"}`}
               >
                 {p.photo_url ? (
-                  <img src={p.photo_url} alt={p.name} className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg object-cover shrink-0" />
+                  <img src={p.photo_url} alt={p.name} className="h-20 w-20 rounded-lg object-cover shrink-0" />
                 ) : (
-                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg bg-secondary grid place-items-center shrink-0">
-                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                  <div className="h-20 w-20 rounded-lg bg-secondary grid place-items-center shrink-0">
+                    <ImageIcon className="h-7 w-7 text-muted-foreground" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate">{p.name}</div>
                   <div className="text-base font-bold text-primary mt-0.5">{formatBRL(price)}</div>
                 </div>
-                <div className="shrink-0 grid place-items-center">
+                <div className="shrink-0">
                   {inCart ? (
-                    <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center text-sm font-bold">
-                      {inCart.quantity}
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(p.id, -1)}>
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="font-bold w-5 text-center text-sm">{inCart.quantity}</span>
+                      <Button size="icon" className="h-7 w-7" onClick={() => addToCart(p)}>
+                        <Plus className="h-3 w-3" />
+                      </Button>
                     </div>
                   ) : (
-                    <div className="h-9 w-9 rounded-full bg-primary/15 text-primary grid place-items-center">
+                    <Button size="sm" onClick={() => addToCart(p)} className="active:scale-95">
                       <Plus className="h-4 w-4" />
-                    </div>
+                    </Button>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
