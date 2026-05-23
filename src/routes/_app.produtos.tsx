@@ -604,7 +604,7 @@ function ProdutosPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label>Preço venda</Label>
                 <CurrencyInput value={form.price} onChange={(v) => setForm({ ...form, price: v })} />
