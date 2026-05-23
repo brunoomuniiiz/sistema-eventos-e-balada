@@ -386,30 +386,6 @@ export function LojinhaOrdersPanel() {
                   </Button>
                 )}
 
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="w-full text-xs text-destructive hover:bg-destructive/10" disabled={busy === o.id}>
-                      <Trash2 className="h-3 w-3 mr-1" /> Excluir pedido
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Excluir pedido #{String(o.daily_number ?? "").padStart(3, "0")}?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Apaga permanentemente o pedido, itens, unidades e cobranças PIX vinculadas.
-                        {(o.status === "paid" || o.status === "delivered") && (
-                          <span className="block mt-2 text-destructive font-medium">
-                            ⚠ Este pedido está "{o.status}" — vai afetar o histórico.
-                          </span>
-                        )}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction className="bg-destructive" onClick={() => handleDelete(o)}>Excluir</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               </CardContent>
             </Card>
           );
