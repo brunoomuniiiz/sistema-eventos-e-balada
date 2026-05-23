@@ -193,30 +193,30 @@ function EventDetailPage() {
       {/* Hero */}
       <Card className="glass border-border/60 overflow-hidden">
         <div className="md:flex">
-          <div className="md:w-2/5 aspect-video md:aspect-auto bg-secondary relative">
+          <div className="md:w-2/5 aspect-[4/3] sm:aspect-video md:aspect-auto bg-secondary relative">
             {event.flyer_url ? (
               <img src={event.flyer_url} alt={event.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-gradient-primary grid place-items-center min-h-[200px]">
+              <div className="w-full h-full bg-gradient-primary grid place-items-center min-h-[160px]">
                 <Calendar className="h-16 w-16 text-primary-foreground/60" />
               </div>
             )}
           </div>
-          <div className="p-6 md:p-8 flex-1">
+          <div className="p-4 sm:p-6 md:p-8 flex-1">
             <Badge variant={
               event.status === "upcoming" ? "default" : event.status === "finished" ? "secondary" : "destructive"
             }>
               {event.status === "upcoming" ? "Próximo" : event.status === "finished" ? "Realizado" : "Cancelado"}
             </Badge>
-            <h1 className="text-3xl md:text-4xl font-bold font-display text-gradient mt-3">{event.name}</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-gradient mt-3">{event.name}</h1>
             <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary" />
-                {format(new Date(event.date), "EEEE, dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+              <div className="flex items-start gap-2">
+                <Calendar className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <span>{format(new Date(event.date), "EEEE, dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}</span>
               </div>
               {event.location && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" /> {event.location}
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" /> <span>{event.location}</span>
                 </div>
               )}
             </div>
@@ -229,6 +229,7 @@ function EventDetailPage() {
           </div>
         </div>
       </Card>
+
 
       {/* Resumo financeiro */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
