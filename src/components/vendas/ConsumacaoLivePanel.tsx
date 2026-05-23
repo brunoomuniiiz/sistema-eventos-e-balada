@@ -130,8 +130,8 @@ export function ConsumacaoLivePanel({ eventId, eventName }: { eventId: string; e
             )}
 
             {expanded && items.length > 0 && (
-              <div className="border rounded-lg overflow-x-auto">
-                <table className="w-full text-xs">
+              <div className="border rounded-lg overflow-x-auto -mx-1">
+                <table className="w-full text-xs min-w-[640px]">
                   <thead className="text-muted-foreground border-b">
                     <tr>
                       <th className="text-left py-2 px-2">Horário</th>
