@@ -6,15 +6,15 @@ import { Button } from "@/components/ui/button";
 import { ViewAsProvider } from "@/hooks/useViewAs";
 import { ViewAsBar } from "@/components/ViewAsBar";
 
-const navItems: { to: string; label: string; icon: typeof LayoutDashboard; perm?: Permission; ownerOnly?: boolean; anyPerm?: Permission[] }[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, anyPerm: ["financeiro"] },
-  { to: "/eventos", label: "Eventos", icon: Calendar, perm: "eventos" },
-  { to: "/ao-vivo", label: "Ao vivo", icon: Activity, anyPerm: ["vendas", "financeiro"] },
-  { to: "/vendas", label: "Vendas", icon: ShoppingCart, anyPerm: ["vendas", "lojinha"] },
-  { to: "/produtos", label: "Produtos", icon: Boxes, perm: "estoque" },
-  { to: "/portaria", label: "Portaria", icon: DoorOpen, perm: "portaria" },
-  { to: "/financeiro", label: "Financeiro", icon: DollarSign, perm: "financeiro" },
-  { to: "/configuracao", label: "Configuração", icon: Settings, anyPerm: ["funcionarios", "promoters"] },
+const navItems: { to: string; label: string; short?: string; icon: typeof LayoutDashboard; perm?: Permission; ownerOnly?: boolean; anyPerm?: Permission[] }[] = [
+  { to: "/dashboard", label: "Dashboard", short: "Dash.", icon: LayoutDashboard, anyPerm: ["financeiro"] },
+  { to: "/eventos", label: "Eventos", short: "Eve.", icon: Calendar, perm: "eventos" },
+  { to: "/ao-vivo", label: "Ao vivo", short: "Live", icon: Activity, anyPerm: ["vendas", "financeiro"] },
+  { to: "/vendas", label: "Vendas", short: "Vend.", icon: ShoppingCart, anyPerm: ["vendas", "lojinha"] },
+  { to: "/produtos", label: "Produtos", short: "Prod.", icon: Boxes, perm: "estoque" },
+  { to: "/portaria", label: "Portaria", short: "Port.", icon: DoorOpen, perm: "portaria" },
+  { to: "/financeiro", label: "Financeiro", short: "Fin.", icon: DollarSign, perm: "financeiro" },
+  { to: "/configuracao", label: "Configuração", short: "Conf.", icon: Settings, anyPerm: ["funcionarios", "promoters"] },
 ];
 
 export function AppLayout() {
@@ -110,12 +110,12 @@ function AppLayoutInner() {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex-1 min-w-[68px] flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors ${
+                className={`flex-1 min-w-[56px] flex flex-col items-center gap-1 py-2.5 px-1 text-[10px] font-medium transition-colors ${
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
                 <item.icon className={`h-5 w-5 ${active ? "drop-shadow-[0_0_8px_var(--color-primary)]" : ""}`} />
-                {item.label}
+                <span className="truncate max-w-full leading-tight">{item.short ?? item.label}</span>
               </Link>
             );
           })}
