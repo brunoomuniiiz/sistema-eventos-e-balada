@@ -285,6 +285,26 @@ export function LojinhaAbandonedPanel() {
                   </Button>
                 </div>
               )}
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="ghost" className="w-full text-xs text-destructive hover:bg-destructive/10" disabled={busyId === o.id}>
+                    <Trash2 className="h-3 w-3 mr-1" /> Excluir pedido
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir este pedido?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Apaga permanentemente o pedido de {o.customer_name} ({formatBRL(Number(o.total))}) e cobranças PIX vinculadas.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction className="bg-destructive" onClick={() => handleDelete(o.id)}>Excluir</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         ))}
