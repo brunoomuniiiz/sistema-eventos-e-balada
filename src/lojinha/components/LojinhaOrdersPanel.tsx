@@ -250,27 +250,25 @@ export function LojinhaOrdersPanel() {
             </AlertDialogContent>
           </AlertDialog>
         )}
-        {filter === "all" && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button size="sm" variant="outline" className="text-destructive border-destructive/40" disabled={busy === "__all__"}>
-                <Trash2 className="h-3 w-3 mr-1" /> Limpar TODOS (testes)
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Apagar TODOS os pedidos?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Isso apaga TODOS os pedidos da lojinha (inclusive pagos e entregues). Use só para limpar dados de teste — não dá pra desfazer.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction className="bg-destructive" onClick={() => handleDeleteAll("all_test")}>Apagar tudo</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button size="sm" variant="outline" className="text-destructive border-destructive/40" disabled={busy === "__all__"}>
+              <Trash2 className="h-3 w-3 mr-1" /> Limpar TODOS (testes)
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Apagar TODOS os pedidos?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Isso apaga TODOS os pedidos da lojinha (inclusive pagos e entregues). Use só para limpar dados de teste — não dá pra desfazer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction className="bg-destructive" onClick={() => handleDeleteAll("all_test")}>Apagar tudo</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {isLoading && (
@@ -306,9 +304,35 @@ export function LojinhaOrdersPanel() {
                       {o.items.map((i) => `${i.quantity}× ${i.name}`).join(" · ")}
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="font-bold">{formatBRL(o.total)}</div>
-                    <Badge className={`mt-1 text-[10px] ${s.color}`}>{s.label}</Badge>
+                  <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-1">
+                      <div className="font-bold">{formatBRL(o.total)}</div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" disabled={busy === o.id} title="Excluir pedido">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir pedido #{String(o.daily_number ?? "").padStart(3, "0")}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Apaga permanentemente o pedido, itens, unidades e cobranças PIX vinculadas.
+                              {(o.status === "paid" || o.status === "delivered") && (
+                                <span className="block mt-2 text-destructive font-medium">
+                                  ⚠ Este pedido está "{o.status}" — vai afetar o histórico.
+                                </span>
+                              )}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive" onClick={() => handleDelete(o)}>Excluir</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                    <Badge className={`text-[10px] ${s.color}`}>{s.label}</Badge>
                   </div>
                 </div>
 
@@ -362,30 +386,6 @@ export function LojinhaOrdersPanel() {
                   </Button>
                 )}
 
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="w-full text-xs text-destructive hover:bg-destructive/10" disabled={busy === o.id}>
-                      <Trash2 className="h-3 w-3 mr-1" /> Excluir pedido
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Excluir pedido #{String(o.daily_number ?? "").padStart(3, "0")}?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Apaga permanentemente o pedido, itens, unidades e cobranças PIX vinculadas.
-                        {(o.status === "paid" || o.status === "delivered") && (
-                          <span className="block mt-2 text-destructive font-medium">
-                            ⚠ Este pedido está "{o.status}" — vai afetar o histórico.
-                          </span>
-                        )}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction className="bg-destructive" onClick={() => handleDelete(o)}>Excluir</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
               </CardContent>
             </Card>
           );
