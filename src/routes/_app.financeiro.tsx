@@ -215,7 +215,7 @@ function FinanceiroPage() {
         <Stat label="Bar fora de evento" value={formatBRL(barNoEvent.revenue)} sub={`Lucro ${formatBRL(barNoEvent.profit)}`} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
         <MiniStat icon={Wine} label="Bar (eventos)" value={formatBRL(totals.bar)} />
         <MiniStat icon={DoorOpen} label="Portaria" value={formatBRL(totals.door)} />
         <MiniStat icon={ShoppingBag} label="Eventos com lançamento" value={String(rows.length)} />
