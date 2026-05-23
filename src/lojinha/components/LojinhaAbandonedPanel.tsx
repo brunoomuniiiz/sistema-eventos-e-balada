@@ -221,12 +221,33 @@ export function LojinhaAbandonedPanel() {
                     {" · "}{o.channel === "pos" ? "Balcão" : "Online"}
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="font-bold">{formatBRL(Number(o.total))}</div>
+                <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1">
+                    <div className="font-bold">{formatBRL(Number(o.total))}</div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10" disabled={busyId === o.id} title="Excluir pedido">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir este pedido?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Apaga permanentemente o pedido de {o.customer_name} ({formatBRL(Number(o.total))}) e cobranças PIX vinculadas.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction className="bg-destructive" onClick={() => handleDelete(o.id)}>Excluir</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                   {o.reconciled_at ? (
-                    <Badge className="mt-1 text-[10px] bg-success text-success-foreground">Conciliado</Badge>
+                    <Badge className="text-[10px] bg-success text-success-foreground">Conciliado</Badge>
                   ) : (
-                    <Badge className="mt-1 text-[10px] bg-amber-500 text-white">Abandonado</Badge>
+                    <Badge className="text-[10px] bg-amber-500 text-white">Abandonado</Badge>
                   )}
                 </div>
               </div>
