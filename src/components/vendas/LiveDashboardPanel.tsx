@@ -120,6 +120,7 @@ export function LiveDashboardPanel() {
       {openEvent && (
         <>
           <QuickEventCostCard eventId={openEvent.id} eventName={openEvent.name} />
+          <QuickConsumacaoCard eventId={openEvent.id} eventName={openEvent.name} />
           <ConsumacaoLivePanel eventId={openEvent.id} eventName={openEvent.name} />
         </>
       )}
