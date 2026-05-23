@@ -172,9 +172,11 @@ export function InvestmentFormDialog({
             is_investment: true,
             notes: noteText,
             created_by: user.id,
+            auto_consumacao_recipient: autoConsumacaoRecipient.trim() || null,
+            auto_consumacao_target: autoConsumacaoRecipient.trim() ? autoConsumacaoTarget : null,
           };
         });
-        const { error } = await supabase.from("bar_expenses").insert(rows);
+        const { error } = await supabase.from("bar_expenses").insert(rows as never);
         if (error) throw error;
         return;
       }
