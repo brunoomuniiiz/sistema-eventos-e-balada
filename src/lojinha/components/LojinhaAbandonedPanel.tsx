@@ -126,6 +126,33 @@ export function LojinhaAbandonedPanel() {
     }
   }
 
+  async function handleDelete(orderId: string) {
+    setBusyId(orderId);
+    try {
+      await delOne({ data: { orderId, force: true } });
+      toast.success("Pedido excluído");
+      qc.invalidateQueries({ queryKey: ["lojinha-abandoned"] });
+      qc.invalidateQueries({ queryKey: ["lojinha-orders"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao excluir");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDeleteAllAbandoned() {
+    setBusyId("__all__");
+    try {
+      const r = await delAll({ data: { scope: "abandoned" } });
+      toast.success(`${r.deleted} pedido(s) abandonado(s) excluído(s)`);
+      qc.invalidateQueries({ queryKey: ["lojinha-abandoned"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao excluir em lote");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <Card className="border-amber-500/30 bg-amber-500/5">
@@ -139,13 +166,36 @@ export function LojinhaAbandonedPanel() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-2">
         <div className="text-sm text-muted-foreground">
           {isLoading ? "..." : `${orders.length} pedido${orders.length !== 1 ? "s" : ""}`}
         </div>
-        <Button size="sm" variant="ghost" onClick={() => setShowReconciled((v) => !v)}>
-          {showReconciled ? "Ocultar conciliados" : "Mostrar conciliados"}
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setShowReconciled((v) => !v)}>
+            {showReconciled ? "Ocultar conciliados" : "Mostrar conciliados"}
+          </Button>
+          {orders.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/40" disabled={busyId === "__all__"}>
+                  <Trash2 className="h-3 w-3 mr-1" /> Limpar todos
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir todos abandonados?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apaga permanentemente {orders.length} pedido(s) da lista (cobranças PIX e itens incluídos).
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction className="bg-destructive" onClick={handleDeleteAllAbandoned}>Excluir tudo</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
 
       {isLoading && (
