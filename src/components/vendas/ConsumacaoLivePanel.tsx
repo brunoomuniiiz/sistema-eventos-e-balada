@@ -4,20 +4,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Beer, ChevronDown, ChevronUp, Music2, Disc3, ShieldCheck, UserCog, Gift } from "lucide-react";
+import { Beer, ChevronDown, ChevronUp, Music2, Disc3, ShieldCheck, UserCog, Gift, User } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 type Target = "banda" | "dj" | "seguranca" | "funcionario" | "sorteio";
 
+type ByRecipient = { target: Target; recipient_name: string; qty: number; cost: number; retail: number };
+
 type Payload = {
   by_target: Array<{ target: Target; qty: number; cost: number; retail: number }>;
+  by_recipient: ByRecipient[];
   items: Array<{
     sale_id: string;
     created_at: string;
     employee_name: string | null;
     target: Target;
+    recipient_name: string | null;
     product_name: string;
     quantity: number;
     unit_price: number;
@@ -51,6 +55,7 @@ export function ConsumacaoLivePanel({ eventId, eventName }: { eventId: string; e
 
   const totals = data?.totals ?? { qty: 0, cost: 0, retail: 0 };
   const byTarget = data?.by_target ?? [];
+  const byRecipient = data?.by_recipient ?? [];
   const items = data?.items ?? [];
 
   return (
@@ -100,6 +105,30 @@ export function ConsumacaoLivePanel({ eventId, eventName }: { eventId: string; e
               </div>
             )}
 
+            {byRecipient.filter((r) => r.recipient_name && r.recipient_name !== "—").length > 0 && (
+              <div className="space-y-1">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Por pessoa</div>
+                <div className="border rounded-lg divide-y">
+                  {byRecipient
+                    .filter((r) => r.recipient_name && r.recipient_name !== "—")
+                    .map((r, i) => {
+                      const meta = TARGET_META[r.target];
+                      return (
+                        <div key={`${r.target}-${r.recipient_name}-${i}`} className="p-2 flex items-center gap-2 text-xs">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium truncate flex-1">
+                            {r.recipient_name} <span className="text-muted-foreground">· {meta?.label ?? r.target}</span>
+                          </span>
+                          <span className="text-muted-foreground">{Number(r.qty)} itens</span>
+                          <span className="font-semibold w-20 text-right">{formatBRL(Number(r.cost))}</span>
+                          <span className="text-muted-foreground w-20 text-right">balcão {formatBRL(Number(r.retail))}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             {expanded && items.length > 0 && (
               <div className="border rounded-lg overflow-x-auto">
                 <table className="w-full text-xs">
@@ -108,6 +137,7 @@ export function ConsumacaoLivePanel({ eventId, eventName }: { eventId: string; e
                       <th className="text-left py-2 px-2">Horário</th>
                       <th className="text-left py-2 px-2">Produto</th>
                       <th className="text-left py-2 px-2">Destino</th>
+                      <th className="text-left py-2 px-2">Para quem</th>
                       <th className="text-right py-2 px-2">Qtd</th>
                       <th className="text-right py-2 px-2">Custo</th>
                       <th className="text-right py-2 px-2">Balcão</th>
@@ -122,6 +152,7 @@ export function ConsumacaoLivePanel({ eventId, eventName }: { eventId: string; e
                           <td className="py-1.5 px-2 text-muted-foreground">{format(new Date(it.created_at), "HH:mm", { locale: ptBR })}</td>
                           <td className="py-1.5 px-2 font-medium">{it.product_name}</td>
                           <td className="py-1.5 px-2">{meta?.label ?? it.target}</td>
+                          <td className="py-1.5 px-2 text-muted-foreground">{it.recipient_name ?? "—"}</td>
                           <td className="py-1.5 px-2 text-right">{Number(it.quantity)}</td>
                           <td className="py-1.5 px-2 text-right">{formatBRL(Number(it.cost_total))}</td>
                           <td className="py-1.5 px-2 text-right text-muted-foreground">{formatBRL(Number(it.retail_total))}</td>
