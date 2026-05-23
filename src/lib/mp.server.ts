@@ -41,11 +41,18 @@ export async function createMpPixPayment(input: {
     Date.now() + (input.expiresInMinutes ?? 24 * 60) * 60 * 1000,
   ).toISOString();
 
+  // MP retorna 403 "Payer email forbidden" se o e-mail do pagador
+  // for igual (ou do mesmo domínio) ao da conta recebedora.
+  // Usamos sempre um e-mail anônimo por pedido — o e-mail real do cliente
+  // segue salvo em lojinha_orders, só não vai pro MP.
+  const refSlug = (input.externalReference || "pix").replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) || "pix";
+  const anonEmail = `pix-${refSlug}-${Date.now().toString(36)}@nightops.app`;
+
   const body = {
     transaction_amount: +input.amount.toFixed(2),
     description: input.description,
     payment_method_id: "pix",
-    payer: { email: input.payerEmail || "comprador@nightops.app" },
+    payer: { email: anonEmail },
     external_reference: input.externalReference,
     date_of_expiration: expiresAt,
   };
