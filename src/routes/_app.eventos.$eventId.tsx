@@ -234,43 +234,43 @@ function EventDetailPage() {
       {/* Resumo financeiro */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="glass border-border/60">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Faturamento</span>
               <TrendingUp className="h-4 w-4 text-primary" />
             </div>
-            <p className="text-lg md:text-xl font-bold mt-1">{formatBRL(gross)}</p>
+            <p className="text-base sm:text-lg md:text-xl font-bold mt-1">{formatBRL(gross)}</p>
           </CardContent>
         </Card>
         <Card className="glass border-border/60">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Custos totais</span>
               <TrendingDown className="h-4 w-4 text-destructive" />
             </div>
-            <p className="text-lg md:text-xl font-bold mt-1 text-destructive">{formatBRL(totalCosts)}</p>
+            <p className="text-base sm:text-lg md:text-xl font-bold mt-1 text-destructive">{formatBRL(totalCosts)}</p>
           </CardContent>
         </Card>
         <Card className="glass border-border/60 glow-primary">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Lucro líquido</span>
               <DollarSign className="h-4 w-4 text-primary" />
             </div>
-            <p className={`text-lg md:text-xl font-bold mt-1 ${net >= 0 ? "text-gradient" : "text-destructive"}`}>
+            <p className={`text-base sm:text-lg md:text-xl font-bold mt-1 ${net >= 0 ? "text-gradient" : "text-destructive"}`}>
               {formatBRL(net)}
             </p>
           </CardContent>
         </Card>
         <Card className="glass border-border/60">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
                 <Wine className="h-3 w-3" /> Margem bar
               </span>
               <Percent className="h-4 w-4 text-primary" />
             </div>
-            <p className={`text-lg md:text-xl font-bold mt-1 ${barMargin.percent >= 0 ? "text-success" : "text-destructive"}`}>
+            <p className={`text-base sm:text-lg md:text-xl font-bold mt-1 ${barMargin.percent >= 0 ? "text-success" : "text-destructive"}`}>
               {formatPercent(barMargin.percent)}
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
