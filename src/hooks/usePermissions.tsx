@@ -98,6 +98,7 @@ export function usePermissions() {
   const canFechamento = isOwner || (hasVendas && flagOf("vendas_fechamento", true));
   const canAbrirCaixa = isOwner || (hasVendas && flagOf("vendas_abre_caixa", true));
   const canSangria = isOwner || (hasVendas && flagOf("vendas_sangria", true));
+  const canAoVivo = isOwner || flagOf("vendas_ao_vivo", false);
 
   return {
     isOwner,
