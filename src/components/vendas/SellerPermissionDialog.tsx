@@ -153,6 +153,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
               <Toggle icon={<Package className="h-4 w-4" />} label="Pedidos online" sub="Ver lista de pedidos pendentes" checked={d.vendas_pedidos} onChange={(v) => set("vendas_pedidos", v)} />
               <Toggle icon={<Receipt className="h-4 w-4" />} label="Histórico" sub="Vendas e entregas feitas" checked={d.vendas_historico} onChange={(v) => set("vendas_historico", v)} />
               <Toggle icon={<LockKeyhole className="h-4 w-4" />} label="Fechamento" sub="Fechamento cego de caixa" checked={d.vendas_fechamento} onChange={(v) => set("vendas_fechamento", v)} />
+              <Toggle icon={<Activity className="h-4 w-4" />} label="Ao vivo" sub="Painel ao vivo do evento (caixa, comparativo, ranking)" checked={d.vendas_ao_vivo} onChange={(v) => set("vendas_ao_vivo", v)} />
             </Section>
 
             {showDinheiro && (
