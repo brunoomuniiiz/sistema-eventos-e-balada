@@ -265,50 +265,57 @@ function StorefrontPage() {
               const soldOut = p.available_qty <= 0 && inCart === 0;
               return (
                 <Card key={p.id} className={`overflow-hidden ${soldOut ? "opacity-60" : ""}`}>
-                  <CardContent className="p-3 flex gap-3">
-                    {p.photo_url ? (
-                      <img src={p.photo_url} alt={p.name} className="h-20 w-20 rounded-lg object-cover shrink-0" />
-                    ) : (
-                      <div className="h-20 w-20 rounded-lg bg-secondary grid place-items-center shrink-0">
-                        <ShoppingBag className="h-7 w-7 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{p.name}</div>
-                      {p.description && <div className="text-xs text-muted-foreground line-clamp-2">{p.description}</div>}
-                      <div className="mt-1 font-bold" style={{ color: accent }}>{formatBRL(p.price)}</div>
-                      {!soldOut && p.available_qty === 1 && (
-                        <div className="mt-1 inline-flex items-center rounded-full bg-destructive/15 text-destructive px-2 py-0.5 text-[11px] font-medium">
-                          Última unidade
-                        </div>
-                      )}
-                      {!soldOut && p.available_qty === 2 && (
-                        <div className="mt-1 inline-flex items-center rounded-full bg-amber-500/15 text-amber-600 px-2 py-0.5 text-[11px] font-medium">
-                          Restam 2 — confirme no balcão
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-center justify-center gap-1 shrink-0">
-                      {soldOut ? (
-                        <span className="text-xs font-medium text-destructive whitespace-nowrap">Esgotado</span>
-                      ) : inCart === 0 ? (
-                        <Button size="sm" onClick={() => changeQty(p.id, 1)} style={{ background: accent }}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                  <button
+                    type="button"
+                    onClick={() => { if (!soldOut) changeQty(p.id, inCart + 1); }}
+                    disabled={soldOut}
+                    className={`w-full text-left ${soldOut ? "cursor-not-allowed" : "active:scale-[0.99]"} transition-transform`}
+                  >
+                    <CardContent className="p-3 flex gap-3">
+                      {p.photo_url ? (
+                        <img src={p.photo_url} alt={p.name} className="h-20 w-20 rounded-lg object-cover shrink-0" />
                       ) : (
-                        <div className="flex items-center gap-1">
-                          <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => changeQty(p.id, inCart - 1)}>
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="font-bold w-5 text-center text-sm">{inCart}</span>
-                          <Button size="icon" className="h-7 w-7" style={{ background: accent }} onClick={() => changeQty(p.id, inCart + 1)} disabled={p.available_qty <= 0}>
-                            <Plus className="h-3 w-3" />
-                          </Button>
+                        <div className="h-20 w-20 rounded-lg bg-secondary grid place-items-center shrink-0">
+                          <ShoppingBag className="h-7 w-7 text-muted-foreground" />
                         </div>
                       )}
-                    </div>
-                  </CardContent>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{p.name}</div>
+                        {p.description && <div className="text-xs text-muted-foreground line-clamp-2">{p.description}</div>}
+                        <div className="mt-1 font-bold" style={{ color: accent }}>{formatBRL(p.price)}</div>
+                        {!soldOut && p.available_qty === 1 && (
+                          <div className="mt-1 inline-flex items-center rounded-full bg-destructive/15 text-destructive px-2 py-0.5 text-[11px] font-medium">
+                            Última unidade
+                          </div>
+                        )}
+                        {!soldOut && p.available_qty === 2 && (
+                          <div className="mt-1 inline-flex items-center rounded-full bg-amber-500/15 text-amber-600 px-2 py-0.5 text-[11px] font-medium">
+                            Restam 2 — confirme no balcão
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        {soldOut ? (
+                          <span className="text-xs font-medium text-destructive whitespace-nowrap">Esgotado</span>
+                        ) : inCart === 0 ? (
+                          <Button asChild size="sm" style={{ background: accent }}>
+                            <span><Plus className="h-4 w-4" /></span>
+                          </Button>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Button size="icon" variant="outline" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); changeQty(p.id, inCart - 1); }}>
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="font-bold w-5 text-center text-sm">{inCart}</span>
+                            <Button size="icon" className="h-7 w-7" style={{ background: accent }} onClick={(e) => { e.stopPropagation(); changeQty(p.id, inCart + 1); }} disabled={p.available_qty <= 0}>
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </button>
                 </Card>
               );
             })}

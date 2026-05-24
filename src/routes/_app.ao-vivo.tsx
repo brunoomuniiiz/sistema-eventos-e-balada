@@ -8,10 +8,9 @@ export const Route = createFileRoute("/_app/ao-vivo")({
 });
 
 function AoVivoPage() {
-  const { isOwner, can, loading } = usePermissions();
+  const { canAoVivo, loading } = usePermissions();
   if (loading) return null;
-  const allowed = isOwner || can("vendas") || can("financeiro");
-  if (!allowed) {
+  if (!canAoVivo) {
     return <PageHeader title="Ao vivo" subtitle="Você não tem permissão para acessar esta página" />;
   }
   return (

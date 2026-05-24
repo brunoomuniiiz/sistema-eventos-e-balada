@@ -406,39 +406,39 @@ export function LojinhaPosView() {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);
             return (
-              <div
+              <button
                 key={p.id}
-                className={`relative w-full p-2 rounded-xl border flex gap-2 items-center transition-all ${inCart ? "border-primary bg-primary/10" : "border-border bg-card"}`}
+                type="button"
+                onClick={() => { void addToCart(p); }}
+                className={`relative w-full p-1.5 rounded-xl border flex gap-2 items-center transition-all text-left active:scale-[0.99] ${inCart ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-secondary/40"}`}
               >
                 {p.photo_url ? (
-                  <img src={p.photo_url} alt={p.name} className="h-14 w-14 rounded-md object-cover shrink-0" />
+                  <img src={p.photo_url} alt={p.name} className="h-11 w-11 rounded-md object-cover shrink-0" />
                 ) : (
-                  <div className="h-14 w-14 rounded-md bg-secondary grid place-items-center shrink-0">
-                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  <div className="h-11 w-11 rounded-md bg-secondary grid place-items-center shrink-0">
+                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate leading-tight">{p.name}</div>
-                  <div className="flex items-center justify-between gap-2 mt-0.5">
-                    <span className="text-sm font-bold text-primary">{formatBRL(price)}</span>
-                    {inCart ? (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQty(p.id, -1)}>
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="font-bold w-5 text-center text-sm">{inCart.quantity}</span>
-                        <Button size="icon" className="h-7 w-7" onClick={() => addToCart(p)}>
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button size="icon" className="h-7 w-7 shrink-0 active:scale-95" onClick={() => addToCart(p)}>
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  <div className="font-medium text-sm truncate leading-tight flex-1 min-w-0">{p.name}</div>
+                  <span className="text-sm font-bold text-primary shrink-0">{formatBRL(price)}</span>
+                  {inCart ? (
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); updateQty(p.id, -1); }}>
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="font-bold w-5 text-center text-sm">{inCart.quantity}</span>
+                      <Button size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); void addToCart(p); }}>
                         <Plus className="h-3 w-3" />
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <Button asChild size="icon" className="h-7 w-7 shrink-0 active:scale-95">
+                      <span><Plus className="h-3 w-3" /></span>
+                    </Button>
+                  )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

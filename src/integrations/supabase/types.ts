@@ -2261,6 +2261,7 @@ export type Database = {
           updated_at: string
           user_id: string
           vendas_abre_caixa: boolean
+          vendas_ao_vivo: boolean
           vendas_fechamento: boolean
           vendas_garcom: boolean
           vendas_historico: boolean
@@ -2294,6 +2295,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           vendas_abre_caixa?: boolean
+          vendas_ao_vivo?: boolean
           vendas_fechamento?: boolean
           vendas_garcom?: boolean
           vendas_historico?: boolean
@@ -2327,6 +2329,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vendas_abre_caixa?: boolean
+          vendas_ao_vivo?: boolean
           vendas_fechamento?: boolean
           vendas_garcom?: boolean
           vendas_historico?: boolean

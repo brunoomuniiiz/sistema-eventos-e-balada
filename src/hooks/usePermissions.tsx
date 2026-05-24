@@ -35,7 +35,7 @@ export function usePermissions() {
       if (!user) return null;
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash, can_authorize, role_preset, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao, aceita_credito_promoter, pode_lancar_consumacao, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_pedidos, vendas_historico, vendas_fechamento, vendas_abre_caixa, vendas_sangria")
+        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash, can_authorize, role_preset, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao, aceita_credito_promoter, pode_lancar_consumacao, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_pedidos, vendas_historico, vendas_fechamento, vendas_abre_caixa, vendas_sangria, vendas_ao_vivo")
         .eq("user_id", user.id);
       if (error) throw error;
       if (!data || data.length === 0) return null;
@@ -98,6 +98,7 @@ export function usePermissions() {
   const canFechamento = isOwner || (hasVendas && flagOf("vendas_fechamento", true));
   const canAbrirCaixa = isOwner || (hasVendas && flagOf("vendas_abre_caixa", true));
   const canSangria = isOwner || (hasVendas && flagOf("vendas_sangria", true));
+  const canAoVivo = isOwner || flagOf("vendas_ao_vivo", false);
 
   return {
     isOwner,
@@ -129,6 +130,7 @@ export function usePermissions() {
     canFechamento,
     canAbrirCaixa,
     canSangria,
+    canAoVivo,
     loading: isLoading,
   };
 }

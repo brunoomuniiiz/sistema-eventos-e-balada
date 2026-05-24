@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck, Sparkles, Beer } from "lucide-react";
+import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck, Sparkles, Beer, Activity } from "lucide-react";
 
 export type SellerRow = {
   id: string;
@@ -33,6 +33,7 @@ export type SellerRow = {
   vendas_fechamento: boolean;
   vendas_abre_caixa: boolean;
   vendas_sangria: boolean;
+  vendas_ao_vivo: boolean;
 };
 
 interface Props {
@@ -50,6 +51,7 @@ type Draft = {
   vendas_fechamento: boolean;
   vendas_abre_caixa: boolean;
   vendas_sangria: boolean;
+  vendas_ao_vivo: boolean;
   aceita_dinheiro: boolean;
   aceita_pix: boolean;
   aceita_cartao: boolean;
@@ -69,6 +71,7 @@ function initialDraft(r: SellerRow | null): Draft {
     vendas_fechamento: r?.vendas_fechamento ?? true,
     vendas_abre_caixa: r?.vendas_abre_caixa ?? true,
     vendas_sangria: r?.vendas_sangria ?? true,
+    vendas_ao_vivo: r?.vendas_ao_vivo ?? false,
     aceita_dinheiro: r?.aceita_dinheiro ?? true,
     aceita_pix: r?.aceita_pix ?? true,
     aceita_cartao: r?.aceita_cartao ?? true,
@@ -150,6 +153,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
               <Toggle icon={<Package className="h-4 w-4" />} label="Pedidos online" sub="Ver lista de pedidos pendentes" checked={d.vendas_pedidos} onChange={(v) => set("vendas_pedidos", v)} />
               <Toggle icon={<Receipt className="h-4 w-4" />} label="Histórico" sub="Vendas e entregas feitas" checked={d.vendas_historico} onChange={(v) => set("vendas_historico", v)} />
               <Toggle icon={<LockKeyhole className="h-4 w-4" />} label="Fechamento" sub="Fechamento cego de caixa" checked={d.vendas_fechamento} onChange={(v) => set("vendas_fechamento", v)} />
+              <Toggle icon={<Activity className="h-4 w-4" />} label="Ao vivo" sub="Painel ao vivo do evento (caixa, comparativo, ranking)" checked={d.vendas_ao_vivo} onChange={(v) => set("vendas_ao_vivo", v)} />
             </Section>
 
             {showDinheiro && (
