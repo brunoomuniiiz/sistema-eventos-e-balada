@@ -19,7 +19,7 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
     mask: {
       isOwner: false,
       permissions: ["promoters"],
-      flags: {},
+      flags: { vendas_ao_vivo: false },
     },
   },
   garcom: {
