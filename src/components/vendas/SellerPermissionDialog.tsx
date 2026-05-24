@@ -51,6 +51,7 @@ type Draft = {
   vendas_fechamento: boolean;
   vendas_abre_caixa: boolean;
   vendas_sangria: boolean;
+  vendas_ao_vivo: boolean;
   aceita_dinheiro: boolean;
   aceita_pix: boolean;
   aceita_cartao: boolean;
