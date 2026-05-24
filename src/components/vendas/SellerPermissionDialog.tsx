@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck, Sparkles, Beer } from "lucide-react";
+import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck, Sparkles, Beer, Activity } from "lucide-react";
 
 export type SellerRow = {
   id: string;
