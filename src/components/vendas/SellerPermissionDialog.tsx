@@ -71,6 +71,7 @@ function initialDraft(r: SellerRow | null): Draft {
     vendas_fechamento: r?.vendas_fechamento ?? true,
     vendas_abre_caixa: r?.vendas_abre_caixa ?? true,
     vendas_sangria: r?.vendas_sangria ?? true,
+    vendas_ao_vivo: r?.vendas_ao_vivo ?? false,
     aceita_dinheiro: r?.aceita_dinheiro ?? true,
     aceita_pix: r?.aceita_pix ?? true,
     aceita_cartao: r?.aceita_cartao ?? true,
