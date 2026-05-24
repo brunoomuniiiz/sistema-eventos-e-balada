@@ -130,6 +130,7 @@ export function usePermissions() {
     canFechamento,
     canAbrirCaixa,
     canSangria,
+    canAoVivo,
     loading: isLoading,
   };
 }
