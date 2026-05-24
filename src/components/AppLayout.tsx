@@ -6,10 +6,21 @@ import { Button } from "@/components/ui/button";
 import { ViewAsProvider } from "@/hooks/useViewAs";
 import { ViewAsBar } from "@/components/ViewAsBar";
 
-const navItems: { to: string; label: string; short?: string; icon: typeof LayoutDashboard; perm?: Permission; ownerOnly?: boolean; anyPerm?: Permission[] }[] = [
+type NavItem = {
+  to: string;
+  label: string;
+  short?: string;
+  icon: typeof LayoutDashboard;
+  perm?: Permission;
+  ownerOnly?: boolean;
+  anyPerm?: Permission[];
+  customGate?: "ao_vivo";
+};
+
+const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", short: "Dash.", icon: LayoutDashboard, anyPerm: ["financeiro"] },
   { to: "/eventos", label: "Eventos", short: "Eve.", icon: Calendar, perm: "eventos" },
-  { to: "/ao-vivo", label: "Ao vivo", short: "Live", icon: Activity, anyPerm: ["vendas", "financeiro"] },
+  { to: "/ao-vivo", label: "Ao vivo", short: "Live", icon: Activity, customGate: "ao_vivo" },
   { to: "/vendas", label: "Vendas", short: "Vend.", icon: ShoppingCart, anyPerm: ["vendas", "lojinha"] },
   { to: "/produtos", label: "Produtos", short: "Prod.", icon: Boxes, perm: "estoque" },
   { to: "/portaria", label: "Portaria", short: "Port.", icon: DoorOpen, perm: "portaria" },
@@ -27,11 +38,12 @@ export function AppLayout() {
 
 function AppLayoutInner() {
   const { user, signOut } = useAuth();
-  const { can, isOwner } = usePermissions();
+  const { can, isOwner, canAoVivo } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
 
   const visibleItems = navItems.filter((i) => {
+    if (i.customGate === "ao_vivo") return canAoVivo;
     if (i.ownerOnly) return isOwner;
     if (i.anyPerm) return isOwner || i.anyPerm.some((p) => can(p));
     if (!i.perm) return true;
@@ -45,46 +57,55 @@ function AppLayoutInner() {
 
   return (
     <div className="min-h-screen flex">
-      <aside className="hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border p-4 gap-2 fixed h-screen">
-        <div className="flex items-center gap-2 px-2 py-4 mb-2">
-          <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center glow-primary">
+      {/* Sidebar desktop — recolhida por padrão, expande no hover */}
+      <aside className="group hidden md:flex flex-col bg-sidebar border-r border-sidebar-border fixed h-screen z-40 transition-[width] duration-200 ease-out w-16 hover:w-64">
+        <div className="flex items-center gap-2 px-3 py-4 mb-2 overflow-hidden">
+          <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center glow-primary shrink-0">
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
-          <div>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
             <div className="font-display font-bold text-lg leading-none">NightOps</div>
             <div className="text-xs text-muted-foreground">Gestão de eventos</div>
           </div>
         </div>
 
-        <nav className="flex flex-col gap-1 flex-1 overflow-y-auto">
+        <nav className="flex flex-col gap-1 flex-1 overflow-y-auto px-2">
           {visibleItems.map((item) => {
             const active = location.pathname === item.to;
             return (
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                title={item.label}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all overflow-hidden ${
                   active
                     ? "bg-sidebar-accent text-sidebar-primary shadow-[inset_2px_0_0_var(--color-primary)]"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                 }`}
               >
-                <item.icon className="h-4 w-4" />
-                {item.label}
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="border-t border-sidebar-border pt-3 space-y-2">
-          <div className="px-3 text-xs text-muted-foreground truncate">{user?.email}</div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full justify-start gap-2">
-            <LogOut className="h-4 w-4" /> Sair
+        <div className="border-t border-sidebar-border pt-3 pb-3 px-2 space-y-1">
+          <div className="px-3 text-xs text-muted-foreground truncate opacity-0 group-hover:opacity-100 transition-opacity">{user?.email}</div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSignOut}
+            className="w-full justify-start gap-3 overflow-hidden px-3"
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Sair</span>
           </Button>
         </div>
       </aside>
 
-      <main className="flex-1 md:ml-64 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-8">
+      <main className="flex-1 md:ml-16 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-8">
         <header className="md:hidden sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85 border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-primary grid place-items-center">
