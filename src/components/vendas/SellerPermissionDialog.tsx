@@ -33,6 +33,7 @@ export type SellerRow = {
   vendas_fechamento: boolean;
   vendas_abre_caixa: boolean;
   vendas_sangria: boolean;
+  vendas_ao_vivo: boolean;
 };
 
 interface Props {
