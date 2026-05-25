@@ -48,7 +48,7 @@ export function LojinhaPosView() {
 
   const { data: products = [] } = useQuery({
     queryKey: ["lojinha-pos-products", ownerId],
-    enabled: !!ownerId && lojinhaCanSell,
+    enabled: !!ownerId && canAccess,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
