@@ -3,7 +3,6 @@ import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, 
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
-import { ViewAsProvider } from "@/hooks/useViewAs";
 import { ViewAsBar } from "@/components/ViewAsBar";
 import { OperationPinLockButton } from "@/components/OperationPinLockButton";
 
@@ -35,11 +34,7 @@ const navItems: NavItem[] = [
 ];
 
 export function AppLayout() {
-  return (
-    <ViewAsProvider>
-      <AppLayoutInner />
-    </ViewAsProvider>
-  );
+  return <AppLayoutInner />;
 }
 
 function AppLayoutInner() {
