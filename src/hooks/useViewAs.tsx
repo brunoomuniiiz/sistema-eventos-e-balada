@@ -44,6 +44,7 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
         aceita_cartao: false,
         lojinha_can_sell: true,
       },
+      rolePreset: "garcom",
     },
   },
   caixa: {
@@ -85,6 +86,7 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
         vendas_historico: true,
         lojinha_can_sell: true,
       },
+      rolePreset: "lojinha",
     },
   },
 };
