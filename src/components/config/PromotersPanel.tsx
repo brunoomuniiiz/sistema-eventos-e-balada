@@ -26,6 +26,7 @@ export function PromotersPanel() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Promoter | null>(null);
   const [historyOf, setHistoryOf] = useState<Promoter | null>(null);
+  const [inviting, setInviting] = useState<Promoter | null>(null);
 
   const { data: promoters = [] } = useQuery({
     queryKey: ["promoters", user?.id],
