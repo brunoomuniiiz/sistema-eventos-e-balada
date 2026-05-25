@@ -174,7 +174,8 @@ export function PromotersPanel() {
         promoterId={ruleFor?.id}
         promoterName={ruleFor?.name}
       />
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }
 
