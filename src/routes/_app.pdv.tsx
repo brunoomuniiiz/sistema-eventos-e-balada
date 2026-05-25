@@ -763,8 +763,8 @@ export function PdvView() {
               maxAmount={promoterPickerMax}
               cart={cart.map((i) => ({ product_id: i.product_id, unit_price: i.unit_price, quantity: i.quantity }))}
               eventId={eventId === "none" ? null : eventId}
-              onPick={(promoter_id, promoter_name, amount) => {
-                setPayments([...payments, { method: "promoter_credit", amount, promoter_id, promoter_name }]);
+              onPick={(promoter_id, promoter_name, amount, campaign_id) => {
+                setPayments([...payments, { method: "promoter_credit", amount, promoter_id, promoter_name, campaign_id }]);
               }}
             />
           </div>
