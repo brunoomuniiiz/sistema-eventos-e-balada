@@ -23,6 +23,9 @@ import { Route as AppProdutosRouteImport } from './routes/_app.produtos'
 import { Route as AppPortariaRouteImport } from './routes/_app.portaria'
 import { Route as AppPedidosLiberarRouteImport } from './routes/_app.pedidos-liberar'
 import { Route as AppPdvRouteImport } from './routes/_app.pdv'
+import { Route as AppMinhaContaRouteImport } from './routes/_app.minha-conta'
+import { Route as AppMeusEventosRouteImport } from './routes/_app.meus-eventos'
+import { Route as AppMeuExtratoRouteImport } from './routes/_app.meu-extrato'
 import { Route as AppMensalRouteImport } from './routes/_app.mensal'
 import { Route as AppLojinhaRouteImport } from './routes/_app.lojinha'
 import { Route as AppFuncionariosRouteImport } from './routes/_app.funcionarios'
@@ -105,6 +108,21 @@ const AppPedidosLiberarRoute = AppPedidosLiberarRouteImport.update({
 const AppPdvRoute = AppPdvRouteImport.update({
   id: '/pdv',
   path: '/pdv',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMinhaContaRoute = AppMinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMeusEventosRoute = AppMeusEventosRouteImport.update({
+  id: '/meus-eventos',
+  path: '/meus-eventos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMeuExtratoRoute = AppMeuExtratoRouteImport.update({
+  id: '/meu-extrato',
+  path: '/meu-extrato',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMensalRoute = AppMensalRouteImport.update({
@@ -192,6 +210,9 @@ export interface FileRoutesByFullPath {
   '/funcionarios': typeof AppFuncionariosRoute
   '/lojinha': typeof AppLojinhaRoute
   '/mensal': typeof AppMensalRoute
+  '/meu-extrato': typeof AppMeuExtratoRoute
+  '/meus-eventos': typeof AppMeusEventosRoute
+  '/minha-conta': typeof AppMinhaContaRoute
   '/pdv': typeof AppPdvRoute
   '/pedidos-liberar': typeof AppPedidosLiberarRoute
   '/portaria': typeof AppPortariaRoute
@@ -221,6 +242,9 @@ export interface FileRoutesByTo {
   '/funcionarios': typeof AppFuncionariosRoute
   '/lojinha': typeof AppLojinhaRoute
   '/mensal': typeof AppMensalRoute
+  '/meu-extrato': typeof AppMeuExtratoRoute
+  '/meus-eventos': typeof AppMeusEventosRoute
+  '/minha-conta': typeof AppMinhaContaRoute
   '/pdv': typeof AppPdvRoute
   '/pedidos-liberar': typeof AppPedidosLiberarRoute
   '/portaria': typeof AppPortariaRoute
@@ -252,6 +276,9 @@ export interface FileRoutesById {
   '/_app/funcionarios': typeof AppFuncionariosRoute
   '/_app/lojinha': typeof AppLojinhaRoute
   '/_app/mensal': typeof AppMensalRoute
+  '/_app/meu-extrato': typeof AppMeuExtratoRoute
+  '/_app/meus-eventos': typeof AppMeusEventosRoute
+  '/_app/minha-conta': typeof AppMinhaContaRoute
   '/_app/pdv': typeof AppPdvRoute
   '/_app/pedidos-liberar': typeof AppPedidosLiberarRoute
   '/_app/portaria': typeof AppPortariaRoute
@@ -283,6 +310,9 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/lojinha'
     | '/mensal'
+    | '/meu-extrato'
+    | '/meus-eventos'
+    | '/minha-conta'
     | '/pdv'
     | '/pedidos-liberar'
     | '/portaria'
@@ -312,6 +342,9 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/lojinha'
     | '/mensal'
+    | '/meu-extrato'
+    | '/meus-eventos'
+    | '/minha-conta'
     | '/pdv'
     | '/pedidos-liberar'
     | '/portaria'
@@ -342,6 +375,9 @@ export interface FileRouteTypes {
     | '/_app/funcionarios'
     | '/_app/lojinha'
     | '/_app/mensal'
+    | '/_app/meu-extrato'
+    | '/_app/meus-eventos'
+    | '/_app/minha-conta'
     | '/_app/pdv'
     | '/_app/pedidos-liberar'
     | '/_app/portaria'
@@ -471,6 +507,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPdvRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/minha-conta': {
+      id: '/_app/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof AppMinhaContaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meus-eventos': {
+      id: '/_app/meus-eventos'
+      path: '/meus-eventos'
+      fullPath: '/meus-eventos'
+      preLoaderRoute: typeof AppMeusEventosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/meu-extrato': {
+      id: '/_app/meu-extrato'
+      path: '/meu-extrato'
+      fullPath: '/meu-extrato'
+      preLoaderRoute: typeof AppMeuExtratoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/mensal': {
       id: '/_app/mensal'
       path: '/mensal'
@@ -583,6 +640,9 @@ interface AppRouteChildren {
   AppFuncionariosRoute: typeof AppFuncionariosRoute
   AppLojinhaRoute: typeof AppLojinhaRoute
   AppMensalRoute: typeof AppMensalRoute
+  AppMeuExtratoRoute: typeof AppMeuExtratoRoute
+  AppMeusEventosRoute: typeof AppMeusEventosRoute
+  AppMinhaContaRoute: typeof AppMinhaContaRoute
   AppPdvRoute: typeof AppPdvRoute
   AppPedidosLiberarRoute: typeof AppPedidosLiberarRoute
   AppPortariaRoute: typeof AppPortariaRoute
@@ -604,6 +664,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppFuncionariosRoute: AppFuncionariosRoute,
   AppLojinhaRoute: AppLojinhaRoute,
   AppMensalRoute: AppMensalRoute,
+  AppMeuExtratoRoute: AppMeuExtratoRoute,
+  AppMeusEventosRoute: AppMeusEventosRoute,
+  AppMinhaContaRoute: AppMinhaContaRoute,
   AppPdvRoute: AppPdvRoute,
   AppPedidosLiberarRoute: AppPedidosLiberarRoute,
   AppPortariaRoute: AppPortariaRoute,

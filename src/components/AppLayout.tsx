@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, Settings, Boxes, DoorOpen, Activity } from "lucide-react";
+import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, Settings, Boxes, DoorOpen, Activity, User, Wallet, CalendarHeart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ type NavItem = {
   ownerOnly?: boolean;
   anyPerm?: Permission[];
   customGate?: "ao_vivo";
+  promoterOnly?: boolean;
 };
 
 const navItems: NavItem[] = [
@@ -26,6 +27,10 @@ const navItems: NavItem[] = [
   { to: "/portaria", label: "Portaria", short: "Port.", icon: DoorOpen, perm: "portaria" },
   { to: "/financeiro", label: "Financeiro", short: "Fin.", icon: DollarSign, perm: "financeiro" },
   { to: "/configuracao", label: "Configuração", short: "Conf.", icon: Settings, anyPerm: ["funcionarios", "promoters"] },
+  // Área do promoter
+  { to: "/meus-eventos", label: "Meus eventos", short: "Eve.", icon: CalendarHeart, promoterOnly: true },
+  { to: "/meu-extrato", label: "Meu extrato", short: "Extr.", icon: Wallet, promoterOnly: true },
+  { to: "/minha-conta", label: "Minha conta", short: "Conta", icon: User, promoterOnly: true },
 ];
 
 export function AppLayout() {
@@ -38,11 +43,15 @@ export function AppLayout() {
 
 function AppLayoutInner() {
   const { user, signOut } = useAuth();
-  const { can, isOwner, canAoVivo } = usePermissions();
+  const { can, isOwner, canAoVivo, rolePreset } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isPromoterMode = rolePreset === "promoter" && !isOwner;
+
   const visibleItems = navItems.filter((i) => {
+    if (isPromoterMode) return !!i.promoterOnly;
+    if (i.promoterOnly) return false;
     if (i.customGate === "ao_vivo") return canAoVivo;
     if (i.ownerOnly) return isOwner;
     if (i.anyPerm) return isOwner || i.anyPerm.some((p) => can(p));
