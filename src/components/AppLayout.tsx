@@ -43,11 +43,15 @@ export function AppLayout() {
 
 function AppLayoutInner() {
   const { user, signOut } = useAuth();
-  const { can, isOwner, canAoVivo } = usePermissions();
+  const { can, isOwner, canAoVivo, rolePreset } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
 
+  const isPromoterMode = rolePreset === "promoter" && !isOwner;
+
   const visibleItems = navItems.filter((i) => {
+    if (isPromoterMode) return !!i.promoterOnly;
+    if (i.promoterOnly) return false;
     if (i.customGate === "ao_vivo") return canAoVivo;
     if (i.ownerOnly) return isOwner;
     if (i.anyPerm) return isOwner || i.anyPerm.some((p) => can(p));
