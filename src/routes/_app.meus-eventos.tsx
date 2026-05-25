@@ -31,14 +31,24 @@ function MeusEventosPage() {
 
       const { data: eps, error } = await supabase
         .from("event_promoters")
-        .select("id, slug, event_id, promoter_id, events:event_id(id, name, date, location, flyer_url, status)")
+        .select("id, slug, event_id, promoter_id")
         .in("promoter_id", promoterIds);
       if (error) throw error;
+
+      const eventIds = Array.from(new Set((eps ?? []).map((e) => e.event_id)));
+      const evMap: Record<string, { id: string; name: string; date: string; location: string | null; flyer_url: string | null; status: string }> = {};
+      if (eventIds.length) {
+        const { data: evs } = await supabase
+          .from("events")
+          .select("id, name, date, location, flyer_url, status")
+          .in("id", eventIds);
+        for (const e of evs ?? []) evMap[e.id] = e;
+      }
 
       const out = (eps ?? []).map((ep) => ({
         ep_id: ep.id,
         slug: ep.slug,
-        event: ep.events as { id: string; name: string; date: string; location: string | null; flyer_url: string | null; status: string } | null,
+        event: evMap[ep.event_id] ?? null,
       })).filter((r) => r.event);
 
       // contagem de nomes por event_promoter
