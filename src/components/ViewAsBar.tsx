@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, ExternalLink, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
