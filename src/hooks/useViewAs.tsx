@@ -80,6 +80,7 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
       isOwner: false,
       permissions: ["lojinha"],
       flags: {
+        vendas_garcom: true,
         vendas_pedidos: true,
         vendas_historico: true,
         lojinha_can_sell: true,
