@@ -2402,6 +2402,7 @@ export type Database = {
           aceita_credito_promoter: boolean
           aceita_dinheiro: boolean
           aceita_pix: boolean
+          avatar_url: string | null
           can_authorize: boolean
           can_discount: boolean
           can_sell_cash: boolean
@@ -2415,6 +2416,8 @@ export type Database = {
           max_discount_percent: number
           owner_id: string
           permissions: string[]
+          pix_enabled: boolean
+          pix_key: string | null
           pode_adicionar_bebidas: boolean
           pode_lancar_consumacao: boolean
           role: Database["public"]["Enums"]["app_role"]
@@ -2430,12 +2433,14 @@ export type Database = {
           vendas_pedidos: boolean
           vendas_sangria: boolean
           vendas_validar_qr: boolean
+          whatsapp: string | null
         }
         Insert: {
           aceita_cartao?: boolean
           aceita_credito_promoter?: boolean
           aceita_dinheiro?: boolean
           aceita_pix?: boolean
+          avatar_url?: string | null
           can_authorize?: boolean
           can_discount?: boolean
           can_sell_cash?: boolean
@@ -2449,6 +2454,8 @@ export type Database = {
           max_discount_percent?: number
           owner_id: string
           permissions?: string[]
+          pix_enabled?: boolean
+          pix_key?: string | null
           pode_adicionar_bebidas?: boolean
           pode_lancar_consumacao?: boolean
           role?: Database["public"]["Enums"]["app_role"]
@@ -2464,12 +2471,14 @@ export type Database = {
           vendas_pedidos?: boolean
           vendas_sangria?: boolean
           vendas_validar_qr?: boolean
+          whatsapp?: string | null
         }
         Update: {
           aceita_cartao?: boolean
           aceita_credito_promoter?: boolean
           aceita_dinheiro?: boolean
           aceita_pix?: boolean
+          avatar_url?: string | null
           can_authorize?: boolean
           can_discount?: boolean
           can_sell_cash?: boolean
@@ -2483,6 +2492,8 @@ export type Database = {
           max_discount_percent?: number
           owner_id?: string
           permissions?: string[]
+          pix_enabled?: boolean
+          pix_key?: string | null
           pode_adicionar_bebidas?: boolean
           pode_lancar_consumacao?: boolean
           role?: Database["public"]["Enums"]["app_role"]
@@ -2498,6 +2509,7 @@ export type Database = {
           vendas_pedidos?: boolean
           vendas_sangria?: boolean
           vendas_validar_qr?: boolean
+          whatsapp?: string | null
         }
         Relationships: []
       }

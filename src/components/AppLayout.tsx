@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, Settings, Boxes, DoorOpen, Activity, User, Wallet, CalendarHeart } from "lucide-react";
+import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, Settings, Boxes, DoorOpen, Activity, Wallet, CalendarHeart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,9 @@ const navItems: NavItem[] = [
   { to: "/financeiro", label: "Financeiro", short: "Fin.", icon: DollarSign, perm: "financeiro" },
   { to: "/configuracao", label: "Configuração", short: "Conf.", icon: Settings, anyPerm: ["funcionarios", "promoters"] },
   // Área do promoter
-  { to: "/meus-eventos", label: "Meus eventos", short: "Eve.", icon: CalendarHeart, promoterOnly: true },
-  { to: "/meu-extrato", label: "Meu extrato", short: "Extr.", icon: Wallet, promoterOnly: true },
-  { to: "/minha-conta", label: "Minha conta", short: "Conta", icon: User, promoterOnly: true },
+  { to: "/meu-extrato", label: "Extrato", short: "Extr.", icon: Wallet, promoterOnly: true },
+  { to: "/meus-eventos", label: "Eventos", short: "Eve.", icon: CalendarHeart, promoterOnly: true },
+  { to: "/configuracao", label: "Configuração", short: "Conf.", icon: Settings, promoterOnly: true },
 ];
 
 export function AppLayout() {
