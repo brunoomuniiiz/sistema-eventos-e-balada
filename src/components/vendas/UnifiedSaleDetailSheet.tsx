@@ -65,7 +65,7 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             .select("id, product_name_snapshot, unit_price, quantity")
             .eq("order_id", sale.id),
           supabase.from("lojinha_orders")
-            .select("payment_method, refund_amount, refunded_reason")
+            .select("refund_amount, refunded_reason")
             .eq("id", sale.id).maybeSingle(),
         ]);
         return {
@@ -75,8 +75,8 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             unit: Number(i.unit_price),
             subtotal: Number(i.unit_price) * i.quantity,
           })),
-          payments: order.data?.payment_method
-            ? [{ method: order.data.payment_method, amount: Number(sale.total) }]
+          payments: sale.payment_method
+            ? [{ method: sale.payment_method, amount: Number(sale.total) }]
             : [],
           refund_amount: order.data?.refund_amount ? Number(order.data.refund_amount) : 0,
           refund_reason: order.data?.refunded_reason ?? null,
