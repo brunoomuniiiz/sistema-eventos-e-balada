@@ -11,6 +11,7 @@ export interface PaymentLine {
   amount: number;
   promoter_id?: string;
   promoter_name?: string;
+  campaign_id?: string | null;
 }
 
 const METHODS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
