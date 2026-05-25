@@ -154,7 +154,7 @@ export function PromoterCampaignDialog({ open, onOpenChange, campaignId }: Props
       if (!name.trim()) throw new Error("Dê um nome para a campanha");
       if (!eventId) throw new Error("Escolha o evento");
       const { data, error } = await supabase.rpc("upsert_promoter_credit_campaign", {
-        _campaign_id: campaignId ?? null,
+        _campaign_id: (campaignId ?? null) as any,
         _event_id: eventId,
         _name: name.trim(),
         _credit_amount: creditAmount,
@@ -162,12 +162,12 @@ export function PromoterCampaignDialog({ open, onOpenChange, campaignId }: Props
         _max_percent: maxPercent,
         _excluded_product_ids: excludedProducts,
         _excluded_category_ids: excludedCategories,
-        _valid_from: validFrom ? new Date(validFrom).toISOString() : null,
-        _valid_until: validUntil ? new Date(validUntil).toISOString() : null,
-        _valid_weekdays: validWeekdays.length ? validWeekdays : null,
+        _valid_from: (validFrom ? new Date(validFrom).toISOString() : null) as any,
+        _valid_until: (validUntil ? new Date(validUntil).toISOString() : null) as any,
+        _valid_weekdays: (validWeekdays.length ? validWeekdays : null) as any,
         _applies_to_promotions: appliesToPromotions,
         _enabled: enabled,
-        _notes: notes.trim() || null,
+        _notes: (notes.trim() || null) as any,
         _promoter_ids: selectedPromoters,
       });
       if (error) throw error;
