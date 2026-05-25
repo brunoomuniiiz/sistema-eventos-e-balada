@@ -106,7 +106,16 @@ export function ProductCard({
           {soldOut ? (
             <span className="text-xs font-medium text-destructive whitespace-nowrap">Esgotado</span>
           ) : inCartQty === 0 ? (
-            <Button size="icon" className="h-9 w-9 rounded-full" style={accentStyle} aria-label={`Adicionar ${product.name}`}>
+            <Button
+              size="icon"
+              className="h-9 w-9 rounded-full"
+              style={accentStyle}
+              aria-label={`Adicionar ${product.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd();
+              }}
+            >
               <Plus className="h-4 w-4" />
             </Button>
           ) : (
