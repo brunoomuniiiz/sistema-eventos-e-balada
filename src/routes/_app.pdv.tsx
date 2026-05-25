@@ -345,7 +345,7 @@ export function PdvView() {
           if (remainingCredit > 0) {
             const { error } = await supabase.rpc("redeem_promoter_credit_v2", {
               _promoter_id: p.promoter_id, _sale_id: sale.id,
-              _amount: remainingCredit, _campaign_id: null,
+              _amount: remainingCredit, _campaign_id: undefined as any,
             });
             if (error) throw error;
           }
