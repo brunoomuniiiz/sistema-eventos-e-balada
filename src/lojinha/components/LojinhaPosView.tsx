@@ -12,6 +12,7 @@ import { formatBRL } from "@/lib/format";
 import { createPosOrder, confirmDeliveryPos, markPosPaid, reserveCartItem } from "@/lojinha/api";
 import { createPixCharge } from "@/lib/pix.functions";
 import { ProductCard } from "@/components/sales/ProductCard";
+import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
 
 type Product = {
   id: string;
