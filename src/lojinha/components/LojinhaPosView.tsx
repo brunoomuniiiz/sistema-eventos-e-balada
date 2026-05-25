@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy, Image as ImageIcon } from "lucide-react";
+import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import { createPosOrder, confirmDeliveryPos, markPosPaid, reserveCartItem } from "@/lojinha/api";
 import { createPixCharge } from "@/lib/pix.functions";
+import { ProductCard } from "@/components/sales/ProductCard";
 
 type Product = {
   id: string;
