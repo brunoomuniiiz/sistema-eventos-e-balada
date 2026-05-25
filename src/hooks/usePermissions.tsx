@@ -52,7 +52,7 @@ export function usePermissions() {
   const useMask = !!mask && realIsOwner;
   const isOwner = useMask ? mask!.isOwner : realIsOwner;
   const permissions = (useMask ? mask!.permissions : ((data?.permissions ?? []) as Permission[])) as Permission[];
-  const rolePreset = (data?.role_preset ?? null) as string | null;
+  const rolePreset = (useMask ? (mask!.rolePreset ?? null) : (data?.role_preset ?? null)) as string | null;
 
   const can = (p: Permission) => isOwner || permissions.includes(p);
 
