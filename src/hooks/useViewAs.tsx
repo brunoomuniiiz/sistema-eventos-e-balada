@@ -88,6 +88,19 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
   },
 };
 
+export const PERSONA_DESTINATIONS: Record<PersonaKey, { to: string; search?: Record<string, string> }> = {
+  dono: { to: "/dashboard" },
+  promoter: { to: "/meu-extrato" },
+  garcom: { to: "/vendas", search: { tab: "vender" } },
+  caixa: { to: "/pdv" },
+  portaria: { to: "/portaria" },
+  lojinha: { to: "/vendas", search: { tab: "vender" } },
+};
+
+export function getPersonaDestination(persona: PersonaKey) {
+  return PERSONA_DESTINATIONS[persona];
+}
+
 type Ctx = {
   persona: PersonaKey;
   setPersona: (p: PersonaKey) => void;
