@@ -1,47 +1,27 @@
-## Plano direto para resolver de verdade
-
-O problema principal não é só o card de produto: o fluxo ainda está caindo em telas genéricas/antigas e o `Ver como` não força uma troca clara de rota/aba. Vou corrigir isso de forma objetiva.
-
 ## O que vou mudar
 
-1. **`Ver como` vai abrir a tela certa, não só trocar permissão**
-   - Dono: `/dashboard`
-   - Caixa/PDV: `/pdv`
-   - Garçom: `/vendas?tab=vender`
-   - Vendedor online: `/vendas?tab=vender`
-   - Portaria: `/portaria`
-   - Promoter: `/meu-extrato`
+### 1. Categorias horizontais legíveis no celular (igual lojinha do cliente)
+- Padronizar o chip de categoria em **todos os fluxos internos** (PDV, Vendas/garçom, Lojinha admin) para usar o mesmo componente `CategoryChip` da `loja/$slug.tsx`: fonte legível, padding confortável para dedo, rolagem horizontal com `snap` e sem barra visível.
+- Tamanho mínimo do botão: altura ~36px, padding lateral generoso, fonte 14px medium — confortável pra tocar no telefone.
+- Comportamento idêntico à lojinha do cliente: arrasta pro lado pra ver mais. Sem botão "Mais", sem quebrar em múltiplas linhas.
+- Garantir `overflow-x-auto` no container das categorias e `overflow-x-hidden` no pai pra não puxar a tela inteira pro lado.
 
-2. **Remover o desvio errado para `/lojinha`**
-   - Hoje `/lojinha` redireciona para `/vendas`, e aí pode cair na aba padrão errada.
-   - Para garçom e vendedor online, o `Ver como` vai direto para a aba `Vender (garçom)`.
-
-3. **Corrigir a lógica da aba padrão em Vendas**
-   - Se for dono/gerente: continua vendo gestão/caixas.
-   - Se for PDV caixa: abre PDV caixa.
-   - Se for garçom/vendedor online: abre diretamente `Vender (garçom)`.
-   - Se a URL pedir uma aba que a persona não pode ver, troca automaticamente para a aba permitida.
-
-4. **Deixar visualmente impossível confundir a persona ativa**
-   - A barra “Visualizando como…” vai mostrar também o destino atual da visão.
-   - Ao trocar persona, fecha o menu e navega imediatamente para a tela correta.
-
-5. **Garantir que o produto apareça no vendedor online/garçom**
-   - Manter a query de produtos habilitada para `lojinhaCanSell` ou `canVenderGarcom`.
-   - Manter o card estilo lojinha online nos fluxos internos.
+### 2. Remover persona "Lojinha (vendedor online)" do "Ver como" (mantendo em stand-by)
+- Tirar a opção `lojinha` do menu visível em `ViewAsBar.tsx`.
+- **Manter** a definição `lojinha` em `PERSONAS` e `PERSONA_DESTINATIONS` no `useViewAs.tsx` (comentada como "stand-by — reativar se precisar").
+- Personas visíveis no menu ficam: Dono, Caixa (PDV), Garçom, Portaria, Promoter.
+- Permissões reais por funcionário continuam sendo configuradas individualmente em `user_roles` (não muda nada lá).
 
 ## Arquivos previstos
-
-- `src/components/ViewAsBar.tsx`
-- `src/routes/index.tsx`
-- `src/routes/_app.vendas.tsx`
-- possivelmente `src/hooks/useViewAs.tsx` só se precisar centralizar o destino de cada persona
+- `src/components/sales/ProductCard.tsx` ou novo `src/components/sales/CategoryChipBar.tsx` — componente compartilhado de barra de categorias
+- `src/routes/_app.pdv.tsx` — usar barra compartilhada
+- `src/routes/_app.vendas.tsx` — usar barra compartilhada
+- `src/lojinha/components/LojinhaPosView.tsx` — usar barra compartilhada
+- `src/routes/loja.$slug.tsx` — usar barra compartilhada (já é a referência visual)
+- `src/components/ViewAsBar.tsx` — esconder opção "Lojinha"
+- `src/hooks/useViewAs.tsx` — comentar `lojinha` da lista visível, manter definição
 
 ## Critério de pronto
-
-Depois da alteração, quando você clicar em:
-
-- **Ver como > Caixa (PDV)**: precisa cair em `/pdv` com a tela de PDV.
-- **Ver como > Garçom**: precisa cair em `/vendas?tab=vender`, com produtos visíveis no modelo de card da lojinha.
-- **Ver como > Lojinha (vendedor online)**: precisa cair em `/vendas?tab=vender`, não ficar vazio nem parecer dashboard.
-- **Sair**: volta para visão dono em `/dashboard`.
+- Em qualquer tela de venda interna, no celular, as categorias aparecem em **uma linha só**, com swipe horizontal suave, sem empurrar o resto da tela pro lado.
+- O menu "Ver como" não mostra mais "Lojinha (vendedor online)" — só Dono, Caixa, Garçom, Portaria, Promoter.
+- Nenhum funcionário existente perde acesso (permissões individuais intactas).
