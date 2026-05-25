@@ -143,7 +143,79 @@ export function PromotersPanel() {
 
       <PromoterDialog open={open} onOpenChange={setOpen} promoter={editing} />
       <PromoterHistoryDialog promoter={historyOf} onOpenChange={(v) => !v && setHistoryOf(null)} />
+      <InvitePromoterDialog promoter={inviting} onOpenChange={(v) => !v && setInviting(null)} />
     </div>
+  );
+}
+
+function InvitePromoterDialog({ promoter, onOpenChange }: { promoter: Promoter | null; onOpenChange: (v: boolean) => void }) {
+  const qc = useQueryClient();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (promoter) {
+      setEmail(promoter.email ?? "");
+      setPassword("nightops" + Math.floor(Math.random() * 9000 + 1000));
+    }
+  }, [promoter]);
+
+  const invite = async () => {
+    if (!promoter) return;
+    if (!email || password.length < 6) { toast.error("Email e senha (mín. 6) obrigatórios"); return; }
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("invite-staff", {
+        body: {
+          email, password,
+          display_name: promoter.name,
+          role_preset: "promoter",
+          permissions: [],
+          aceita_dinheiro: false, aceita_pix: false, aceita_cartao: false,
+        },
+      });
+      if (error) throw error;
+      const newUserId = (data as { user_id?: string })?.user_id;
+      if (!newUserId) throw new Error("Falha ao criar conta");
+      const { error: linkErr } = await supabase.from("promoters").update({ user_id: newUserId, email }).eq("id", promoter.id);
+      if (linkErr) throw linkErr;
+      toast.success("Acesso criado! Envie email + senha para o promoter.");
+      qc.invalidateQueries({ queryKey: ["promoters"] });
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!promoter} onOpenChange={onOpenChange}>
+      <DialogContent className="glass max-w-md">
+        <DialogHeader>
+          <DialogTitle>Convidar acesso — {promoter?.name}</DialogTitle>
+          <DialogDescription>Cria uma conta para o promoter entrar e ver os eventos e o extrato dele. Ele troca a senha depois.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Email do promoter</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div>
+            <Label>Senha inicial</Label>
+            <Input value={password} onChange={(e) => setPassword(e.target.value)} />
+            <p className="text-[11px] text-muted-foreground mt-1">Mande essa senha junto com o link. O promoter troca dentro do app.</p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={invite} disabled={sending} className="bg-gradient-primary text-primary-foreground">
+            {sending ? "Criando..." : "Criar acesso"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
