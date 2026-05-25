@@ -21,6 +21,7 @@ export function ViewAsBar() {
   const { user } = useAuth();
   const { persona, setPersona } = useViewAs();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data: links } = useQuery({
     queryKey: ["view-as-links", user?.id],
