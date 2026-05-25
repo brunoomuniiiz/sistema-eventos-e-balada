@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getPersonaDestination, useViewAs } from "@/hooks/useViewAs";
 
 export const Route = createFileRoute("/")({
   component: RootRedirect,
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/")({
 function RootRedirect() {
   const { user, loading: authLoading } = useAuth();
   const { isOwner, rolePreset, can, lojinhaCanSell, loading: permsLoading } = usePermissions();
+  const { persona } = useViewAs();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,6 +21,11 @@ function RootRedirect() {
       return;
     }
     if (permsLoading) return;
+
+    if (persona !== "dono") {
+      navigate({ ...getPersonaDestination(persona), replace: true });
+      return;
+    }
 
     // 1. Owner / gerente → dashboard
     if (isOwner || rolePreset === "gerente") {
@@ -48,7 +55,7 @@ function RootRedirect() {
     else if (can("funcionarios")) navigate({ to: "/funcionarios", replace: true });
     else if (can("promoters")) navigate({ to: "/promoters", replace: true });
     else navigate({ to: "/dashboard", replace: true });
-  }, [user, authLoading, permsLoading, isOwner, rolePreset, can, lojinhaCanSell, navigate]);
+  }, [user, authLoading, permsLoading, persona, isOwner, rolePreset, can, lojinhaCanSell, navigate]);
 
   return (
     <div className="min-h-screen grid place-items-center">
