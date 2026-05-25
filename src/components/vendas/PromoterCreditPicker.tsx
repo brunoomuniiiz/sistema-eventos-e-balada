@@ -6,12 +6,25 @@ import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserCog, Sparkles, AlertTriangle } from "lucide-react";
+import { Search, UserCog, Sparkles, AlertTriangle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { computeMaxCredit, type CartLine, type PromoterCreditRule } from "@/hooks/usePromoterCreditRule";
 
 type PromoterWithBalance = { id: string; name: string; balance: number };
+type CampaignRow = {
+  id: string;
+  name: string;
+  credit_amount: number;
+  min_purchase: number;
+  max_percent: number;
+  excluded_product_ids: string[];
+  excluded_category_ids: string[];
+  valid_from: string | null;
+  valid_until: string | null;
+  valid_weekdays: number[] | null;
+  enabled: boolean;
+};
 
 interface Props {
   open: boolean;
@@ -19,7 +32,7 @@ interface Props {
   maxAmount: number;
   cart?: CartLine[];
   eventId?: string | null;
-  onPick: (promoter_id: string, promoter_name: string, amount: number) => void;
+  onPick: (promoter_id: string, promoter_name: string, amount: number, campaign_id?: string | null) => void;
 }
 
 const DEFAULT_RULE: PromoterCreditRule = {
@@ -28,11 +41,25 @@ const DEFAULT_RULE: PromoterCreditRule = {
   excluded_product_ids: [], excluded_category_ids: [], notes: null,
 };
 
+function isCampaignActiveNow(c: CampaignRow): boolean {
+  if (!c.enabled) return false;
+  const now = new Date();
+  if (c.valid_from && now < new Date(c.valid_from)) return false;
+  if (c.valid_until && now > new Date(c.valid_until)) return false;
+  if (c.valid_weekdays && c.valid_weekdays.length && !c.valid_weekdays.includes(now.getDay())) return false;
+  return true;
+}
+
 export function PromoterCreditPicker({ open, onOpenChange, maxAmount, cart = [], eventId, onPick }: Props) {
   const [search, setSearch] = useState("");
   const [picked, setPicked] = useState<PromoterWithBalance | null>(null);
+  const [pickedCampaign, setPickedCampaign] = useState<CampaignRow | null>(null);
+  const [namesBal, setNamesBal] = useState(0);
+  const [campBal, setCampBal] = useState(0);
   const [amount, setAmount] = useState(0);
   const [ruleInfo, setRuleInfo] = useState<{ max: number; eligible: number; reason?: string } | null>(null);
+  const [campaignsForPromoter, setCampaignsForPromoter] = useState<CampaignRow[]>([]);
+  const [needsCampaignChoice, setNeedsCampaignChoice] = useState(false);
 
   const { data: promoters = [], isLoading } = useQuery({
     queryKey: ["promoters-with-balance", open],
@@ -49,55 +76,92 @@ export function PromoterCreditPicker({ open, onOpenChange, maxAmount, cart = [],
     },
   });
 
-  // resolve regra e máximo permitido quando seleciona o promoter
+  // ao escolher promoter: carrega buckets + campanhas ativas do evento
   useEffect(() => {
-    if (!picked) { setRuleInfo(null); return; }
+    if (!picked) return;
     let cancelled = false;
     (async () => {
-      // busca a regra mais específica
-      const ors = [
-        "scope.eq.global",
-        `and(scope.eq.promoter,promoter_id.eq.${picked.id})`,
-        eventId ? `and(scope.eq.event_promoter,promoter_id.eq.${picked.id},event_id.eq.${eventId})` : "",
-      ].filter(Boolean).join(",");
-      const { data } = await supabase.from("promoter_credit_rules").select("*").or(ors);
-      const rows = data ?? [];
-      const pick = rows.find((r) => r.scope === "event_promoter")
-        ?? rows.find((r) => r.scope === "promoter")
-        ?? rows.find((r) => r.scope === "global");
-      const rule: PromoterCreditRule = pick ? {
-        id: pick.id, scope: pick.scope as any,
-        enabled: !!pick.enabled,
-        min_purchase: Number(pick.min_purchase ?? 0),
-        max_percent: Number(pick.max_percent ?? 100),
-        excluded_product_ids: pick.excluded_product_ids ?? [],
-        excluded_category_ids: pick.excluded_category_ids ?? [],
-        notes: pick.notes ?? null,
-      } : DEFAULT_RULE;
-      const info = await computeMaxCredit(cart, rule);
-      if (!cancelled) {
-        setRuleInfo(info);
-        const allowed = Math.min(picked.balance, maxAmount, info.max);
-        setAmount(Math.max(0, +allowed.toFixed(2)));
-      }
+      // nomes
+      const { data: nb } = await supabase.rpc("promoter_names_balance", { _promoter_id: picked.id });
+      if (cancelled) return;
+      setNamesBal(Number(nb ?? 0));
+
+      // campanhas em que ele está, do evento atual
+      if (!eventId) { setCampaignsForPromoter([]); setNeedsCampaignChoice(false); return; }
+      const { data: mems } = await supabase
+        .from("promoter_credit_campaign_members")
+        .select("campaign_id")
+        .eq("promoter_id", picked.id);
+      const cids = (mems ?? []).map((m) => m.campaign_id);
+      if (!cids.length) { setCampaignsForPromoter([]); setNeedsCampaignChoice(false); return; }
+      const { data: cs } = await supabase
+        .from("promoter_credit_campaigns")
+        .select("id,name,credit_amount,min_purchase,max_percent,excluded_product_ids,excluded_category_ids,valid_from,valid_until,valid_weekdays,enabled")
+        .in("id", cids)
+        .eq("event_id", eventId);
+      const active = ((cs ?? []) as CampaignRow[]).filter(isCampaignActiveNow);
+      if (cancelled) return;
+      setCampaignsForPromoter(active);
+      if (active.length === 1) setPickedCampaign(active[0]);
+      else if (active.length > 1) setNeedsCampaignChoice(true);
+      else setPickedCampaign(null);
     })();
     return () => { cancelled = true; };
-  }, [picked, eventId, cart, maxAmount]);
+  }, [picked, eventId]);
+
+  // calcula regra + máximo quando a campanha estiver escolhida
+  useEffect(() => {
+    if (!picked) { setRuleInfo(null); setCampBal(0); return; }
+    if (needsCampaignChoice) return;
+    let cancelled = false;
+    (async () => {
+      const rule: PromoterCreditRule = pickedCampaign ? {
+        id: pickedCampaign.id, scope: "event_promoter" as any, enabled: true,
+        min_purchase: Number(pickedCampaign.min_purchase),
+        max_percent: Number(pickedCampaign.max_percent),
+        excluded_product_ids: pickedCampaign.excluded_product_ids ?? [],
+        excluded_category_ids: pickedCampaign.excluded_category_ids ?? [],
+        notes: null,
+      } : DEFAULT_RULE;
+
+      // saldo do bucket campanha (se houver)
+      let cb = 0;
+      if (pickedCampaign) {
+        const { data } = await supabase.rpc("promoter_campaign_balance", {
+          _promoter_id: picked.id, _campaign_id: pickedCampaign.id,
+        });
+        cb = Number(data ?? 0);
+      }
+      const info = await computeMaxCredit(cart, rule);
+      if (cancelled) return;
+      setCampBal(cb);
+      setRuleInfo(info);
+      const totalAvail = namesBal + cb;
+      const allowed = Math.min(totalAvail, maxAmount, info.max);
+      setAmount(Math.max(0, +allowed.toFixed(2)));
+    })();
+    return () => { cancelled = true; };
+  }, [picked, pickedCampaign, needsCampaignChoice, cart, maxAmount, namesBal]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return promoters.filter((p) => !q || p.name.toLowerCase().includes(q));
   }, [promoters, search]);
 
-  const hardMax = picked ? Math.min(picked.balance, maxAmount, ruleInfo?.max ?? 0) : 0;
+  const totalAvail = namesBal + campBal;
+  const hardMax = picked ? Math.min(totalAvail, maxAmount, ruleInfo?.max ?? 0) : 0;
 
-  const reset = () => { setPicked(null); setSearch(""); setAmount(0); setRuleInfo(null); };
+  const reset = () => {
+    setPicked(null); setPickedCampaign(null); setCampaignsForPromoter([]);
+    setNeedsCampaignChoice(false); setNamesBal(0); setCampBal(0);
+    setSearch(""); setAmount(0); setRuleInfo(null);
+  };
 
   const confirm = () => {
     if (!picked) return;
     const final = Math.min(amount, hardMax);
     if (final <= 0) return;
-    onPick(picked.id, picked.name, +final.toFixed(2));
+    onPick(picked.id, picked.name, +final.toFixed(2), pickedCampaign?.id ?? null);
     reset();
     onOpenChange(false);
   };
@@ -110,7 +174,7 @@ export function PromoterCreditPicker({ open, onOpenChange, maxAmount, cart = [],
             <Sparkles className="h-5 w-5 text-primary" /> Crédito de promoter
           </DialogTitle>
           <DialogDescription>
-            Selecione o promoter e o valor a abater. Vale até {formatBRL(maxAmount)} desta venda.
+            Vale até {formatBRL(maxAmount)} desta venda.
           </DialogDescription>
         </DialogHeader>
 
@@ -127,12 +191,8 @@ export function PromoterCreditPicker({ open, onOpenChange, maxAmount, cart = [],
                 <div className="p-6 text-center text-sm text-muted-foreground">Nenhum promoter</div>
               ) : (
                 filtered.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setPicked(p)}
-                    disabled={p.balance <= 0}
-                    className="w-full p-3 text-left hover:bg-muted/40 flex items-center justify-between gap-2 disabled:opacity-40"
-                  >
+                  <button key={p.id} onClick={() => setPicked(p)} disabled={p.balance <= 0}
+                    className="w-full p-3 text-left hover:bg-muted/40 flex items-center justify-between gap-2 disabled:opacity-40">
                     <span className="font-medium">{p.name}</span>
                     <Badge variant={p.balance > 0 ? "default" : "secondary"}>{formatBRL(p.balance)}</Badge>
                   </button>
@@ -140,17 +200,54 @@ export function PromoterCreditPicker({ open, onOpenChange, maxAmount, cart = [],
               )}
             </div>
           </div>
+        ) : needsCampaignChoice ? (
+          <div className="space-y-3">
+            <div className="text-sm text-muted-foreground">
+              {picked.name} está em {campaignsForPromoter.length} campanhas. Escolha qual aplicar:
+            </div>
+            <div className="border rounded-lg divide-y max-h-72 overflow-y-auto">
+              <button onClick={() => { setPickedCampaign(null); setNeedsCampaignChoice(false); }}
+                className="w-full p-3 text-left hover:bg-muted/40">
+                <div className="font-medium">Sem campanha</div>
+                <div className="text-xs text-muted-foreground">Usar só o crédito de nomes da lista</div>
+              </button>
+              {campaignsForPromoter.map((c) => (
+                <button key={c.id} onClick={() => { setPickedCampaign(c); setNeedsCampaignChoice(false); }}
+                  className="w-full p-3 text-left hover:bg-muted/40">
+                  <div className="font-medium flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" /> {c.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Máx {c.max_percent}% · min {formatBRL(Number(c.min_purchase))}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <Button variant="ghost" size="sm" onClick={reset}>trocar promoter</Button>
+          </div>
         ) : (
           <div className="space-y-3">
             <div className="rounded-lg border p-3 flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground">Promoter</div>
                 <div className="font-semibold">{picked.name}</div>
+                {pickedCampaign && (
+                  <div className="text-[11px] text-primary mt-0.5 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" /> {pickedCampaign.name}
+                  </div>
+                )}
               </div>
               <div className="text-right">
-                <div className="text-xs text-muted-foreground">Saldo</div>
-                <div className="font-bold text-success">{formatBRL(picked.balance)}</div>
+                <div className="text-xs text-muted-foreground">Saldo total</div>
+                <div className="font-bold text-success">{formatBRL(totalAvail)}</div>
               </div>
+            </div>
+
+            <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-0.5">
+              <div className="flex justify-between"><span className="text-muted-foreground">Nomes da lista</span><span className="font-semibold">{formatBRL(namesBal)}</span></div>
+              {pickedCampaign && (
+                <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Campanha disponível agora</span><span className="font-semibold">{formatBRL(campBal)}</span></div>
+              )}
             </div>
 
             {ruleInfo?.reason ? (
@@ -183,7 +280,7 @@ export function PromoterCreditPicker({ open, onOpenChange, maxAmount, cart = [],
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          {picked && (
+          {picked && !needsCampaignChoice && (
             <Button onClick={confirm} disabled={amount <= 0 || amount > hardMax + 0.005}>
               Usar {formatBRL(Math.min(amount, hardMax))}
             </Button>

@@ -324,15 +324,31 @@ export function PdvView() {
         if (payErr) throw payErr;
       }
 
-      // Registra consumo de crédito para cada linha promoter_credit
+      // Registra consumo de crédito: abate primeiro do bucket campanha, depois nomes
       for (const p of payments) {
         if (p.method === "promoter_credit" && p.promoter_id && p.amount > 0) {
-          const { error: rErr } = await supabase.rpc("redeem_promoter_credit", {
-            _promoter_id: p.promoter_id,
-            _sale_id: sale.id,
-            _amount: p.amount,
-          });
-          if (rErr) throw rErr;
+          let remainingCredit = p.amount;
+          if (p.campaign_id) {
+            const { data: cb } = await supabase.rpc("promoter_campaign_balance", {
+              _promoter_id: p.promoter_id, _campaign_id: p.campaign_id,
+            });
+            const fromCamp = Math.min(Number(cb ?? 0), remainingCredit);
+            if (fromCamp > 0) {
+              const { error } = await supabase.rpc("redeem_promoter_credit_v2", {
+                _promoter_id: p.promoter_id, _sale_id: sale.id,
+                _amount: +fromCamp.toFixed(2), _campaign_id: p.campaign_id,
+              });
+              if (error) throw error;
+              remainingCredit = +(remainingCredit - fromCamp).toFixed(2);
+            }
+          }
+          if (remainingCredit > 0) {
+            const { error } = await supabase.rpc("redeem_promoter_credit_v2", {
+              _promoter_id: p.promoter_id, _sale_id: sale.id,
+              _amount: remainingCredit, _campaign_id: undefined as any,
+            });
+            if (error) throw error;
+          }
         }
       }
 
@@ -747,8 +763,8 @@ export function PdvView() {
               maxAmount={promoterPickerMax}
               cart={cart.map((i) => ({ product_id: i.product_id, unit_price: i.unit_price, quantity: i.quantity }))}
               eventId={eventId === "none" ? null : eventId}
-              onPick={(promoter_id, promoter_name, amount) => {
-                setPayments([...payments, { method: "promoter_credit", amount, promoter_id, promoter_name }]);
+              onPick={(promoter_id, promoter_name, amount, campaign_id) => {
+                setPayments([...payments, { method: "promoter_credit", amount, promoter_id, promoter_name, campaign_id }]);
               }}
             />
           </div>
