@@ -7,6 +7,7 @@ export type PersonaMask = {
   isOwner: boolean;
   permissions: Permission[];
   flags: Record<string, boolean>;
+  rolePreset?: string | null;
 };
 
 export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> = {
