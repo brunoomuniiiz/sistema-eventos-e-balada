@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, ExternalLink, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +21,7 @@ export function ViewAsBar() {
   const { user } = useAuth();
   const { persona, setPersona } = useViewAs();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data: links } = useQuery({
     queryKey: ["view-as-links", user?.id],
@@ -60,6 +62,13 @@ export function ViewAsBar() {
   const select = (p: PersonaKey) => {
     setPersona(p);
     setOpen(false);
+    // Redireciona pra "/" que decide a landing certa pra cada persona
+    setTimeout(() => navigate({ to: "/" }), 0);
+  };
+
+  const exitMask = () => {
+    setPersona("dono");
+    setTimeout(() => navigate({ to: "/" }), 0);
   };
 
   const openExternal = (path: string | null) => {
@@ -70,10 +79,10 @@ export function ViewAsBar() {
   return (
     <>
       {isMasked && (
-        <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500 text-amber-950 text-xs font-semibold px-3 py-1.5 flex items-center justify-center gap-2 shadow">
+        <div className="fixed top-0 left-0 right-0 z-[70] bg-amber-500 text-amber-950 text-sm font-semibold px-3 py-2 flex items-center justify-center gap-2 shadow-lg">
           Visualizando como <span className="uppercase">{PERSONAS[persona].label}</span>
           <button
-            onClick={() => setPersona("dono")}
+            onClick={exitMask}
             className="inline-flex items-center gap-1 underline hover:no-underline"
           >
             <X className="h-3 w-3" /> sair

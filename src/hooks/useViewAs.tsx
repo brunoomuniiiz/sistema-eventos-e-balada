@@ -42,6 +42,7 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
         aceita_dinheiro: false,
         aceita_pix: false,
         aceita_cartao: false,
+        lojinha_can_sell: true,
       },
     },
   },
