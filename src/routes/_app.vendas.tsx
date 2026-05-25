@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_app/vendas")({
 function VendasPage() {
   const {
     ownerId, isOwner, loading, can,
-    rolePreset, canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico,
+    canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico,
   } = usePermissions();
   const isManager = isOwner || can("financeiro");
   const { tab } = useSearch({ from: "/_app/vendas" });
