@@ -12,6 +12,7 @@ import { formatBRL } from "@/lib/format";
 import { getStorefront, createOrder, findPendingForCustomer, customerAbandonOrder, type StorefrontProduct } from "@/lojinha/api";
 import { getCart, setCart, getCartToken, getCustomer, saveCustomer, resetCart, type CartItem } from "@/lojinha/lib/cart";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ProductCard } from "@/components/sales/ProductCard";
 
 export const Route = createFileRoute("/loja/$slug")({
   component: StorefrontPage,
