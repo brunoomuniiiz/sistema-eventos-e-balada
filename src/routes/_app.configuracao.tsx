@@ -8,7 +8,7 @@ import { PromotersPanel } from "@/components/config/PromotersPanel";
 import { LojinhaDevicesPanel } from "@/lojinha/components/LojinhaDevicesPanel";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Settings, UserCog, Users, Smartphone } from "lucide-react";
-import MinhaContaPage from "@/routes/_app.minha-conta";
+import { MinhaContaPage } from "@/routes/_app.minha-conta";
 
 export const Route = createFileRoute("/_app/configuracao")({
   component: ConfiguracaoPage,
