@@ -78,7 +78,7 @@ function MeuExtratoPage() {
           id: r.id,
           at: r.created_at,
           amount: Number(r.amount ?? 0),
-          saleId: r.sale_id,
+          saleId: r.sale_id ?? "",
           eventId: r.sale_id ? saleEvent[r.sale_id] ?? null : null,
         })),
       ].sort((a, b) => (a.at < b.at ? 1 : -1));
