@@ -79,10 +79,10 @@ export function ViewAsBar() {
   return (
     <>
       {isMasked && (
-        <div className="fixed top-0 left-0 right-0 z-[60] bg-amber-500 text-amber-950 text-xs font-semibold px-3 py-1.5 flex items-center justify-center gap-2 shadow">
+        <div className="fixed top-0 left-0 right-0 z-[70] bg-amber-500 text-amber-950 text-sm font-semibold px-3 py-2 flex items-center justify-center gap-2 shadow-lg">
           Visualizando como <span className="uppercase">{PERSONAS[persona].label}</span>
           <button
-            onClick={() => setPersona("dono")}
+            onClick={exitMask}
             className="inline-flex items-center gap-1 underline hover:no-underline"
           >
             <X className="h-3 w-3" /> sair
