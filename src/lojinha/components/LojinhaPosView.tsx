@@ -30,7 +30,8 @@ type CartItem = { product_id: string; product_name: string; unit_price: number; 
 type Step = "cart" | "method" | "waiting" | "delivered";
 
 export function LojinhaPosView() {
-  const { ownerId, lojinhaCanSell, lojinhaPaymentMethods, lojinhaPointDeviceId, loading } = usePermissions();
+  const { ownerId, lojinhaCanSell, canVenderGarcom, lojinhaPaymentMethods, lojinhaPointDeviceId, loading } = usePermissions();
+  const canAccess = lojinhaCanSell || canVenderGarcom;
   const qc = useQueryClient();
   const createPix = useServerFn(createPixCharge);
 
