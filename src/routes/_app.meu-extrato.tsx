@@ -56,7 +56,7 @@ function MeuExtratoPage() {
       const balance = Math.max(0, active - spent);
 
       // event_id por sale_id para agrupar consumo no mesmo evento
-      const saleIds = (redemptions ?? []).map((r) => r.sale_id).filter(Boolean);
+      const saleIds = (redemptions ?? []).map((r) => r.sale_id).filter((x): x is string => !!x);
       const saleEvent: Record<string, string | null> = {};
       if (saleIds.length) {
         const { data: ss } = await supabase.from("sales").select("id, event_id").in("id", saleIds);
@@ -79,7 +79,7 @@ function MeuExtratoPage() {
           at: r.created_at,
           amount: Number(r.amount ?? 0),
           saleId: r.sale_id,
-          eventId: saleEvent[r.sale_id] ?? null,
+          eventId: r.sale_id ? saleEvent[r.sale_id] ?? null : null,
         })),
       ].sort((a, b) => (a.at < b.at ? 1 : -1));
 
