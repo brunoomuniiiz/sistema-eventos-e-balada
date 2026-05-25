@@ -1582,6 +1582,69 @@ export type Database = {
         }
         Relationships: []
       }
+      promoter_credit_rules: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          event_id: string | null
+          excluded_category_ids: string[]
+          excluded_product_ids: string[]
+          id: string
+          max_percent: number
+          min_purchase: number
+          notes: string | null
+          promoter_id: string | null
+          scope: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          event_id?: string | null
+          excluded_category_ids?: string[]
+          excluded_product_ids?: string[]
+          id?: string
+          max_percent?: number
+          min_purchase?: number
+          notes?: string | null
+          promoter_id?: string | null
+          scope: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          event_id?: string | null
+          excluded_category_ids?: string[]
+          excluded_product_ids?: string[]
+          id?: string
+          max_percent?: number
+          min_purchase?: number
+          notes?: string | null
+          promoter_id?: string | null
+          scope?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promoter_credit_rules_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promoter_credit_rules_promoter_id_fkey"
+            columns: ["promoter_id"]
+            isOneToOne: false
+            referencedRelation: "promoters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promoter_credits: {
         Row: {
           amount: number
