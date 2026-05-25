@@ -493,31 +493,17 @@ export function PdvView() {
       )}
 
       {/* Chips de categorias */}
-      {categories.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-1 px-1">
-          <button
-            onClick={() => setCategoryFilter("all")}
-            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border transition ${categoryFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
-          >
-            Todas
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setCategoryFilter(c.id)}
-              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border transition ${categoryFilter === c.id ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
-            >
-              {c.name}
-            </button>
-          ))}
-          <button
-            onClick={() => setCategoryFilter("none")}
-            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap border transition ${categoryFilter === "none" ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}
-          >
-            Sem categoria
-          </button>
-        </div>
-      )}
+      <div className="mb-3">
+        <CategoryChipBar
+          items={[
+            { id: "all", label: "Todas" },
+            ...categories.map((c) => ({ id: c.id, label: c.name })),
+            { id: "none", label: "Sem categoria" },
+          ]}
+          activeId={categoryFilter}
+          onChange={setCategoryFilter}
+        />
+      </div>
 
       {/* Busca por produto */}
       <div className="relative mb-3">
