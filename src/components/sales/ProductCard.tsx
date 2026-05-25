@@ -100,7 +100,7 @@ export function ProductCard({
         </div>
 
         <div
-          className="flex w-16 shrink-0 flex-col items-center justify-center gap-1"
+          className="flex w-20 shrink-0 flex-col items-center justify-center gap-1 sm:w-24"
           onClick={(e) => e.stopPropagation()}
         >
           {soldOut ? (
@@ -119,11 +119,11 @@ export function ProductCard({
               <Plus className="h-4 w-4" />
             </Button>
           ) : (
-            <div className="flex items-center gap-1">
+            <div className="grid grid-cols-[28px_20px_28px] items-center gap-0.5 sm:grid-cols-[32px_24px_32px] sm:gap-1">
               <Button
                 size="icon"
                 variant="outline"
-                className="h-8 w-8 rounded-full"
+                className="h-7 w-7 rounded-full sm:h-8 sm:w-8"
                 aria-label={`Remover ${product.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -132,10 +132,10 @@ export function ProductCard({
               >
                 <Minus className="h-3 w-3" />
               </Button>
-              <span className="font-bold w-5 text-center text-sm">{inCartQty}</span>
+              <span className="font-bold text-center text-sm">{inCartQty}</span>
               <Button
                 size="icon"
-                className="h-8 w-8 rounded-full"
+                className="h-7 w-7 rounded-full sm:h-8 sm:w-8"
                 style={accentStyle}
                 aria-label={`Adicionar ${product.name}`}
                 onClick={(e) => {
