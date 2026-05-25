@@ -546,7 +546,7 @@ export function PdvView() {
           Nenhum produto cadastrado
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {products
             .filter((p) => {
               if (categoryFilter === "all") return true;

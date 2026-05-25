@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { CompactTabsList, CompactTabsTrigger } from "@/components/ui/compact-tabs";
 import { Store, ScanLine, Package, AlertTriangle, Settings, Receipt, ShoppingCart, Wallet } from "lucide-react";
@@ -27,22 +28,36 @@ export const Route = createFileRoute("/_app/vendas")({
 function VendasPage() {
   const {
     ownerId, isOwner, loading, can,
-    canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico,
+    rolePreset, canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico,
   } = usePermissions();
   const isManager = isOwner || can("financeiro");
   const { tab } = useSearch({ from: "/_app/vendas" });
   const navigate = useNavigate();
 
-  if (loading) return null;
   const hasAny = canPdvCaixa || canVenderGarcom || canValidarQr || canVerPedidos || canVerHistorico || isManager;
+  const showPdvCaixa = canPdvCaixa;
+  const showPdvGarcom = canVenderGarcom;
+  const allowedTabs = [
+    ...(isManager ? ["caixas"] : []),
+    ...(showPdvCaixa ? ["pdv"] : []),
+    ...(showPdvGarcom ? ["vender"] : []),
+    ...(canValidarQr ? ["scanner"] : []),
+    ...(canVerPedidos ? ["pedidos"] : []),
+    ...(canVerHistorico ? ["historico"] : []),
+    ...(isOwner ? ["abandonados", "config"] : []),
+  ];
+  const defaultTab = isManager ? "caixas" : showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : canValidarQr ? "scanner" : canVerPedidos ? "pedidos" : "historico";
+  const currentTab = tab && allowedTabs.includes(tab) ? tab : defaultTab;
+
+  useEffect(() => {
+    if (loading || !hasAny || !tab || allowedTabs.includes(tab)) return;
+    navigate({ to: "/vendas", search: { tab: defaultTab }, replace: true });
+  }, [loading, hasAny, tab, allowedTabs, defaultTab, navigate]);
+
+  if (loading) return null;
   if (!hasAny) {
     return <PageHeader title="Vendas" subtitle="Você não tem permissão para acessar esta página" />;
   }
-
-  const showPdvCaixa = canPdvCaixa;
-  const showPdvGarcom = canVenderGarcom;
-  const defaultTab = isManager ? "caixas" : showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : canValidarQr ? "scanner" : canVerPedidos ? "pedidos" : "historico";
-  const currentTab = tab ?? defaultTab;
 
   return (
     <div className="space-y-4">
@@ -55,7 +70,7 @@ function VendasPage() {
         <CompactTabsList>
           {isManager && <CompactTabsTrigger value="caixas" icon={Wallet} short="Cx.">Caixas</CompactTabsTrigger>}
           {showPdvCaixa && <CompactTabsTrigger value="pdv" icon={ShoppingCart} short="PDV">PDV Caixa</CompactTabsTrigger>}
-          {showPdvGarcom && <CompactTabsTrigger value="vender" icon={Store} short="Garçom">Vender (garçom)</CompactTabsTrigger>}
+          {showPdvGarcom && <CompactTabsTrigger value="vender" icon={Store} short={rolePreset === "lojinha" ? "Loja" : "Garçom"}>{rolePreset === "lojinha" ? "Vendedor online" : "Vender (garçom)"}</CompactTabsTrigger>}
           {canValidarQr && <CompactTabsTrigger value="scanner" icon={ScanLine} short="QR">Validar QR</CompactTabsTrigger>}
           {canVerPedidos && <CompactTabsTrigger value="pedidos" icon={Package} short="Ped.">Pedidos</CompactTabsTrigger>}
           {canVerHistorico && <CompactTabsTrigger value="historico" icon={Receipt} short="Hist.">Histórico</CompactTabsTrigger>}

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Eye, ExternalLink, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useViewAs, PERSONAS, type PersonaKey } from "@/hooks/useViewAs";
+import { getPersonaDestination, useViewAs, PERSONAS, type PersonaKey } from "@/hooks/useViewAs";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,13 +62,13 @@ export function ViewAsBar() {
   const select = (p: PersonaKey) => {
     setPersona(p);
     setOpen(false);
-    // Redireciona pra "/" que decide a landing certa pra cada persona
-    setTimeout(() => navigate({ to: "/" }), 0);
+    const destination = getPersonaDestination(p);
+    setTimeout(() => navigate({ ...destination, replace: true }), 0);
   };
 
   const exitMask = () => {
     setPersona("dono");
-    setTimeout(() => navigate({ to: "/" }), 0);
+    setTimeout(() => navigate({ to: "/dashboard", replace: true }), 0);
   };
 
   const openExternal = (path: string | null) => {
@@ -79,8 +79,9 @@ export function ViewAsBar() {
   return (
     <>
       {isMasked && (
-        <div className="fixed top-0 left-0 right-0 z-[70] bg-amber-500 text-amber-950 text-sm font-semibold px-3 py-2 flex items-center justify-center gap-2 shadow-lg">
-          Visualizando como <span className="uppercase">{PERSONAS[persona].label}</span>
+        <div className="fixed top-0 left-0 right-0 z-[70] bg-amber-500 text-amber-950 text-sm font-semibold px-3 py-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 shadow-lg">
+          <span>Visualizando como <span className="uppercase">{PERSONAS[persona].label}</span></span>
+          <span className="text-xs opacity-80">→ {getPersonaDestination(persona).to}{getPersonaDestination(persona).search?.tab ? `?tab=${getPersonaDestination(persona).search?.tab}` : ""}</span>
           <button
             onClick={exitMask}
             className="inline-flex items-center gap-1 underline hover:no-underline"

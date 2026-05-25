@@ -260,7 +260,7 @@ function StorefrontPage() {
             Nada encontrado. Tente outra busca ou categoria.
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {visibleProducts.map((p) => {
               const inCart = cart.find((c) => c.product_id === p.id)?.quantity ?? 0;
               const soldOut = p.available_qty <= 0 && inCart === 0;

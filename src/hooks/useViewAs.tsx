@@ -44,6 +44,7 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
         aceita_cartao: false,
         lojinha_can_sell: true,
       },
+      rolePreset: "garcom",
     },
   },
   caixa: {
@@ -80,13 +81,28 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
       isOwner: false,
       permissions: ["lojinha"],
       flags: {
+        vendas_garcom: true,
         vendas_pedidos: true,
         vendas_historico: true,
         lojinha_can_sell: true,
       },
+      rolePreset: "lojinha",
     },
   },
 };
+
+export const PERSONA_DESTINATIONS: Record<PersonaKey, { to: string; search?: Record<string, string> }> = {
+  dono: { to: "/dashboard" },
+  promoter: { to: "/meu-extrato" },
+  garcom: { to: "/vendas", search: { tab: "vender" } },
+  caixa: { to: "/pdv" },
+  portaria: { to: "/portaria" },
+  lojinha: { to: "/vendas", search: { tab: "vender" } },
+};
+
+export function getPersonaDestination(persona: PersonaKey) {
+  return PERSONA_DESTINATIONS[persona];
+}
 
 type Ctx = {
   persona: PersonaKey;

@@ -368,7 +368,7 @@ export function LojinhaPosView() {
 
   // --- step: cart ---
   return (
-    <div className="space-y-3 pb-32">
+    <div className="w-full max-w-full overflow-x-hidden space-y-3 pb-32">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Buscar produto…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-10" />
@@ -402,7 +402,7 @@ export function LojinhaPosView() {
           Nenhum produto disponível para venda online
         </CardContent></Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);
