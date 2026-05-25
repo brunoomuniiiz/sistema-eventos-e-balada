@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
+import { OperationPinProvider } from "@/hooks/useOperationPin";
+
 
 export const Route = createFileRoute("/_app")({
   component: AppGuard,
@@ -25,5 +27,9 @@ function AppGuard() {
     );
   }
 
-  return <AppLayout />;
+  return (
+    <OperationPinProvider>
+      <AppLayout />
+    </OperationPinProvider>
+  );
 }

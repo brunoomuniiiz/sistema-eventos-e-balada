@@ -28,6 +28,7 @@ import { AuthorizationDialog } from "@/components/AuthorizationDialog";
 import { TicketCart, type CartLine } from "@/components/portaria/TicketCart";
 import { SplitPaymentPanel, type SplitLine, type PaymentMethod } from "@/components/portaria/SplitPaymentPanel";
 import { SaleDetailSheet, type PortariaSale } from "@/components/portaria/SaleDetailSheet";
+import { useOperationPin } from "@/hooks/useOperationPin";
 
 export const Route = createFileRoute("/_app/portaria")({
   component: PortariaPage,
@@ -61,8 +62,8 @@ function PortariaPage() {
   const [pixDialog, setPixDialog] = useState<{ open: boolean; amount: number }>({ open: false, amount: 0 });
   const [finalizing, setFinalizing] = useState(false);
 
-  // PIN gate (sessão)
-  const [pinToken, setPinToken] = useState<string | null>(null);
+  // PIN gate global (sessão compartilhada entre setores)
+  const { token: pinToken, setUnlocked: setPinUnlocked } = useOperationPin();
   const [pinDialog, setPinDialog] = useState<{ open: boolean; next: null | "report" | "history" | "refund" }>({ open: false, next: null });
 
   // Histórico
@@ -219,8 +220,8 @@ function PortariaPage() {
     return false;
   };
 
-  const onApprovedPin = (token: string) => {
-    setPinToken(token);
+  const onApprovedPin = (token: string, authorizedByName: string) => {
+    setPinUnlocked(token, authorizedByName);
     if (pinDialog.next === "history") setTab("historico");
     if (pinDialog.next === "report") setTab("relatorio");
     setPinDialog({ open: false, next: null });
@@ -473,7 +474,7 @@ function PortariaPage() {
         scope={pinDialog.next === "refund" ? "refund" : pinDialog.next === "report" ? "report" : "operation"}
         title="Desbloquear com PIN"
         description="Digite o PIN do dono para acessar histórico, relatórios e estornos."
-        onApproved={(token) => onApprovedPin(token)}
+        onApproved={(token, name) => onApprovedPin(token, name)}
       />
 
       <SaleDetailSheet

@@ -1440,6 +1440,7 @@ export type Database = {
           cost_price: number
           created_at: string
           description: string | null
+          disponivel_venda: boolean
           id: string
           is_available: boolean
           name: string
@@ -1464,6 +1465,7 @@ export type Database = {
           cost_price?: number
           created_at?: string
           description?: string | null
+          disponivel_venda?: boolean
           id?: string
           is_available?: boolean
           name: string
@@ -1488,6 +1490,7 @@ export type Database = {
           cost_price?: number
           created_at?: string
           description?: string | null
+          disponivel_venda?: boolean
           id?: string
           is_available?: boolean
           name?: string
@@ -2903,6 +2906,15 @@ export type Database = {
         Returns: string
       }
       refund_event_sale: {
+        Args: {
+          _amount: number
+          _grant_token: string
+          _reason: string
+          _sale_id: string
+        }
+        Returns: undefined
+      }
+      refund_pdv_sale: {
         Args: {
           _amount: number
           _grant_token: string

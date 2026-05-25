@@ -5,6 +5,7 @@ import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { ViewAsProvider } from "@/hooks/useViewAs";
 import { ViewAsBar } from "@/components/ViewAsBar";
+import { OperationPinLockButton } from "@/components/OperationPinLockButton";
 
 type NavItem = {
   to: string;
@@ -101,6 +102,9 @@ function AppLayoutInner() {
 
         <div className="border-t border-sidebar-border pt-3 pb-3 px-2 space-y-1">
           <div className="px-3 text-xs text-muted-foreground truncate opacity-0 group-hover:opacity-100 transition-opacity">{user?.email}</div>
+          <div className="px-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <OperationPinLockButton variant="full" />
+          </div>
           <Button
             variant="ghost"
             size="sm"
@@ -122,9 +126,12 @@ function AppLayoutInner() {
             </div>
             <span className="font-display font-bold">NightOps</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <OperationPinLockButton />
+            <Button variant="ghost" size="icon" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </header>
 
         <div className="px-4 md:px-8 py-6 md:py-8 max-w-7xl mx-auto">

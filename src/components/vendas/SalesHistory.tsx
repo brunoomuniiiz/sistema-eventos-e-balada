@@ -1,54 +1,34 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatBRL } from "@/lib/format";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Receipt, Undo2, Ban, Loader2 } from "lucide-react";
+import { Receipt, ShieldCheck } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { cancelLocalSale } from "@/lojinha/api";
-import { refundLojinhaOrder } from "@/lib/refund.functions";
+import { AuthorizationDialog } from "@/components/AuthorizationDialog";
+import { UnifiedSaleDetailSheet, type UnifiedSale } from "@/components/vendas/UnifiedSaleDetailSheet";
+import { useOperationPin } from "@/hooks/useOperationPin";
 
-type Row = {
-  id: string;
-  channel: string;
-  daily_number: number | null;
+type Row = UnifiedSale & {
   seller_user_id: string | null;
-  seller_name: string | null;
   delivered_by: string | null;
   delivered_by_name: string | null;
-  customer_name: string | null;
-  total: number;
-  payment_method: string | null;
-  category: string | null;
-  created_at: string;
   delivered_at: string | null;
-  status: string;
 };
 
 export function SalesHistory({ ownerId }: { ownerId: string | null }) {
   const { isOwner, can } = usePermissions();
-  const qc = useQueryClient();
-  const refundFn = useServerFn(refundLojinhaOrder);
+  const { token: pinToken, setUnlocked } = useOperationPin();
   const isManager = isOwner || can("financeiro");
   const [channel, setChannel] = useState<string>("all");
   const [sellerId, setSellerId] = useState<string>("all");
-
-  // Dialogs de estorno/cancelamento
-  const [refundTarget, setRefundTarget] = useState<Row | null>(null);
-  const [cancelTarget, setCancelTarget] = useState<Row | null>(null);
-  const [reason, setReason] = useState("");
-  const [partialAmount, setPartialAmount] = useState<string>("");
-  const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<UnifiedSale | null>(null);
+  const [pinDialog, setPinDialog] = useState(false);
 
   const { data: team = [] } = useQuery({
     queryKey: ["history-team", ownerId],
@@ -65,7 +45,7 @@ export function SalesHistory({ ownerId }: { ownerId: string | null }) {
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["unified-history", ownerId, channel, sellerId],
-    enabled: !!ownerId,
+    enabled: !!ownerId && !!pinToken,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("list_unified_sales_history" as never, {
         _limit: 200,
@@ -77,40 +57,29 @@ export function SalesHistory({ ownerId }: { ownerId: string | null }) {
     },
   });
 
-  async function handleRefund() {
-    if (!refundTarget) return;
-    if (!reason.trim()) { toast.error("Informe o motivo"); return; }
-    setBusy(true);
-    try {
-      const amt = partialAmount.trim() ? Number(partialAmount.replace(",", ".")) : null;
-      if (amt != null && (isNaN(amt) || amt <= 0 || amt > Number(refundTarget.total))) {
-        throw new Error("Valor parcial inválido");
-      }
-      const r = await refundFn({ data: { orderId: refundTarget.id, amount: amt ?? undefined, reason: reason.trim() } });
-      toast.success(`Estorno de ${formatBRL(r.amount)} feito no Mercado Pago`);
-      setRefundTarget(null); setReason(""); setPartialAmount("");
-      qc.invalidateQueries({ queryKey: ["unified-history"] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha no estorno");
-    } finally { setBusy(false); }
-  }
-
-  async function handleCancel() {
-    if (!cancelTarget) return;
-    if (!reason.trim()) { toast.error("Informe o motivo"); return; }
-    setBusy(true);
-    try {
-      const r = await cancelLocalSale(cancelTarget.id, reason.trim());
-      if (r.ok) {
-        toast.success("Venda cancelada");
-        setCancelTarget(null); setReason("");
-        qc.invalidateQueries({ queryKey: ["unified-history"] });
-      } else {
-        toast.error(r.reason ?? "Falha");
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
-    } finally { setBusy(false); }
+  // PIN gate: tela inicial
+  if (!pinToken) {
+    return (
+      <>
+        <Card><CardContent className="p-6 text-center space-y-3">
+          <ShieldCheck className="h-10 w-10 mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            Histórico e estornos protegidos. Desbloqueie com o PIN do dono.
+          </p>
+          <Button onClick={() => setPinDialog(true)}>
+            <ShieldCheck className="h-4 w-4" /> Desbloquear com PIN
+          </Button>
+        </CardContent></Card>
+        <AuthorizationDialog
+          open={pinDialog}
+          onOpenChange={setPinDialog}
+          scope="operation"
+          title="Desbloquear histórico"
+          description="Digite o PIN do dono para ver vendas, estornar ou cancelar."
+          onApproved={(token, name) => { setUnlocked(token, name); setPinDialog(false); }}
+        />
+      </>
+    );
   }
 
   if (isLoading) return <Loader />;
@@ -126,11 +95,11 @@ export function SalesHistory({ ownerId }: { ownerId: string | null }) {
 
   return (
     <div className="space-y-3">
-      <Card><CardContent className="p-4 flex items-center justify-between gap-3 flex-wrap">
-        <span className="text-sm text-muted-foreground">{rows.length} registros · total {formatBRL(total)}</span>
+      <Card><CardContent className="p-3 flex items-center justify-between gap-2 flex-wrap">
+        <span className="text-xs text-muted-foreground">{rows.length} · total {formatBRL(total)}</span>
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={channel} onValueChange={setChannel}>
-            <SelectTrigger className="w-[160px] h-8"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[140px] h-8"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos canais</SelectItem>
               <SelectItem value="presencial">Presencial (PDV)</SelectItem>
@@ -140,7 +109,7 @@ export function SalesHistory({ ownerId }: { ownerId: string | null }) {
           </Select>
           {isManager && (
             <Select value={sellerId} onValueChange={setSellerId}>
-              <SelectTrigger className="w-[200px] h-8"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[180px] h-8"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos funcionários</SelectItem>
                 {team.map((t) => (
@@ -151,104 +120,53 @@ export function SalesHistory({ ownerId }: { ownerId: string | null }) {
           )}
         </div>
       </CardContent></Card>
-      <Card><CardContent className="p-0 divide-y">
+
+      <div className="space-y-1.5">
         {rows.map((s) => {
+          const cancelled = s.status === "cancelled" || s.status === "refunded";
           const no = s.daily_number;
           const label = no != null ? "#" + String(no).padStart(3, "0") : "";
-          const who = s.seller_name ?? "—";
-          const delivered = s.delivered_by_name ? ` · entregue por ${s.delivered_by_name}` : "";
-          const isLojinha = s.channel === "online" || s.channel === "pos";
-          const isPresencial = s.channel === "presencial";
-          const isMpPaid = isLojinha && (s.payment_method === "pix-online" || s.payment_method === "maquininha");
-          const canRefund = isOwner && isMpPaid;
-          const canCancelLocal = isOwner && isPresencial;
           return (
-            <div key={`${s.channel}-${s.id}`} className="flex items-center gap-3 p-3 text-sm">
-              <Badge variant="outline" className="text-[10px]">
-                {s.channel === "presencial" ? "PDV" : s.channel === "online" ? "ONLINE" : "POS"}
-              </Badge>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{label} · {who}{s.customer_name ? ` → ${s.customer_name}` : ""}</div>
-                <div className="text-xs text-muted-foreground">
-                  {format(new Date(s.created_at), "dd/MM HH:mm", { locale: ptBR })} · {s.payment_method ?? "—"}{delivered}
+            <button
+              key={`${s.channel}-${s.id}`}
+              onClick={() => setSelected(s)}
+              className={`w-full text-left rounded-lg border p-3 transition hover:border-primary/60 ${cancelled ? "border-destructive/40 bg-destructive/5 opacity-70" : "border-border bg-card"}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0 text-sm">
+                  <Badge variant="outline" className="text-[10px] shrink-0">
+                    {s.channel === "presencial" ? "PDV" : s.channel === "online" ? "ONLINE" : "POS"}
+                  </Badge>
+                  <span className="font-medium truncate">{label} {s.seller_name ?? "—"}</span>
+                  {cancelled && <Badge variant="destructive" className="text-[10px] shrink-0">Estornada</Badge>}
                 </div>
+                <span className="font-bold text-sm shrink-0">{formatBRL(Number(s.total))}</span>
               </div>
-              <span className="font-semibold">{formatBRL(Number(s.total))}</span>
-              {canRefund && (
-                <Button size="sm" variant="ghost" className="text-amber-600 h-7 px-2"
-                  onClick={() => { setRefundTarget(s); setReason(""); setPartialAmount(""); }}>
-                  <Undo2 className="h-3.5 w-3.5 mr-1" /> Estornar
-                </Button>
-              )}
-              {canCancelLocal && (
-                <Button size="sm" variant="ghost" className="text-destructive h-7 px-2"
-                  onClick={() => { setCancelTarget(s); setReason(""); }}>
-                  <Ban className="h-3.5 w-3.5 mr-1" /> Cancelar
-                </Button>
-              )}
-            </div>
+              <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                {format(new Date(s.created_at), "dd/MM HH:mm", { locale: ptBR })} · {s.payment_method ?? "—"}
+                {s.customer_name ? ` → ${s.customer_name}` : ""}
+              </div>
+            </button>
           );
         })}
-      </CardContent></Card>
+      </div>
 
-      {/* Dialog Estorno MP */}
-      <Dialog open={!!refundTarget} onOpenChange={(v) => { if (!v) { setRefundTarget(null); setReason(""); setPartialAmount(""); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Estornar pedido via Mercado Pago</DialogTitle>
-            <DialogDescription>
-              {refundTarget && (
-                <>Pedido #{String(refundTarget.daily_number ?? "").padStart(3, "0")} — total {formatBRL(Number(refundTarget.total))}. O valor volta pro cliente na conta do MP.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-muted-foreground">Valor (deixe vazio para estornar tudo)</label>
-              <Input
-                placeholder={refundTarget ? `Total: ${formatBRL(Number(refundTarget.total))}` : ""}
-                value={partialAmount}
-                onChange={(e) => setPartialAmount(e.target.value)}
-                inputMode="decimal"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Motivo *</label>
-              <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex: produto faltou, cliente desistiu, cobrança duplicada…" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRefundTarget(null)} disabled={busy}>Cancelar</Button>
-            <Button onClick={handleRefund} disabled={busy}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar estorno"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UnifiedSaleDetailSheet
+        open={!!selected}
+        onOpenChange={(v) => { if (!v) setSelected(null); }}
+        sale={selected}
+        onRequestUnlock={() => setPinDialog(true)}
+        onDone={() => { setSelected(null); }}
+      />
 
-      {/* Dialog Cancelar venda local */}
-      <Dialog open={!!cancelTarget} onOpenChange={(v) => { if (!v) { setCancelTarget(null); setReason(""); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancelar venda</DialogTitle>
-            <DialogDescription>
-              {cancelTarget && (
-                <>Venda #{String(cancelTarget.daily_number ?? "").padStart(3, "0")} — {formatBRL(Number(cancelTarget.total))} em {cancelTarget.payment_method}. Não devolve dinheiro automaticamente — é só registro. Devolva ao cliente fisicamente.</>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div>
-            <label className="text-xs text-muted-foreground">Motivo *</label>
-            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex: cliente desistiu, erro no pedido…" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={busy}>Voltar</Button>
-            <Button variant="destructive" onClick={handleCancel} disabled={busy}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar cancelamento"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AuthorizationDialog
+        open={pinDialog}
+        onOpenChange={setPinDialog}
+        scope="refund"
+        title="Desbloquear com PIN"
+        description="Digite o PIN do dono para autorizar estornos."
+        onApproved={(token, name) => { setUnlocked(token, name); setPinDialog(false); }}
+      />
     </div>
   );
 }

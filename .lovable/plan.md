@@ -1,116 +1,62 @@
-# Campanhas de crédito de promoter
+## O que entendi dos 4 pontos
 
-Substitui a "Regra de crédito" antiga. Cada **campanha** junta: valor + regras + janela de horário + lista de promoters + evento. Ao salvar, o valor é creditado no saldo dos promoters escolhidos como um **bucket separado** dos créditos de nomes.
+1. **Deslogar o PIN.** Hoje o PIN destrava só a aba Histórico/Relatório da Portaria e fica vivo só naquela tela. Quando você navega para outro setor (Vendas), continua "destravado" porque o PIN é guardado em estado React local. Você quer poder **sair do modo PIN** sem fechar o app, para que o porteiro/garçom não veja o histórico depois de você sair.
+2. **PDV / Caixa.** No "Histórico" da aba Vendas só aparece **Estornar** para pedidos do Mercado Pago e **Cancelar** (total, sem dinheiro) para vendas presenciais. Você quer o mesmo motor da Portaria: ver detalhes da venda, estornar **total** ou **parcial por valor**, com o PIN.
+3. **Produtos no garçom (Vender) vs. Lojinha online.** Hoje cada canal usa uma flag diferente do produto: `visivel_pdv_caixa` (PDV), `visivel_mobile_garcom` (garçom), `sell_online` (loja online). Resultado: o garçom não enxerga produtos que vão para a loja online, e vice-versa — o cardápio fica "rachado".
+4. **Layout mobile.** Os cards de produto no PDV/Garçom estouram a tela em 360–414px (foto + nome + preço + botão tudo na mesma linha) e ocupam muito espaço vertical.
 
-## Dois buckets de saldo
+## O que vou construir
 
-| Bucket | Origem | Janela de horário | Regras de uso |
-|---|---|---|---|
-| **Nomes** | comissão por nomes na lista (já existe) | sempre disponível | sem restrição |
-| **Campanha** | dono atribui via campanha (NOVO) | só dentro da janela da campanha | regras da campanha (min compra, % máx, exclusões) |
+### 1. Sessão PIN global + botão "Sair do PIN"
 
-O promoter vê **um saldo total** ("R$ 80 disponível"), mas internamente cada lançamento tem `source` = `list_name` ou `campaign` + `campaign_id`.
+- Criar um contexto único `OperationPinContext` (provider em `_app.tsx`).
+  - Estado: `unlockedUntil` (timestamp) + `token`, persistido em `sessionStorage` para sobreviver à navegação entre Portaria/Vendas/etc., mas **não** entre abas/recargas longas.
+  - Expira sozinho em **15 minutos de inatividade** (timer resetado a cada uso).
+  - API: `isUnlocked()`, `requestUnlock(scope)`, `lock()`.
+- Botão **"Sair do modo PIN"** (ícone de cadeado) no `AppLayout` (header/menu), só aparece quando destravado. Confirma com um toast simples.
+- Portaria/PDV/Garçom passam a usar esse contexto único — não recriam estado local.
 
-## Exemplo do usuário
+### 2. Histórico unificado com estorno parcial (PDV + Garçom + Lojinha)
 
-- Promoter tem R$ 30 (nomes) + R$ 50 (campanha "Sex até 22h")
-- Venda R$ 160, regra 50%, campanha ainda dentro do horário
-- Teto = 50% × 160 = **R$ 80**
-- Pode abater R$ 80: R$ 50 da campanha + R$ 30 dos nomes
-- Se a venda for às 23h (fora da janela): só R$ 30 disponíveis (só nomes), abate R$ 30, resto pago em dinheiro
-- Se a venda for R$ 100, teto = R$ 50: abate R$ 50 (R$ 50 campanha, R$ 0 nomes), prioriza campanha
+- Refatoro o `SalesHistory.tsx` para usar o mesmo padrão da Portaria:
+  - Linha clicável abre um `SaleDetailSheet` (reaproveitando o componente da Portaria, generalizado para `sales`/`lojinha_orders`).
+  - Dentro do sheet: botões **Estornar tudo** e **Estornar parcial (valor livre)**, ambos exigindo PIN.
+- Backend:
+  - Nova função RPC `refund_pdv_sale(_sale_id, _amount, _reason)` espelhando a `refund_event_sale` (zera ou gera venda negativa, registra `cash_withdrawals` tipo `refund`, devolve estoque proporcionalmente).
+  - Para pedidos Mercado Pago (online/garçom Pix), continua usando `refund_lojinha_order` (que já faz estorno parcial no MP), só passa a exigir PIN no front.
+- Tudo gated pelo `OperationPinContext` — o `SalesHistory` mostra a aba "trancada" igual a Portaria quando não há PIN.
 
-**Ordem de consumo**: campanha primeiro (incentiva uso antes de expirar), nomes depois.
+### 3. Unificar produtos vendáveis (PDV ↔ Garçom ↔ Lojinha)
 
-## Múltiplas campanhas no mesmo evento
+Hoje o vendedor/garçom vê um cardápio diferente do PDV. Proposta:
 
-Promoter pode estar em 2+ campanhas. No PDV o vendedor **escolhe qual campanha aplicar** naquela venda — as regras (%, exclusões, janela) vêm da campanha escolhida; o saldo abatido sai do bucket dela + nomes.
+- **Reduzir as 3 flags a 2:** `ativo_geral` (existir) + `disponivel_venda` (vende em qualquer canal interno: PDV, garçom, lojinha online).
+- A flag `sell_online` continua existindo, mas vira apenas "mostrar na loja online pública" (catálogo do cliente final). Garçom/PDV passam a usar `disponivel_venda`.
+- Migração: copia `visivel_pdv_caixa OR visivel_mobile_garcom` para `disponivel_venda` em todos os produtos, mantendo `sell_online` como está.
+- Tela de Produtos: dois toggles claros — "Vender no balcão/garçom" e "Mostrar na loja online".
+- Garçom passa a oferecer Pix exatamente como combinado (já tem `lojinha_payment_methods` com `pix`).
 
-Ao montar nova campanha, promoters já em outra campanha do mesmo evento aparecem **acinzentados com aviso** "já em [Campanha X]" mas podem ser selecionados mesmo assim.
+### 4. Layout mobile dos cards de produto
 
-## Janela de horário
+- Card mais compacto: foto pequena à esquerda, nome em 2 linhas (truncado), preço embaixo do nome, botão +/- na direita — tudo dentro de 56–64 px de altura.
+- Grid passa a `grid-cols-2` no mobile (em vez de cards "wide" que estouram), `grid-cols-3` no tablet, `grid-cols-4` no desktop.
+- Aplicado tanto no `PdvView` quanto no `LojinhaPosView` (mesmo componente `ProductTile`).
 
-Por campanha, opcionais:
-- `valid_from` / `valid_until` (timestamps)
-- `valid_weekdays` (int[], 0–6)
+## Detalhes técnicos
 
-Vazio = vale durante todo o evento. Fora da janela, o bucket da campanha vira 0 no PDV (saldo "congelado", não perdido — volta quando a janela reabre, exceto se o evento acabou).
+- **PIN session:** `sessionStorage` + `BroadcastChannel` opcional para sincronizar entre abas; auto-lock por `setTimeout` resetado a cada `useUnlocked()`.
+- **`refund_pdv_sale`** roda como SECURITY DEFINER, valida ownership, e em estorno parcial:
+  - cria `sales` nova com `total = -amount`, `category = 'estorno'`, `parent_sale_id` apontando pra original;
+  - **não** mexe em estoque (parcial é só dinheiro);
+  - estorno total = devolve estoque + marca original como `cancelled`.
+- **Migração de produtos** é one-shot, idempotente; mantém compatibilidade lendo a nova coluna no PDV/Garçom.
+- **SaleDetailSheet** generalizado: aceita `source: 'portaria' | 'pdv' | 'lojinha'` e injeta a RPC certa.
+- Nenhuma mudança em RLS/permissões — o PIN só destrava UI; o backend continua confiando em `auth_grants` + ownership.
 
-## Flag de promoções de bebidas (preparada pro futuro)
+## Fora de escopo (deixo para depois)
 
-Campo `applies_to_promotions bool default false` na campanha. Quando a aba "Promoções de bebidas" existir, produtos em promoção ativa serão tratados como excluídos pra campanhas com a flag desligada. Já fica no banco e no `computeMaxCredit` agora.
+- Listar produtos por categoria/ordem custom no garçom (só ordeno por `name`).
+- Mexer no fluxo PIX da loja online pública (continua igual).
+- Mudar nada em Eventos/Promoters.
 
----
-
-## Banco
-
-```sql
-create table promoter_credit_campaigns (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null,
-  event_id uuid not null,
-  name text not null,
-  credit_amount numeric not null,
-  min_purchase numeric not null default 0,
-  max_percent numeric not null default 100,
-  excluded_product_ids uuid[] not null default '{}',
-  excluded_category_ids uuid[] not null default '{}',
-  valid_from timestamptz,
-  valid_until timestamptz,
-  valid_weekdays int[],
-  applies_to_promotions bool not null default false,
-  enabled bool not null default true,
-  notes text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table promoter_credit_campaign_members (
-  id uuid primary key default gen_random_uuid(),
-  campaign_id uuid not null references promoter_credit_campaigns(id) on delete cascade,
-  promoter_id uuid not null,
-  credited_amount numeric not null,
-  created_at timestamptz not null default now(),
-  unique (campaign_id, promoter_id)
-);
-```
-
-Coluna `source` (`'list_name'|'campaign'`) e `campaign_id` na tabela de lançamentos de crédito do promoter, pra preservar o bucket de origem.
-
-RLS:
-- Owner: CRUD nas campanhas e members do próprio `user_id`
-- Promoter: SELECT só nas campanhas onde está em members
-
-Trigger `validate_promoter_redemption` no INSERT do uso: recalcula subtotal elegível, confere janela, bloqueia se `total_abatido > max_percent × subtotal_elegivel`.
-
-## Frontend
-
-**Novos arquivos**
-- `src/components/config/PromoterCampaignsPanel.tsx` — lista campanhas + botão "Nova"
-- `src/components/config/PromoterCampaignDialog.tsx` — form completo:
-  - nome, evento, valor
-  - regras (min compra, % máx, exclusões de produtos/categorias)
-  - janela de horário (3 campos opcionais)
-  - flag "vale em produtos em promoção" (default off)
-  - **Seletor de promoters**: lista rolável com toggle + aviso de duplicado
-
-**Atualizar**
-- `PromotersPanel.tsx` — botão "Regra padrão" vira "Campanhas de crédito"
-- `PromoterCreditPicker.tsx`:
-  - Filtra campanhas ativas para o evento + dentro da janela atual
-  - Se 2+ ativas para o promoter → passo "escolha a campanha"
-  - Mostra breakdown: "Campanha R$ X disponível agora · Nomes R$ Y"
-  - `hardMax = min(saldoTotalDisponível, tetoDaVenda)`
-  - Aplica abate priorizando bucket campanha
-- `_app.pdv.tsx` — revalida no checkout (janela pode ter virado entre selecionar e fechar)
-- `_app.meu-extrato.tsx` — coluna "Origem" mostrando nome da lista ou nome da campanha
-
-## O que não muda
-
-- Crédito ganho com nomes na lista: lógica e UX intactas
-- Engine de exclusões reaproveitada (`computeMaxCredit`)
-- Saldo único exibido ao promoter; buckets são detalhe interno
-
-## Migração da regra antiga
-
-`promoter_credit_rules` deixa de ser usada no PDV. Mantida no banco como fallback global opcional (free, 100%) — sem migração destrutiva. Botão da regra antiga removido da UI.
+Quer que eu prossiga com tudo, ou prefere fatiar (ex: começar só pelo "deslogar PIN" + "estorno no PDV" e deixar a unificação de produtos para um segundo passo)?
