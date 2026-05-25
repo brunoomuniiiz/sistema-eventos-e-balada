@@ -455,7 +455,7 @@ export function PdvView() {
   }
 
   return (
-    <div className="pb-32">
+    <div className="w-full max-w-full min-w-0 overflow-x-hidden pb-32">
       <PageHeader title="Venda Rápida" subtitle="Toque para adicionar ao carrinho" />
 
       <OpenCashDialog open={openCash} onOpenChange={setOpenCash} onOpened={() => refetchSession()} />
@@ -494,7 +494,7 @@ export function PdvView() {
       )}
 
       {/* Chips de categorias */}
-      <div className="mb-3">
+      <div className="mb-3 w-full max-w-full min-w-0 overflow-x-hidden">
         <CategoryChipBar
           items={[
             { id: "all", label: "Todas" },
