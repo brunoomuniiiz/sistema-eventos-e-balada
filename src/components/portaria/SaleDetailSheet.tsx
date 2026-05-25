@@ -57,8 +57,8 @@ export function SaleDetailSheet({ open, onOpenChange, sale, grantToken, onReques
     try {
       const { error } = await supabase.rpc("refund_event_sale", {
         _sale_id: sale.id,
-        _amount: amt,
-        _reason: reason || null,
+        _amount: amt as unknown as number,
+        _reason: (reason || null) as unknown as string,
         _grant_token: grantToken,
       });
       if (error) throw error;
