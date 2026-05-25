@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { CompactTabsList, CompactTabsTrigger } from "@/components/ui/compact-tabs";
 import { Store, ScanLine, Package, AlertTriangle, Settings, Receipt, ShoppingCart, Wallet } from "lucide-react";
@@ -41,8 +42,22 @@ function VendasPage() {
 
   const showPdvCaixa = canPdvCaixa;
   const showPdvGarcom = canVenderGarcom;
+  const allowedTabs = [
+    ...(isManager ? ["caixas"] : []),
+    ...(showPdvCaixa ? ["pdv"] : []),
+    ...(showPdvGarcom ? ["vender"] : []),
+    ...(canValidarQr ? ["scanner"] : []),
+    ...(canVerPedidos ? ["pedidos"] : []),
+    ...(canVerHistorico ? ["historico"] : []),
+    ...(isOwner ? ["abandonados", "config"] : []),
+  ];
   const defaultTab = isManager ? "caixas" : showPdvCaixa ? "pdv" : showPdvGarcom ? "vender" : canValidarQr ? "scanner" : canVerPedidos ? "pedidos" : "historico";
-  const currentTab = tab ?? defaultTab;
+  const currentTab = tab && allowedTabs.includes(tab) ? tab : defaultTab;
+
+  useEffect(() => {
+    if (!tab || allowedTabs.includes(tab)) return;
+    navigate({ to: "/vendas", search: { tab: defaultTab }, replace: true });
+  }, [tab, allowedTabs, defaultTab, navigate]);
 
   return (
     <div className="space-y-4">
