@@ -26,6 +26,7 @@ import { PromoterCreditPicker } from "@/components/vendas/PromoterCreditPicker";
 import { ConsumacaoTargetDialog, type ConsumacaoTarget } from "@/components/vendas/ConsumacaoTargetDialog";
 import { useQuery as useQueryRQ } from "@tanstack/react-query";
 import { ProductCard } from "@/components/sales/ProductCard";
+import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
 
 export const Route = createFileRoute("/_app/pdv")({
   component: PdvView,
