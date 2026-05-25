@@ -68,7 +68,17 @@ export function PromotersPanel() {
   });
 
   return (
-    <div className="space-y-4">
+    <Tabs defaultValue="promoters" className="space-y-4">
+      <TabsList className="grid grid-cols-2 w-full max-w-md">
+        <TabsTrigger value="promoters">Promoters</TabsTrigger>
+        <TabsTrigger value="campanhas"><Sparkles className="h-3.5 w-3.5 mr-1.5" />Campanhas de crédito</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="campanhas">
+        <PromoterCampaignsPanel />
+      </TabsContent>
+
+      <TabsContent value="promoters" className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-sm text-muted-foreground">
           {promoters.length} {promoters.length === 1 ? "promoter cadastrado" : "promoters cadastrados"}
