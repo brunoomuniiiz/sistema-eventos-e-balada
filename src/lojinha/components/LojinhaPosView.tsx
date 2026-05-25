@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy, Image as ImageIcon } from "lucide-react";
+import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import { createPosOrder, confirmDeliveryPos, markPosPaid, reserveCartItem } from "@/lojinha/api";
 import { createPixCharge } from "@/lib/pix.functions";
+import { ProductCard } from "@/components/sales/ProductCard";
 
 type Product = {
   id: string;
@@ -30,7 +30,8 @@ type CartItem = { product_id: string; product_name: string; unit_price: number; 
 type Step = "cart" | "method" | "waiting" | "delivered";
 
 export function LojinhaPosView() {
-  const { ownerId, lojinhaCanSell, lojinhaPaymentMethods, lojinhaPointDeviceId, loading } = usePermissions();
+  const { ownerId, lojinhaCanSell, canVenderGarcom, lojinhaPaymentMethods, lojinhaPointDeviceId, loading } = usePermissions();
+  const canAccess = lojinhaCanSell || canVenderGarcom;
   const qc = useQueryClient();
   const createPix = useServerFn(createPixCharge);
 
@@ -47,7 +48,7 @@ export function LojinhaPosView() {
 
   const { data: products = [] } = useQuery({
     queryKey: ["lojinha-pos-products", ownerId],
-    enabled: !!ownerId && lojinhaCanSell,
+    enabled: !!ownerId && canAccess,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
@@ -234,7 +235,7 @@ export function LojinhaPosView() {
   }, [orderStatus?.status]);
 
   if (loading) return <div className="grid place-items-center h-64"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-  if (!lojinhaCanSell) {
+  if (!canAccess) {
     return <Card><CardContent className="p-6 text-sm text-muted-foreground">Você não tem permissão para vender no balcão da lojinha.</CardContent></Card>;
   }
 
@@ -401,44 +402,19 @@ export function LojinhaPosView() {
           Nenhum produto disponível para venda online
         </CardContent></Card>
       ) : (
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);
             return (
-              <button
+              <ProductCard
                 key={p.id}
-                type="button"
-                onClick={() => { void addToCart(p); }}
-                className={`relative w-full p-1.5 rounded-xl border flex gap-2 items-center transition-all text-left active:scale-[0.99] ${inCart ? "border-primary bg-primary/10" : "border-border bg-card hover:bg-secondary/40"}`}
-              >
-                {p.photo_url ? (
-                  <img src={p.photo_url} alt={p.name} className="h-11 w-11 rounded-md object-cover shrink-0" />
-                ) : (
-                  <div className="h-11 w-11 rounded-md bg-secondary grid place-items-center shrink-0">
-                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <div className="font-medium text-sm truncate leading-tight flex-1 min-w-0">{p.name}</div>
-                  <span className="text-sm font-bold text-primary shrink-0">{formatBRL(price)}</span>
-                  {inCart ? (
-                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); updateQty(p.id, -1); }}>
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="font-bold w-5 text-center text-sm">{inCart.quantity}</span>
-                      <Button size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); void addToCart(p); }}>
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button asChild size="icon" className="h-7 w-7 shrink-0 active:scale-95">
-                      <span><Plus className="h-3 w-3" /></span>
-                    </Button>
-                  )}
-                </div>
-              </button>
+                product={{ id: p.id, name: p.name, price, photo_url: p.photo_url }}
+                inCartQty={inCart?.quantity ?? 0}
+                onAdd={() => { void addToCart(p); }}
+                onInc={() => { void addToCart(p); }}
+                onDec={() => updateQty(p.id, -1)}
+              />
             );
           })}
         </div>

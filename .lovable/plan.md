@@ -1,62 +1,46 @@
-## O que entendi dos 4 pontos
+## Como está hoje cada tela de produto
 
-1. **Deslogar o PIN.** Hoje o PIN destrava só a aba Histórico/Relatório da Portaria e fica vivo só naquela tela. Quando você navega para outro setor (Vendas), continua "destravado" porque o PIN é guardado em estado React local. Você quer poder **sair do modo PIN** sem fechar o app, para que o porteiro/garçom não veja o histórico depois de você sair.
-2. **PDV / Caixa.** No "Histórico" da aba Vendas só aparece **Estornar** para pedidos do Mercado Pago e **Cancelar** (total, sem dinheiro) para vendas presenciais. Você quer o mesmo motor da Portaria: ver detalhes da venda, estornar **total** ou **parcial por valor**, com o PIN.
-3. **Produtos no garçom (Vender) vs. Lojinha online.** Hoje cada canal usa uma flag diferente do produto: `visivel_pdv_caixa` (PDV), `visivel_mobile_garcom` (garçom), `sell_online` (loja online). Resultado: o garçom não enxerga produtos que vão para a loja online, e vice-versa — o cardápio fica "rachado".
-4. **Layout mobile.** Os cards de produto no PDV/Garçom estouram a tela em 360–414px (foto + nome + preço + botão tudo na mesma linha) e ocupam muito espaço vertical.
+| Tela | Layout do card | Grid |
+|---|---|---|
+| **Loja pública** (`loja.$slug.tsx` — o que o cliente vê) | Card horizontal: foto 80×80 à esquerda, nome + descrição + preço no meio, botão +/− à direita. Encaixa porque é **1 coluna no mobile**. | `1 col` mobile · `2 col` sm · `3 col` lg |
+| **Lojinha vendedor** (`LojinhaPosView`) | Já vertical compacto (foto em cima, nome embaixo). | `2 col` mobile · `3 col` md · `4 col` lg |
+| **PDV** (`_app.pdv.tsx`) | Linha horizontal espremida (foto + nome + preço + +/− tudo na mesma linha). | `1 col` mobile · `2 col` sm · `3 col` lg |
 
-## O que vou construir
+O PDV estoura porque tenta espremer **5 elementos numa linha só** dentro de uma coluna larga. A loja pública não estoura porque o card é parecido mas fica **uma única coluna** no celular, então sobra largura.
 
-### 1. Sessão PIN global + botão "Sair do PIN"
+## Sua sugestão: usar o modelo da loja pública em todo lugar
 
-- Criar um contexto único `OperationPinContext` (provider em `_app.tsx`).
-  - Estado: `unlockedUntil` (timestamp) + `token`, persistido em `sessionStorage` para sobreviver à navegação entre Portaria/Vendas/etc., mas **não** entre abas/recargas longas.
-  - Expira sozinho em **15 minutos de inatividade** (timer resetado a cada uso).
-  - API: `isUnlocked()`, `requestUnlock(scope)`, `lock()`.
-- Botão **"Sair do modo PIN"** (ícone de cadeado) no `AppLayout` (header/menu), só aparece quando destravado. Confirma com um toast simples.
-- Portaria/PDV/Garçom passam a usar esse contexto único — não recriam estado local.
+Faz total sentido — é o card mais "respirado", mostra foto grande, descrição, preço com destaque e botão +/− confortável. Vou padronizar nesse formato.
 
-### 2. Histórico unificado com estorno parcial (PDV + Garçom + Lojinha)
+### Componente único `ProductCard`
 
-- Refatoro o `SalesHistory.tsx` para usar o mesmo padrão da Portaria:
-  - Linha clicável abre um `SaleDetailSheet` (reaproveitando o componente da Portaria, generalizado para `sales`/`lojinha_orders`).
-  - Dentro do sheet: botões **Estornar tudo** e **Estornar parcial (valor livre)**, ambos exigindo PIN.
-- Backend:
-  - Nova função RPC `refund_pdv_sale(_sale_id, _amount, _reason)` espelhando a `refund_event_sale` (zera ou gera venda negativa, registra `cash_withdrawals` tipo `refund`, devolve estoque proporcionalmente).
-  - Para pedidos Mercado Pago (online/garçom Pix), continua usando `refund_lojinha_order` (que já faz estorno parcial no MP), só passa a exigir PIN no front.
-- Tudo gated pelo `OperationPinContext` — o `SalesHistory` mostra a aba "trancada" igual a Portaria quando não há PIN.
+Crio `src/components/sales/ProductCard.tsx` reaproveitando exatamente o desenho da loja pública (foto 80×80, info ao meio, +/− à direita, badges "Esgotado/Última unidade/Restam N"). Props:
 
-### 3. Unificar produtos vendáveis (PDV ↔ Garçom ↔ Lojinha)
+- `product` (id, name, photo_url, price, description?)
+- `inCartQty: number`
+- `stockStatus: "ok" | "low" | "last" | "out"`
+- `accentColor?: string` (loja pública passa o accent do bar; PDV/garçom usam `primary` do tema)
+- `badge?: ReactNode` (PDV usa pra mostrar "C" de combo)
+- `onAdd`, `onInc`, `onDec`
 
-Hoje o vendedor/garçom vê um cardápio diferente do PDV. Proposta:
+### Onde aplicar
 
-- **Reduzir as 3 flags a 2:** `ativo_geral` (existir) + `disponivel_venda` (vende em qualquer canal interno: PDV, garçom, lojinha online).
-- A flag `sell_online` continua existindo, mas vira apenas "mostrar na loja online pública" (catálogo do cliente final). Garçom/PDV passam a usar `disponivel_venda`.
-- Migração: copia `visivel_pdv_caixa OR visivel_mobile_garcom` para `disponivel_venda` em todos os produtos, mantendo `sell_online` como está.
-- Tela de Produtos: dois toggles claros — "Vender no balcão/garçom" e "Mostrar na loja online".
-- Garçom passa a oferecer Pix exatamente como combinado (já tem `lojinha_payment_methods` com `pix`).
+1. **PDV (`_app.pdv.tsx`)** — substitui o `<button>` atual pelo `ProductCard`. Grid passa para `1 col` mobile · `2 col` sm · `3 col` lg (idêntico à loja pública). Mantém todos os filtros e a lógica de combo/estoque virtual.
+2. **Lojinha vendedor (`LojinhaPosView.tsx`)** — substitui o card vertical compacto atual pelo mesmo `ProductCard`. Vira o mesmo visual que o vendedor já conhece da loja pública (afinal ele lança pelo mesmo cardápio).
+3. **Loja pública (`loja.$slug.tsx`)** — refatora para usar o mesmo `ProductCard` (sem mudança visual, só extração).
 
-### 4. Layout mobile dos cards de produto
+Assim os três cardápios viram **o mesmo card e o mesmo grid**, e qualquer ajuste futuro acontece em um único lugar.
 
-- Card mais compacto: foto pequena à esquerda, nome em 2 linhas (truncado), preço embaixo do nome, botão +/- na direita — tudo dentro de 56–64 px de altura.
-- Grid passa a `grid-cols-2` no mobile (em vez de cards "wide" que estouram), `grid-cols-3` no tablet, `grid-cols-4` no desktop.
-- Aplicado tanto no `PdvView` quanto no `LojinhaPosView` (mesmo componente `ProductTile`).
+### Bug paralelo: "Vender (garçom)" sem produtos
 
-## Detalhes técnicos
+A query do `LojinhaPosView` exige `lojinhaCanSell` no `enabled`. Quando você abre a aba **"Vender (garçom)"** (que já é protegida por `canVenderGarcom` na rota), o gate duplicado pode esconder o cardápio para personas garçom no ViewAs. Corrijo trocando o `enabled` para `!!ownerId` e atualizando o early-return para considerar `canVenderGarcom`. Sem isso, mesmo com o card novo o garçom continua vendo tela vazia.
 
-- **PIN session:** `sessionStorage` + `BroadcastChannel` opcional para sincronizar entre abas; auto-lock por `setTimeout` resetado a cada `useUnlocked()`.
-- **`refund_pdv_sale`** roda como SECURITY DEFINER, valida ownership, e em estorno parcial:
-  - cria `sales` nova com `total = -amount`, `category = 'estorno'`, `parent_sale_id` apontando pra original;
-  - **não** mexe em estoque (parcial é só dinheiro);
-  - estorno total = devolve estoque + marca original como `cancelled`.
-- **Migração de produtos** é one-shot, idempotente; mantém compatibilidade lendo a nova coluna no PDV/Garçom.
-- **SaleDetailSheet** generalizado: aceita `source: 'portaria' | 'pdv' | 'lojinha'` e injeta a RPC certa.
-- Nenhuma mudança em RLS/permissões — o PIN só destrava UI; o backend continua confiando em `auth_grants` + ownership.
+Confirmei no banco: as 39 linhas de `products` estão com `disponivel_venda = true` e `ativo_geral = true` — os dados estão corretos, é só o gate do front.
 
-## Fora de escopo (deixo para depois)
+## Fora de escopo
 
-- Listar produtos por categoria/ordem custom no garçom (só ordeno por `name`).
-- Mexer no fluxo PIX da loja online pública (continua igual).
-- Mudar nada em Eventos/Promoters.
+- Não mexo em RLS, estorno, PIN, eventos, portaria, promoters.
+- Não mexo nas flags `sell_online` / `disponivel_venda` (já estão certas no banco).
+- Não mexo no carrinho/checkout das três telas — só o card de produto.
 
-Quer que eu prossiga com tudo, ou prefere fatiar (ex: começar só pelo "deslogar PIN" + "estorno no PDV" e deixar a unificação de produtos para um segundo passo)?
+Pode prosseguir nesse formato (criar `ProductCard` único e aplicar nas três telas + destravar a query do garçom)?
