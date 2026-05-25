@@ -34,12 +34,7 @@ function VendasPage() {
   const { tab } = useSearch({ from: "/_app/vendas" });
   const navigate = useNavigate();
 
-  if (loading) return null;
   const hasAny = canPdvCaixa || canVenderGarcom || canValidarQr || canVerPedidos || canVerHistorico || isManager;
-  if (!hasAny) {
-    return <PageHeader title="Vendas" subtitle="Você não tem permissão para acessar esta página" />;
-  }
-
   const showPdvCaixa = canPdvCaixa;
   const showPdvGarcom = canVenderGarcom;
   const allowedTabs = [
@@ -55,9 +50,14 @@ function VendasPage() {
   const currentTab = tab && allowedTabs.includes(tab) ? tab : defaultTab;
 
   useEffect(() => {
-    if (!tab || allowedTabs.includes(tab)) return;
+    if (loading || !hasAny || !tab || allowedTabs.includes(tab)) return;
     navigate({ to: "/vendas", search: { tab: defaultTab }, replace: true });
-  }, [tab, allowedTabs, defaultTab, navigate]);
+  }, [loading, hasAny, tab, allowedTabs, defaultTab, navigate]);
+
+  if (loading) return null;
+  if (!hasAny) {
+    return <PageHeader title="Vendas" subtitle="Você não tem permissão para acessar esta página" />;
+  }
 
   return (
     <div className="space-y-4">
