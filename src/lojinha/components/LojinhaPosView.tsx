@@ -235,7 +235,7 @@ export function LojinhaPosView() {
   }, [orderStatus?.status]);
 
   if (loading) return <div className="grid place-items-center h-64"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-  if (!lojinhaCanSell) {
+  if (!canAccess) {
     return <Card><CardContent className="p-6 text-sm text-muted-foreground">Você não tem permissão para vender no balcão da lojinha.</CardContent></Card>;
   }
 
