@@ -1,46 +1,20 @@
-## Como está hoje cada tela de produto
+## Diagnóstico
 
-| Tela | Layout do card | Grid |
-|---|---|---|
-| **Loja pública** (`loja.$slug.tsx` — o que o cliente vê) | Card horizontal: foto 80×80 à esquerda, nome + descrição + preço no meio, botão +/− à direita. Encaixa porque é **1 coluna no mobile**. | `1 col` mobile · `2 col` sm · `3 col` lg |
-| **Lojinha vendedor** (`LojinhaPosView`) | Já vertical compacto (foto em cima, nome embaixo). | `2 col` mobile · `3 col` md · `4 col` lg |
-| **PDV** (`_app.pdv.tsx`) | Linha horizontal espremida (foto + nome + preço + +/− tudo na mesma linha). | `1 col` mobile · `2 col` sm · `3 col` lg |
+"Ver como" troca o `persona` no `ViewAsProvider` (sessionStorage), e `usePermissions` aplica a máscara — isso funciona. O problema é que **nada visível muda na tela em que você está**:
 
-O PDV estoura porque tenta espremer **5 elementos numa linha só** dentro de uma coluna larga. A loja pública não estoura porque o card é parecido mas fica **uma única coluna** no celular, então sobra largura.
+- Você está em `/dashboard`. Essa rota não checa permissão por dentro, então mostra o mesmo conteúdo qualquer que seja a persona.
+- Só o sidebar/bottom-nav filtra por `can(...)`. No mobile, com sidebar escondida, isso passa despercebido.
+- Em "Garçom", até quando você navega para `/vendas`, a aba "Vender (garçom)" carrega vazia: o mask da persona **garcom** não liga `lojinha_can_sell`, então `canVenderGarcom` cai pra false e a query do cardápio não roda.
+- A barra amarela "Visualizando como…" no topo só aparece em mask ativa, mas no celular em `/dashboard` ela é fácil de não notar (some atrás do header).
 
-## Sua sugestão: usar o modelo da loja pública em todo lugar
+## Plano
 
-Faz total sentido — é o card mais "respirado", mostra foto grande, descrição, preço com destaque e botão +/− confortável. Vou padronizar nesse formato.
+1. **Auto-navegar ao trocar persona** — em `ViewAsBar.select(p)`, depois de `setPersona(p)`, chamar `navigate({ to: "/" })`. A rota `/` (`src/routes/index.tsx`) já tem a lógica de mandar cada perfil pra landing certa (owner→dashboard, caixa→pdv, garçom→lojinha, portaria→portaria). Assim cada persona realmente troca de tela.
 
-### Componente único `ProductCard`
+2. **Corrigir mask do Garçom** em `src/hooks/useViewAs.tsx`: adicionar `lojinha_can_sell: true` aos flags da persona `garcom`. Sem isso, `canVenderGarcom` dá false e o cardápio fica vazio (mesmo bug que já tínhamos identificado para a aba "Vender (garçom)" — a persona precisa do mesmo flag que um garçom real tem).
 
-Crio `src/components/sales/ProductCard.tsx` reaproveitando exatamente o desenho da loja pública (foto 80×80, info ao meio, +/− à direita, badges "Esgotado/Última unidade/Restam N"). Props:
+3. **Tornar a barra "Visualizando como…" mais visível no mobile** — atualmente é uma faixa fina amarela fixa no topo (`top-0`). Mantém o lugar, mas aumenta padding vertical pra 8px, deixa em `sticky/z-[70]` por cima de qualquer header, e o link "sair" também volta o usuário pra `/` (mesma auto-navegação do passo 1) pra você ver imediatamente a visão de dono restaurada.
 
-- `product` (id, name, photo_url, price, description?)
-- `inCartQty: number`
-- `stockStatus: "ok" | "low" | "last" | "out"`
-- `accentColor?: string` (loja pública passa o accent do bar; PDV/garçom usam `primary` do tema)
-- `badge?: ReactNode` (PDV usa pra mostrar "C" de combo)
-- `onAdd`, `onInc`, `onDec`
+4. **Fora de escopo** — não mexo nas outras personas (caixa, portaria, promoter, lojinha) que já funcionam; não toco em RLS nem em queries de produto além de habilitar o flag do garçom.
 
-### Onde aplicar
-
-1. **PDV (`_app.pdv.tsx`)** — substitui o `<button>` atual pelo `ProductCard`. Grid passa para `1 col` mobile · `2 col` sm · `3 col` lg (idêntico à loja pública). Mantém todos os filtros e a lógica de combo/estoque virtual.
-2. **Lojinha vendedor (`LojinhaPosView.tsx`)** — substitui o card vertical compacto atual pelo mesmo `ProductCard`. Vira o mesmo visual que o vendedor já conhece da loja pública (afinal ele lança pelo mesmo cardápio).
-3. **Loja pública (`loja.$slug.tsx`)** — refatora para usar o mesmo `ProductCard` (sem mudança visual, só extração).
-
-Assim os três cardápios viram **o mesmo card e o mesmo grid**, e qualquer ajuste futuro acontece em um único lugar.
-
-### Bug paralelo: "Vender (garçom)" sem produtos
-
-A query do `LojinhaPosView` exige `lojinhaCanSell` no `enabled`. Quando você abre a aba **"Vender (garçom)"** (que já é protegida por `canVenderGarcom` na rota), o gate duplicado pode esconder o cardápio para personas garçom no ViewAs. Corrijo trocando o `enabled` para `!!ownerId` e atualizando o early-return para considerar `canVenderGarcom`. Sem isso, mesmo com o card novo o garçom continua vendo tela vazia.
-
-Confirmei no banco: as 39 linhas de `products` estão com `disponivel_venda = true` e `ativo_geral = true` — os dados estão corretos, é só o gate do front.
-
-## Fora de escopo
-
-- Não mexo em RLS, estorno, PIN, eventos, portaria, promoters.
-- Não mexo nas flags `sell_online` / `disponivel_venda` (já estão certas no banco).
-- Não mexo no carrinho/checkout das três telas — só o card de produto.
-
-Pode prosseguir nesse formato (criar `ProductCard` único e aplicar nas três telas + destravar a query do garçom)?
+Confirma que posso aplicar esses 3 ajustes?
