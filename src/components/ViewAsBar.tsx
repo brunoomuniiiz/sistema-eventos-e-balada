@@ -62,6 +62,13 @@ export function ViewAsBar() {
   const select = (p: PersonaKey) => {
     setPersona(p);
     setOpen(false);
+    // Redireciona pra "/" que decide a landing certa pra cada persona
+    setTimeout(() => navigate({ to: "/" }), 0);
+  };
+
+  const exitMask = () => {
+    setPersona("dono");
+    setTimeout(() => navigate({ to: "/" }), 0);
   };
 
   const openExternal = (path: string | null) => {
