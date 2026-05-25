@@ -1,20 +1,47 @@
-## Diagnóstico
+## Plano direto para resolver de verdade
 
-"Ver como" troca o `persona` no `ViewAsProvider` (sessionStorage), e `usePermissions` aplica a máscara — isso funciona. O problema é que **nada visível muda na tela em que você está**:
+O problema principal não é só o card de produto: o fluxo ainda está caindo em telas genéricas/antigas e o `Ver como` não força uma troca clara de rota/aba. Vou corrigir isso de forma objetiva.
 
-- Você está em `/dashboard`. Essa rota não checa permissão por dentro, então mostra o mesmo conteúdo qualquer que seja a persona.
-- Só o sidebar/bottom-nav filtra por `can(...)`. No mobile, com sidebar escondida, isso passa despercebido.
-- Em "Garçom", até quando você navega para `/vendas`, a aba "Vender (garçom)" carrega vazia: o mask da persona **garcom** não liga `lojinha_can_sell`, então `canVenderGarcom` cai pra false e a query do cardápio não roda.
-- A barra amarela "Visualizando como…" no topo só aparece em mask ativa, mas no celular em `/dashboard` ela é fácil de não notar (some atrás do header).
+## O que vou mudar
 
-## Plano
+1. **`Ver como` vai abrir a tela certa, não só trocar permissão**
+   - Dono: `/dashboard`
+   - Caixa/PDV: `/pdv`
+   - Garçom: `/vendas?tab=vender`
+   - Vendedor online: `/vendas?tab=vender`
+   - Portaria: `/portaria`
+   - Promoter: `/meu-extrato`
 
-1. **Auto-navegar ao trocar persona** — em `ViewAsBar.select(p)`, depois de `setPersona(p)`, chamar `navigate({ to: "/" })`. A rota `/` (`src/routes/index.tsx`) já tem a lógica de mandar cada perfil pra landing certa (owner→dashboard, caixa→pdv, garçom→lojinha, portaria→portaria). Assim cada persona realmente troca de tela.
+2. **Remover o desvio errado para `/lojinha`**
+   - Hoje `/lojinha` redireciona para `/vendas`, e aí pode cair na aba padrão errada.
+   - Para garçom e vendedor online, o `Ver como` vai direto para a aba `Vender (garçom)`.
 
-2. **Corrigir mask do Garçom** em `src/hooks/useViewAs.tsx`: adicionar `lojinha_can_sell: true` aos flags da persona `garcom`. Sem isso, `canVenderGarcom` dá false e o cardápio fica vazio (mesmo bug que já tínhamos identificado para a aba "Vender (garçom)" — a persona precisa do mesmo flag que um garçom real tem).
+3. **Corrigir a lógica da aba padrão em Vendas**
+   - Se for dono/gerente: continua vendo gestão/caixas.
+   - Se for PDV caixa: abre PDV caixa.
+   - Se for garçom/vendedor online: abre diretamente `Vender (garçom)`.
+   - Se a URL pedir uma aba que a persona não pode ver, troca automaticamente para a aba permitida.
 
-3. **Tornar a barra "Visualizando como…" mais visível no mobile** — atualmente é uma faixa fina amarela fixa no topo (`top-0`). Mantém o lugar, mas aumenta padding vertical pra 8px, deixa em `sticky/z-[70]` por cima de qualquer header, e o link "sair" também volta o usuário pra `/` (mesma auto-navegação do passo 1) pra você ver imediatamente a visão de dono restaurada.
+4. **Deixar visualmente impossível confundir a persona ativa**
+   - A barra “Visualizando como…” vai mostrar também o destino atual da visão.
+   - Ao trocar persona, fecha o menu e navega imediatamente para a tela correta.
 
-4. **Fora de escopo** — não mexo nas outras personas (caixa, portaria, promoter, lojinha) que já funcionam; não toco em RLS nem em queries de produto além de habilitar o flag do garçom.
+5. **Garantir que o produto apareça no vendedor online/garçom**
+   - Manter a query de produtos habilitada para `lojinhaCanSell` ou `canVenderGarcom`.
+   - Manter o card estilo lojinha online nos fluxos internos.
 
-Confirma que posso aplicar esses 3 ajustes?
+## Arquivos previstos
+
+- `src/components/ViewAsBar.tsx`
+- `src/routes/index.tsx`
+- `src/routes/_app.vendas.tsx`
+- possivelmente `src/hooks/useViewAs.tsx` só se precisar centralizar o destino de cada persona
+
+## Critério de pronto
+
+Depois da alteração, quando você clicar em:
+
+- **Ver como > Caixa (PDV)**: precisa cair em `/pdv` com a tela de PDV.
+- **Ver como > Garçom**: precisa cair em `/vendas?tab=vender`, com produtos visíveis no modelo de card da lojinha.
+- **Ver como > Lojinha (vendedor online)**: precisa cair em `/vendas?tab=vender`, não ficar vazio nem parecer dashboard.
+- **Sair**: volta para visão dono em `/dashboard`.
