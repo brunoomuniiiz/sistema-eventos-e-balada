@@ -1540,11 +1540,104 @@ export type Database = {
         }
         Relationships: []
       }
+      promoter_credit_campaign_members: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          credited_amount: number
+          id: string
+          promoter_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          credited_amount: number
+          id?: string
+          promoter_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          credited_amount?: number
+          id?: string
+          promoter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promoter_credit_campaign_members_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "promoter_credit_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promoter_credit_campaigns: {
+        Row: {
+          applies_to_promotions: boolean
+          created_at: string
+          credit_amount: number
+          enabled: boolean
+          event_id: string
+          excluded_category_ids: string[]
+          excluded_product_ids: string[]
+          id: string
+          max_percent: number
+          min_purchase: number
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          valid_from: string | null
+          valid_until: string | null
+          valid_weekdays: number[] | null
+        }
+        Insert: {
+          applies_to_promotions?: boolean
+          created_at?: string
+          credit_amount: number
+          enabled?: boolean
+          event_id: string
+          excluded_category_ids?: string[]
+          excluded_product_ids?: string[]
+          id?: string
+          max_percent?: number
+          min_purchase?: number
+          name: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+          valid_weekdays?: number[] | null
+        }
+        Update: {
+          applies_to_promotions?: boolean
+          created_at?: string
+          credit_amount?: number
+          enabled?: boolean
+          event_id?: string
+          excluded_category_ids?: string[]
+          excluded_product_ids?: string[]
+          id?: string
+          max_percent?: number
+          min_purchase?: number
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          valid_weekdays?: number[] | null
+        }
+        Relationships: []
+      }
       promoter_credit_redemptions: {
         Row: {
           amount: number
           authorized_by: string | null
           authorized_by_name: string | null
+          campaign_id: string | null
           created_at: string
           created_by: string | null
           created_by_name: string | null
@@ -1558,6 +1651,7 @@ export type Database = {
           amount: number
           authorized_by?: string | null
           authorized_by_name?: string | null
+          campaign_id?: string | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -1571,6 +1665,7 @@ export type Database = {
           amount?: number
           authorized_by?: string | null
           authorized_by_name?: string | null
+          campaign_id?: string | null
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
@@ -1648,6 +1743,7 @@ export type Database = {
       promoter_credits: {
         Row: {
           amount: number
+          campaign_id: string | null
           created_at: string
           event_id: string
           expires_after_event_id: string | null
@@ -1662,6 +1758,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          campaign_id?: string | null
           created_at?: string
           event_id: string
           expires_after_event_id?: string | null
@@ -1676,6 +1773,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          campaign_id?: string | null
           created_at?: string
           event_id?: string
           expires_after_event_id?: string | null
@@ -2746,9 +2844,27 @@ export type Database = {
         Args: { _promoter_id: string }
         Returns: number
       }
+      promoter_campaign_balance: {
+        Args: { _campaign_id: string; _promoter_id: string }
+        Returns: number
+      }
+      promoter_names_balance: {
+        Args: { _promoter_id: string }
+        Returns: number
+      }
       redeem_promoter_credit: {
         Args: {
           _amount: number
+          _grant_token?: string
+          _promoter_id: string
+          _sale_id: string
+        }
+        Returns: string
+      }
+      redeem_promoter_credit_v2: {
+        Args: {
+          _amount: number
+          _campaign_id?: string
           _grant_token?: string
           _promoter_id: string
           _sale_id: string
@@ -2824,6 +2940,26 @@ export type Database = {
           _product_id: string
           _quantity: number
           _to_location: string
+        }
+        Returns: string
+      }
+      upsert_promoter_credit_campaign: {
+        Args: {
+          _applies_to_promotions: boolean
+          _campaign_id: string
+          _credit_amount: number
+          _enabled: boolean
+          _event_id: string
+          _excluded_category_ids: string[]
+          _excluded_product_ids: string[]
+          _max_percent: number
+          _min_purchase: number
+          _name: string
+          _notes: string
+          _promoter_ids: string[]
+          _valid_from: string
+          _valid_until: string
+          _valid_weekdays: number[]
         }
         Returns: string
       }
