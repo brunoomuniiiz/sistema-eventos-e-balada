@@ -7,6 +7,7 @@ export type PersonaMask = {
   isOwner: boolean;
   permissions: Permission[];
   flags: Record<string, boolean>;
+  rolePreset?: string | null;
 };
 
 export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> = {
@@ -20,6 +21,7 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
       isOwner: false,
       permissions: ["promoters"],
       flags: { vendas_ao_vivo: false },
+      rolePreset: "promoter",
     },
   },
   garcom: {
