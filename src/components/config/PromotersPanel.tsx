@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Users, Phone, Mail, Sparkles, History, KeyRound, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Phone, Mail, Sparkles, History, KeyRound, CheckCircle2, Settings2 } from "lucide-react";
+import { PromoterCreditRuleDialog } from "@/components/config/PromoterCreditRuleDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,8 @@ export function PromotersPanel() {
   const [editing, setEditing] = useState<Promoter | null>(null);
   const [historyOf, setHistoryOf] = useState<Promoter | null>(null);
   const [inviting, setInviting] = useState<Promoter | null>(null);
+  const [globalRuleOpen, setGlobalRuleOpen] = useState(false);
+  const [ruleFor, setRuleFor] = useState<Promoter | null>(null);
 
   const { data: promoters = [] } = useQuery({
     queryKey: ["promoters", user?.id],
@@ -69,9 +72,14 @@ export function PromotersPanel() {
         <div className="text-sm text-muted-foreground">
           {promoters.length} {promoters.length === 1 ? "promoter cadastrado" : "promoters cadastrados"}
         </div>
-        <Button onClick={() => { setEditing(null); setOpen(true); }} className="bg-gradient-primary text-primary-foreground glow-primary">
-          <Plus className="h-4 w-4 mr-1.5" /> Novo promoter
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => setGlobalRuleOpen(true)}>
+            <Settings2 className="h-4 w-4 mr-1.5" /> Regra padrão de crédito
+          </Button>
+          <Button onClick={() => { setEditing(null); setOpen(true); }} className="bg-gradient-primary text-primary-foreground glow-primary">
+            <Plus className="h-4 w-4 mr-1.5" /> Novo promoter
+          </Button>
+        </div>
       </div>
 
       {promoters.length === 0 ? (
@@ -122,6 +130,9 @@ export function PromotersPanel() {
                         <KeyRound className="h-3.5 w-3.5 mr-1" /> Convidar acesso
                       </Button>
                     )}
+                    <Button size="sm" variant="ghost" onClick={() => setRuleFor(p)} title="Regras de crédito">
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => setHistoryOf(p)}>
                       <History className="h-3.5 w-3.5" /> histórico
                     </Button>
@@ -144,6 +155,14 @@ export function PromotersPanel() {
       <PromoterDialog open={open} onOpenChange={setOpen} promoter={editing} />
       <PromoterHistoryDialog promoter={historyOf} onOpenChange={(v) => !v && setHistoryOf(null)} />
       <InvitePromoterDialog promoter={inviting} onOpenChange={(v) => !v && setInviting(null)} />
+      <PromoterCreditRuleDialog open={globalRuleOpen} onOpenChange={setGlobalRuleOpen} scope="global" />
+      <PromoterCreditRuleDialog
+        open={!!ruleFor}
+        onOpenChange={(v) => !v && setRuleFor(null)}
+        scope="promoter"
+        promoterId={ruleFor?.id}
+        promoterName={ruleFor?.name}
+      />
     </div>
   );
 }
