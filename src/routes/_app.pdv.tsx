@@ -545,7 +545,7 @@ export function PdvView() {
           Nenhum produto cadastrado
         </Card>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {products
             .filter((p) => {
               if (categoryFilter === "all") return true;
@@ -559,68 +559,46 @@ export function PdvView() {
               return p.name.toLowerCase().includes(q);
             })
             .map((p) => {
-            const inCart = cart.find((i) => i.product_id === p.id);
-            const isCombo = p.product_type === "combo";
-            const comboStock = isCombo ? comboStockMap[p.id] : undefined;
-            const tracked = isCombo ? (comboStock !== null && comboStock !== undefined) : (p.track_stock && productsWithStockRows.has(p.id));
-            const stockTotal = isCombo ? (comboStock ?? 0) : (stockMap[p.id] ?? 0);
-            const outOfStock = tracked && stockTotal <= 0;
-            const lowStock = tracked && !outOfStock && stockTotal <= 10;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => { if (!outOfStock) addToCart(p); }}
-                disabled={outOfStock}
-                className={`relative w-full p-1.5 rounded-xl border flex gap-2 items-center transition-all text-left ${
-                  inCart
-                    ? "bg-primary/10 border-primary"
-                    : "bg-card border-border hover:bg-secondary/40"
-                } ${outOfStock ? "opacity-40 cursor-not-allowed" : "active:scale-[0.99]"}`}
-              >
-                {p.photo_url ? (
-                  <img src={p.photo_url} alt={p.name} className="h-11 w-11 rounded-md object-cover shrink-0" />
-                ) : (
-                  <div className="h-11 w-11 rounded-md bg-secondary grid place-items-center shrink-0">
-                    {isCombo ? <Layers className="h-4 w-4 text-muted-foreground" /> : <ImageIcon className="h-4 w-4 text-muted-foreground" />}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-medium text-sm truncate leading-tight">{p.name}</span>
-                      {isCombo && (
-                        <span className="text-[10px] px-1 py-0.5 rounded bg-secondary text-muted-foreground shrink-0">C</span>
-                      )}
-                    </div>
-                    {(lowStock || outOfStock) && (
-                      <span className={`text-[10px] truncate ${outOfStock ? "text-destructive" : "text-amber-500"}`}>
-                        {outOfStock ? "Esgotado" : `Últimas ${stockTotal}`}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-sm font-bold text-gradient shrink-0">{formatBRL(Number(p.price))}</span>
-                  {!outOfStock && (
-                    inCart ? (
-                      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <Button size="icon" variant="outline" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); updateQty(p.id, -1); }}>
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="font-bold w-5 text-center text-sm">{inCart.quantity}</span>
-                        <Button size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); addToCart(p); }}>
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button asChild size="icon" className="h-7 w-7 shrink-0 active:scale-95">
-                        <span><Plus className="h-3 w-3" /></span>
-                      </Button>
-                    )
-                  )}
-                </div>
-              </button>
-            );
-          })}
+              const inCart = cart.find((i) => i.product_id === p.id);
+              const isCombo = p.product_type === "combo";
+              const comboStock = isCombo ? comboStockMap[p.id] : undefined;
+              const tracked = isCombo
+                ? (comboStock !== null && comboStock !== undefined)
+                : (p.track_stock && productsWithStockRows.has(p.id));
+              const stockTotal = isCombo ? (comboStock ?? 0) : (stockMap[p.id] ?? 0);
+              const outOfStock = tracked && stockTotal <= 0;
+              const stockStatus: "ok" | "low" | "last" | "out" = outOfStock
+                ? "out"
+                : tracked && stockTotal === 1
+                ? "last"
+                : tracked && stockTotal <= 10
+                ? "low"
+                : "ok";
+              const stockText = outOfStock
+                ? "Esgotado"
+                : tracked && stockTotal === 1
+                ? "Última unidade"
+                : tracked && stockTotal <= 10
+                ? `Últimas ${stockTotal}`
+                : null;
+              return (
+                <ProductCard
+                  key={p.id}
+                  product={{ id: p.id, name: p.name, price: Number(p.price), photo_url: p.photo_url }}
+                  inCartQty={inCart?.quantity ?? 0}
+                  stockStatus={stockStatus}
+                  stockText={stockText}
+                  badge={isCombo ? (
+                    <span className="text-[10px] px-1 py-0.5 rounded bg-secondary text-muted-foreground shrink-0 flex items-center gap-0.5">
+                      <Layers className="h-2.5 w-2.5" /> Combo
+                    </span>
+                  ) : undefined}
+                  onAdd={() => addToCart(p)}
+                  onInc={() => addToCart(p)}
+                  onDec={() => updateQty(p.id, -1)}
+                />
+              );
+            })}
         </div>
       )}
 
