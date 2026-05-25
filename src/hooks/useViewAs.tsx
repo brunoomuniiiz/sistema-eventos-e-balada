@@ -114,20 +114,31 @@ const ViewAsContext = createContext<Ctx>({ persona: "dono", setPersona: () => {}
 
 const KEY = "viewAsPersona";
 
+const normalizePersona = (p: PersonaKey): PersonaKey => {
+  // "lojinha" fica em stand-by: sessões antigas viram Garçom automaticamente.
+  if (p === "lojinha") return "garcom";
+  return p;
+};
+
 export function ViewAsProvider({ children }: { children: ReactNode }) {
   const [persona, setPersonaState] = useState<PersonaKey>("dono");
 
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(KEY) as PersonaKey | null;
-      if (saved && PERSONAS[saved]) setPersonaState(saved);
+      if (saved && PERSONAS[saved]) {
+        const next = normalizePersona(saved);
+        setPersonaState(next);
+        if (next !== saved) sessionStorage.setItem(KEY, next);
+      }
     } catch {}
   }, []);
 
   const setPersona = (p: PersonaKey) => {
-    setPersonaState(p);
+    const next = normalizePersona(p);
+    setPersonaState(next);
     try {
-      sessionStorage.setItem(KEY, p);
+      sessionStorage.setItem(KEY, next);
     } catch {}
   };
 
