@@ -97,10 +97,29 @@ export function ProductCard({
               {stockText}
             </div>
           )}
+          <div className="mt-2 flex sm:hidden" onClick={(e) => e.stopPropagation()}>
+            {soldOut ? (
+              <span className="text-xs font-medium text-destructive">Esgotado</span>
+            ) : inCartQty === 0 ? (
+              <Button size="sm" className="h-8 rounded-full px-3" style={accentStyle} onClick={onAdd}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+              </Button>
+            ) : (
+              <div className="inline-grid grid-cols-[32px_28px_32px] items-center gap-1">
+                <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={onDec}>
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="font-bold text-center text-sm">{inCartQty}</span>
+                <Button size="icon" className="h-8 w-8 rounded-full" style={accentStyle} onClick={onInc}>
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div
-          className="flex w-20 shrink-0 flex-col items-center justify-center gap-1 sm:w-24"
+          className="hidden w-20 shrink-0 flex-col items-center justify-center gap-1 sm:flex sm:w-24"
           onClick={(e) => e.stopPropagation()}
         >
           {soldOut ? (
