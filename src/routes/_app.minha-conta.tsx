@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_app/minha-conta")({
   component: MinhaContaPage,
 });
 
-function MinhaContaPage() {
+export function MinhaContaPage() {
   const { user } = useAuth();
   const { rolePreset } = usePermissions();
   const qc = useQueryClient();
