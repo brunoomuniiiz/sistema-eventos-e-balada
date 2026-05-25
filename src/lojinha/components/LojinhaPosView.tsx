@@ -53,7 +53,7 @@ export function LojinhaPosView() {
         .from("products")
         .select("id, name, price, online_price, photo_url, category_id, sell_online, is_available, category:product_categories(name)")
         .eq("ativo_geral", true)
-        .eq("visivel_mobile_garcom", true)
+        .eq("disponivel_venda", true)
         .order("name");
       if (error) throw error;
 
@@ -401,7 +401,7 @@ export function LojinhaPosView() {
           Nenhum produto disponível para venda online
         </CardContent></Card>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
           {filtered.map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);

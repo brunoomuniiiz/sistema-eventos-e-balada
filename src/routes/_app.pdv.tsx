@@ -138,9 +138,9 @@ export function PdvView() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, product_type, track_stock, cost_price, category_id, is_available, photo_url, ativo_geral, visivel_pdv_caixa")
+        .select("id, name, price, product_type, track_stock, cost_price, category_id, is_available, photo_url, ativo_geral, disponivel_venda")
         .eq("ativo_geral", true)
-        .eq("visivel_pdv_caixa", true)
+        .eq("disponivel_venda", true)
         .order("name");
       if (error) throw error;
       return data as Product[];
