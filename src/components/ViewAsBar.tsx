@@ -109,25 +109,28 @@ export function ViewAsBar() {
 
           <div className="mt-4 space-y-2">
             <div className="text-xs uppercase text-muted-foreground font-semibold px-1">Painel interno</div>
-            {(Object.keys(PERSONAS) as PersonaKey[]).map((key) => {
-              const active = persona === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => select(key)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg border transition ${
-                    active
-                      ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border hover:bg-accent"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{PERSONAS[key].label}</span>
-                    {active && <Badge variant="secondary">ativo</Badge>}
-                  </div>
-                </button>
-              );
-            })}
+            {(Object.keys(PERSONAS) as PersonaKey[])
+              // "lojinha" fica em stand-by — vendedor online é Garçom com permissões individuais
+              .filter((key) => key !== "lojinha")
+              .map((key) => {
+                const active = persona === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => select(key)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition ${
+                      active
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border hover:bg-accent"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{PERSONAS[key].label}</span>
+                      {active && <Badge variant="secondary">ativo</Badge>}
+                    </div>
+                  </button>
+                );
+              })}
           </div>
 
           <div className="mt-6 space-y-2">

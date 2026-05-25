@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_app/vendas")({
 function VendasPage() {
   const {
     ownerId, isOwner, loading, can,
-    rolePreset, canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico,
+    canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico,
   } = usePermissions();
   const isManager = isOwner || can("financeiro");
   const { tab } = useSearch({ from: "/_app/vendas" });
@@ -70,7 +70,7 @@ function VendasPage() {
         <CompactTabsList>
           {isManager && <CompactTabsTrigger value="caixas" icon={Wallet} short="Cx.">Caixas</CompactTabsTrigger>}
           {showPdvCaixa && <CompactTabsTrigger value="pdv" icon={ShoppingCart} short="PDV">PDV Caixa</CompactTabsTrigger>}
-          {showPdvGarcom && <CompactTabsTrigger value="vender" icon={Store} short={rolePreset === "lojinha" ? "Loja" : "Garçom"}>{rolePreset === "lojinha" ? "Vendedor online" : "Vender (garçom)"}</CompactTabsTrigger>}
+          {showPdvGarcom && <CompactTabsTrigger value="vender" icon={Store} short="Garçom">Vender (garçom)</CompactTabsTrigger>}
           {canValidarQr && <CompactTabsTrigger value="scanner" icon={ScanLine} short="QR">Validar QR</CompactTabsTrigger>}
           {canVerPedidos && <CompactTabsTrigger value="pedidos" icon={Package} short="Ped.">Pedidos</CompactTabsTrigger>}
           {canVerHistorico && <CompactTabsTrigger value="historico" icon={Receipt} short="Hist.">Histórico</CompactTabsTrigger>}

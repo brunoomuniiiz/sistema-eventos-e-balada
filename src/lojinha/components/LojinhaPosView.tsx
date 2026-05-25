@@ -12,6 +12,7 @@ import { formatBRL } from "@/lib/format";
 import { createPosOrder, confirmDeliveryPos, markPosPaid, reserveCartItem } from "@/lojinha/api";
 import { createPixCharge } from "@/lib/pix.functions";
 import { ProductCard } from "@/components/sales/ProductCard";
+import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
 
 type Product = {
   id: string;
@@ -374,27 +375,14 @@ export function LojinhaPosView() {
         <Input placeholder="Buscar produto…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-10" />
       </div>
 
-      {categories.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-none snap-x">
-          <button
-            type="button"
-            onClick={() => setActiveCategory("__all__")}
-            className={`snap-start whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${activeCategory === "__all__" ? "bg-primary text-primary-foreground border-transparent" : "bg-card text-foreground border-border hover:bg-secondary"}`}
-          >
-            Todos
-          </button>
-          {categories.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setActiveCategory(c)}
-              className={`snap-start whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium border transition-colors ${activeCategory === c ? "bg-primary text-primary-foreground border-transparent" : "bg-card text-foreground border-border hover:bg-secondary"}`}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-      )}
+      <CategoryChipBar
+        items={[
+          { id: "__all__", label: "Todos" },
+          ...categories.map((c) => ({ id: c, label: c })),
+        ]}
+        activeId={activeCategory}
+        onChange={setActiveCategory}
+      />
 
       {filtered.length === 0 ? (
         <Card><CardContent className="p-8 text-center text-muted-foreground">
