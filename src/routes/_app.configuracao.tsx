@@ -8,13 +8,20 @@ import { PromotersPanel } from "@/components/config/PromotersPanel";
 import { LojinhaDevicesPanel } from "@/lojinha/components/LojinhaDevicesPanel";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Settings, UserCog, Users, Smartphone } from "lucide-react";
+import MinhaContaPage from "@/routes/_app.minha-conta";
 
 export const Route = createFileRoute("/_app/configuracao")({
   component: ConfiguracaoPage,
 });
 
 function ConfiguracaoPage() {
-  const { isOwner } = usePermissions();
+  const { isOwner, rolePreset } = usePermissions();
+
+  // Promoter mode: mostra a configuração pessoal direto
+  if (rolePreset === "promoter" && !isOwner) {
+    return <MinhaContaPage />;
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader title="Configuração" subtitle="Identidade do bar, funcionários, promoters e maquininhas" />
