@@ -196,6 +196,7 @@ export type Database = {
           id: string
           instagram_handle: string | null
           logo_url: string | null
+          owner_pin_hash: string | null
           updated_at: string
           user_id: string
         }
@@ -206,6 +207,7 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           logo_url?: string | null
+          owner_pin_hash?: string | null
           updated_at?: string
           user_id: string
         }
@@ -216,6 +218,7 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           logo_url?: string | null
+          owner_pin_hash?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2664,6 +2667,20 @@ export type Database = {
       }
       get_my_open_session: { Args: never; Returns: Json }
       get_owner_id: { Args: { _user_id: string }; Returns: string }
+      get_portaria_sales: {
+        Args: { _event_id: string }
+        Returns: {
+          cancelled_at: string
+          cancelled_reason: string
+          created_at: string
+          employee_name: string
+          id: string
+          items: Json
+          payments: Json
+          status: string
+          total: number
+        }[]
+      }
       get_portaria_summary: { Args: { _event_id: string }; Returns: Json }
       get_sector_statuses: {
         Args: never
@@ -2696,6 +2713,8 @@ export type Database = {
         Args: { _expense_id: string; _from?: string; _to?: string }
         Returns: Json
       }
+      grant_via_pin: { Args: { _pin: string; _scope: string }; Returns: Json }
+      has_owner_pin: { Args: never; Returns: boolean }
       has_permission: {
         Args: { _owner_id: string; _permission: string; _user_id: string }
         Returns: boolean
@@ -2883,6 +2902,15 @@ export type Database = {
         }
         Returns: string
       }
+      refund_event_sale: {
+        Args: {
+          _amount: number
+          _grant_token: string
+          _reason: string
+          _sale_id: string
+        }
+        Returns: undefined
+      }
       register_event_entry: {
         Args: {
           _amount: number
@@ -2892,6 +2920,10 @@ export type Database = {
           _payment_method: string
           _ticket_type_id: string
         }
+        Returns: string
+      }
+      register_event_entry_cart: {
+        Args: { _event_id: string; _items: Json; _payments: Json }
         Returns: string
       }
       register_stock_purchase: {
@@ -2944,6 +2976,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: undefined
       }
+      set_owner_pin: { Args: { _pin: string }; Returns: undefined }
       start_event: { Args: { _event_id: string }; Returns: undefined }
       transfer_stock: {
         Args: {

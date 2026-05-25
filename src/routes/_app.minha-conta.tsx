@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { UserCog, KeyRound, Phone, Banknote, Camera, Loader2 } from "lucide-react";
+import { UserCog, KeyRound, Phone, Banknote, Camera, Loader2, ShieldCheck, Check, Trash2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { setOwnerPin, hasOwnerPin } from "@/lib/owner-pin.functions";
 
 export const Route = createFileRoute("/_app/minha-conta")({
   component: MinhaContaPage,
@@ -20,7 +22,47 @@ export const Route = createFileRoute("/_app/minha-conta")({
 
 export function MinhaContaPage() {
   const { user } = useAuth();
-  const { rolePreset } = usePermissions();
+  const { rolePreset, isOwner } = usePermissions();
+  const setPinFn = useServerFn(setOwnerPin);
+  const hasPinFn = useServerFn(hasOwnerPin);
+  const { data: pinStatus, refetch: refetchPin } = useQuery({
+    queryKey: ["has-owner-pin", user?.id],
+    enabled: !!user && isOwner,
+    queryFn: () => hasPinFn(),
+  });
+  const [opPin, setOpPin] = useState("");
+  const [opPin2, setOpPin2] = useState("");
+  const [savingPin, setSavingPin] = useState(false);
+
+  const saveOpPin = async () => {
+    if (!/^[0-9]{4,8}$/.test(opPin)) return toast.error("PIN deve ter 4 a 8 dígitos");
+    if (opPin !== opPin2) return toast.error("Os PINs não coincidem");
+    setSavingPin(true);
+    try {
+      await setPinFn({ data: { pin: opPin } });
+      toast.success("PIN cadastrado");
+      setOpPin(""); setOpPin2("");
+      refetchPin();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    } finally {
+      setSavingPin(false);
+    }
+  };
+
+  const removeOpPin = async () => {
+    if (!confirm("Remover o PIN de operação? Todas as autorizações voltarão a pedir e-mail e senha.")) return;
+    setSavingPin(true);
+    try {
+      await setPinFn({ data: { pin: "" } });
+      toast.success("PIN removido");
+      refetchPin();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro");
+    } finally {
+      setSavingPin(false);
+    }
+  };
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -212,6 +254,67 @@ export function MinhaContaPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* PIN de operação (só owner) */}
+      {isOwner && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <ShieldCheck className="h-4 w-4 text-primary" /> Senha de operação (PIN)
+              </div>
+              {pinStatus?.exists && (
+                <span className="text-[11px] flex items-center gap-1 text-emerald-500">
+                  <Check className="h-3 w-3" /> Cadastrado
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Um PIN curto (4 a 8 dígitos) que autoriza ações sensíveis em qualquer dispositivo da equipe sem precisar digitar seu e-mail:
+              relatório da portaria, estorno, reimpressão de cupom, abertura/fechamento de caixa.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label>{pinStatus?.exists ? "Novo PIN" : "PIN"}</Label>
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={8}
+                  value={opPin}
+                  onChange={(e) => setOpPin(e.target.value.replace(/\D/g, ""))}
+                  placeholder="••••"
+                  className="text-center tracking-[0.4em] font-bold"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Confirmar</Label>
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={8}
+                  value={opPin2}
+                  onChange={(e) => setOpPin2(e.target.value.replace(/\D/g, ""))}
+                  placeholder="••••"
+                  className="text-center tracking-[0.4em] font-bold"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={saveOpPin} disabled={savingPin} className="bg-gradient-primary text-primary-foreground">
+                {savingPin ? "Salvando..." : pinStatus?.exists ? "Trocar PIN" : "Cadastrar PIN"}
+              </Button>
+              {pinStatus?.exists && (
+                <Button onClick={removeOpPin} disabled={savingPin} variant="outline">
+                  <Trash2 className="h-4 w-4" /> Remover
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
+
