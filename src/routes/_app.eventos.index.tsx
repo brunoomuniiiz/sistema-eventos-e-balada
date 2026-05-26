@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/_app/eventos/")({
 
 function EventosPage() {
   const { user } = useAuth();
+  const { canEventosCriar, canEventosEditar } = usePermissions();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Event | null>(null);
@@ -58,12 +60,14 @@ function EventosPage() {
         title="Eventos"
         subtitle={`${events.length} ${events.length === 1 ? "evento" : "eventos"} no total`}
         actions={
-          <Button
-            onClick={() => { setEditing(null); setOpen(true); }}
-            className="bg-gradient-primary text-primary-foreground glow-primary"
-          >
-            <Plus className="h-4 w-4 mr-1.5" /> Novo evento
-          </Button>
+          canEventosCriar ? (
+            <Button
+              onClick={() => { setEditing(null); setOpen(true); }}
+              className="bg-gradient-primary text-primary-foreground glow-primary"
+            >
+              <Plus className="h-4 w-4 mr-1.5" /> Novo evento
+            </Button>
+          ) : null
         }
       />
 
@@ -72,12 +76,14 @@ function EventosPage() {
           <CardContent className="py-16 text-center">
             <Calendar className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
             <p className="text-muted-foreground">Nenhum evento cadastrado ainda.</p>
-            <Button
-              onClick={() => { setEditing(null); setOpen(true); }}
-              className="mt-5 bg-gradient-primary text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-1.5" /> Criar primeiro evento
-            </Button>
+            {canEventosCriar && (
+              <Button
+                onClick={() => { setEditing(null); setOpen(true); }}
+                className="mt-5 bg-gradient-primary text-primary-foreground"
+              >
+                <Plus className="h-4 w-4 mr-1.5" /> Criar primeiro evento
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -115,14 +121,18 @@ function EventosPage() {
                   <Button asChild size="sm" className="flex-1 bg-gradient-primary text-primary-foreground">
                     <Link to="/eventos/$eventId" params={{ eventId: event.id }}>Ver detalhes</Link>
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => { setEditing(event); setOpen(true); }}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => {
-                    if (confirm(`Remover "${event.name}"?`)) deleteMut.mutate(event.id);
-                  }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {canEventosEditar && (
+                    <Button size="sm" variant="secondary" onClick={() => { setEditing(event); setOpen(true); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {canEventosEditar && (
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      if (confirm(`Remover "${event.name}"?`)) deleteMut.mutate(event.id);
+                    }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

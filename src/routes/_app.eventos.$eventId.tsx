@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_app/eventos/$eventId")({
 function EventDetailPage() {
   const { eventId } = Route.useParams();
   const { user } = useAuth();
-  const { ownerId } = usePermissions();
+  const { ownerId, canEventosEditar, canEventosVerFinanceiro } = usePermissions();
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -176,16 +176,20 @@ function EventDetailPage() {
           <Link to="/eventos"><ArrowLeft className="h-4 w-4 mr-1.5" /> Eventos</Link>
         </Button>
         <div className="flex gap-2">
-          <Button asChild variant="secondary" size="sm">
-            <Link to="/eventos"><Pencil className="h-3.5 w-3.5 sm:mr-1.5" /> <span className="hidden sm:inline">Editar</span></Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { if (confirm(`Remover "${event.name}"?`)) deleteMut.mutate(); }}
-          >
-            <Trash2 className="h-3.5 w-3.5 sm:mr-1.5" /> <span className="hidden sm:inline">Excluir</span>
-          </Button>
+          {canEventosEditar && (
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/eventos"><Pencil className="h-3.5 w-3.5 sm:mr-1.5" /> <span className="hidden sm:inline">Editar</span></Link>
+            </Button>
+          )}
+          {canEventosEditar && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { if (confirm(`Remover "${event.name}"?`)) deleteMut.mutate(); }}
+            >
+              <Trash2 className="h-3.5 w-3.5 sm:mr-1.5" /> <span className="hidden sm:inline">Excluir</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -231,6 +235,7 @@ function EventDetailPage() {
       </Card>
 
 
+      {canEventosVerFinanceiro && (<>
       {/* Resumo financeiro */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="glass border-border/60">
@@ -325,6 +330,7 @@ function EventDetailPage() {
           </form>
         </CardContent>
       </Card>
+      </>)}
 
       {/* Custos detalhados */}
       <Card className="glass border-border/60">
@@ -343,17 +349,19 @@ function EventDetailPage() {
       {ownerId && <EventLandingManager eventId={eventId} ownerId={ownerId} />}
 
       {/* Custos detalhados */}
-      <Card className="glass border-border/60">
-        <CardHeader>
-          <CardTitle>Custos do evento</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Lance custos por categoria (segurança, DJ, banda, som, mídia, lanche…). Crie novas categorias quando precisar.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <EventCostsManager eventId={eventId} />
-        </CardContent>
-      </Card>
+      {canEventosVerFinanceiro && (
+        <Card className="glass border-border/60">
+          <CardHeader>
+            <CardTitle>Custos do evento</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Lance custos por categoria (segurança, DJ, banda, som, mídia, lanche…). Crie novas categorias quando precisar.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <EventCostsManager eventId={eventId} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

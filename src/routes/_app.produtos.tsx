@@ -88,7 +88,7 @@ type ComboItem = {
 type DraftComponent = { component_product_id: string; quantity: number };
 
 function ProdutosPage() {
-  const { ownerId, can, canAddProducts, loading } = usePermissions();
+  const { ownerId, can, canProdutosAddEntrada, canProdutosCriarEditar, canProdutosCriarCombo, loading } = usePermissions();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -450,10 +450,12 @@ function ProdutosPage() {
                   aria-label="Disponível no PDV"
                 />
               </div>
-              <div className="flex">
-                <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
-              </div>
+              {(p.product_type === "combo" ? canProdutosCriarCombo : canProdutosCriarEditar) && (
+                <div className="flex">
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              )}
             </div>
           </div>
           {p.product_type === "combo" && items.length > 0 && (
@@ -491,12 +493,12 @@ function ProdutosPage() {
         subtitle="Cadastro de bebidas, comidas e combos"
         actions={
           <div className="flex items-center gap-2">
-            {canAddProducts && (
+            {canProdutosAddEntrada && (
               <Button variant="outline" onClick={() => setPurchaseOpen(true)}>
                 <ShoppingCart className="h-4 w-4" /> Registrar compra
               </Button>
             )}
-            {canAddProducts && (
+            {((tab === "simple" && canProdutosCriarEditar) || (tab === "combo" && canProdutosCriarCombo)) && (
               <Button onClick={() => openNew(tab)}>
                 <Plus className="h-4 w-4" /> Novo {tab === "combo" ? "combo" : "produto"}
               </Button>
