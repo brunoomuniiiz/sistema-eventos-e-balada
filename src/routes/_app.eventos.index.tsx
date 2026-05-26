@@ -60,12 +60,14 @@ function EventosPage() {
         title="Eventos"
         subtitle={`${events.length} ${events.length === 1 ? "evento" : "eventos"} no total`}
         actions={
-          <Button
-            onClick={() => { setEditing(null); setOpen(true); }}
-            className="bg-gradient-primary text-primary-foreground glow-primary"
-          >
-            <Plus className="h-4 w-4 mr-1.5" /> Novo evento
-          </Button>
+          canEventosCriar ? (
+            <Button
+              onClick={() => { setEditing(null); setOpen(true); }}
+              className="bg-gradient-primary text-primary-foreground glow-primary"
+            >
+              <Plus className="h-4 w-4 mr-1.5" /> Novo evento
+            </Button>
+          ) : null
         }
       />
 
