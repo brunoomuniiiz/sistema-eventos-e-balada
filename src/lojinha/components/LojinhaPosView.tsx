@@ -220,6 +220,32 @@ export function LojinhaPosView() {
     setBusy(true);
     try {
       await confirmDeliveryPos(orderId);
+
+      // Imprime 1 ticket com QR por unidade entregue (combo expande nos componentes)
+      try {
+        const [unitsRes, orderRes, barRes] = await Promise.all([
+          supabase.from("lojinha_order_units").select("qr_token, product_name_snapshot").eq("order_id", orderId),
+          supabase.from("lojinha_orders").select("daily_number, seller_name").eq("id", orderId).maybeSingle(),
+          supabase.from("bar_settings").select("bar_name").eq("user_id", ownerId!).maybeSingle(),
+        ]);
+        const units = unitsRes.data ?? [];
+        if (units.length > 0) {
+          const tickets = await Promise.all(units.map(async (u) => ({
+            product_name: u.product_name_snapshot,
+            qr_token: u.qr_token,
+            qr_svg_string: await qrSvgString(u.qr_token),
+          })));
+          printUnitTickets({
+            bar_name: barRes.data?.bar_name ?? null,
+            daily_number: orderRes.data?.daily_number ?? null,
+            waiter: orderRes.data?.seller_name ?? null,
+            tickets,
+          });
+        }
+      } catch (err) {
+        console.error("Falha ao imprimir tickets", err);
+      }
+
       setStep("delivered");
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["pdv-stock-total"] });
