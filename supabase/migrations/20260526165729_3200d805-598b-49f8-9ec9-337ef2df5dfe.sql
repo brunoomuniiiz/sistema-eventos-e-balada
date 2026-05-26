@@ -1,0 +1,2 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS auto_open_minutes_before INTEGER NOT NULL DEFAULT 60;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS auto_close_hours_after INTEGER NOT NULL DEFAULT 8;
