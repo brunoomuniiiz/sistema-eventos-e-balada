@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy } from "lucide-react";
+import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { createPosOrder, confirmDeliveryPos, markPosPaid, reserveCartItem } from
 import { createPixCharge } from "@/lib/pix.functions";
 import { ProductCard } from "@/components/sales/ProductCard";
 import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
+import { printUnitTickets, qrSvgString } from "@/lib/order-print";
 
 type Product = {
   id: string;
@@ -219,6 +220,32 @@ export function LojinhaPosView() {
     setBusy(true);
     try {
       await confirmDeliveryPos(orderId);
+
+      // Imprime 1 ticket com QR por unidade entregue (combo expande nos componentes)
+      try {
+        const [unitsRes, orderRes, barRes] = await Promise.all([
+          supabase.from("lojinha_order_units").select("qr_token, product_name_snapshot").eq("order_id", orderId),
+          supabase.from("lojinha_orders").select("daily_number, seller_name").eq("id", orderId).maybeSingle(),
+          supabase.from("bar_settings").select("bar_name").eq("user_id", ownerId!).maybeSingle(),
+        ]);
+        const units = unitsRes.data ?? [];
+        if (units.length > 0) {
+          const tickets = await Promise.all(units.map(async (u) => ({
+            product_name: u.product_name_snapshot,
+            qr_token: u.qr_token,
+            qr_svg_string: await qrSvgString(u.qr_token),
+          })));
+          printUnitTickets({
+            bar_name: barRes.data?.bar_name ?? null,
+            daily_number: orderRes.data?.daily_number ?? null,
+            waiter: orderRes.data?.seller_name ?? null,
+            tickets,
+          });
+        }
+      } catch (err) {
+        console.error("Falha ao imprimir tickets", err);
+      }
+
       setStep("delivered");
       qc.invalidateQueries({ queryKey: ["sales"] });
       qc.invalidateQueries({ queryKey: ["pdv-stock-total"] });
