@@ -103,3 +103,37 @@ export function printPrepSlips(slips: PrepSlip[]): boolean {
     .join("");
   return openPrintWindow(`Preparo ${formatOrderNo(slips[0].daily_number)}`, pages);
 }
+
+// Ticket por unidade vendida: 1 QR + nome do produto. Combo gera 1 ticket por componente.
+export type UnitTicket = {
+  product_name: string;
+  qr_token: string;
+  qr_svg_string: string;
+};
+
+export function printUnitTickets(opts: {
+  bar_name: string | null;
+  daily_number: number | null;
+  waiter: string | null;
+  tickets: UnitTicket[];
+}): boolean {
+  if (opts.tickets.length === 0) return true;
+  const total = opts.tickets.length;
+  const pages = opts.tickets
+    .map((t, idx) => `
+      <div class="sheet pagebreak">
+        <div class="center small muted">${escapeHtml(opts.bar_name ?? "NightOps")}</div>
+        <div class="center huge">${escapeHtml(formatOrderNo(opts.daily_number))}</div>
+        <hr />
+        <div class="center big">${escapeHtml(t.product_name)}</div>
+        ${total > 1 ? `<div class="center small muted">Unidade ${idx + 1} de ${total}</div>` : ""}
+        <hr />
+        <div class="qr-wrap">${t.qr_svg_string}</div>
+        <div class="center small">Apresente este QR ao garçom para retirar</div>
+        <hr />
+        <div class="row small muted"><span>${escapeHtml(opts.waiter ?? "—")}</span><span>${escapeHtml(timeBR())}</span></div>
+      </div>
+    `)
+    .join("");
+  return openPrintWindow(`Tickets ${formatOrderNo(opts.daily_number)}`, pages);
+}
