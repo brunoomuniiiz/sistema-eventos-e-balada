@@ -491,12 +491,12 @@ function ProdutosPage() {
         subtitle="Cadastro de bebidas, comidas e combos"
         actions={
           <div className="flex items-center gap-2">
-            {canAddProducts && (
+            {canProdutosAddEntrada && (
               <Button variant="outline" onClick={() => setPurchaseOpen(true)}>
                 <ShoppingCart className="h-4 w-4" /> Registrar compra
               </Button>
             )}
-            {canAddProducts && (
+            {((tab === "simple" && canProdutosCriarEditar) || (tab === "combo" && canProdutosCriarCombo)) && (
               <Button onClick={() => openNew(tab)}>
                 <Plus className="h-4 w-4" /> Novo {tab === "combo" ? "combo" : "produto"}
               </Button>
