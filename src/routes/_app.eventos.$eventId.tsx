@@ -349,18 +349,19 @@ function EventDetailPage() {
       {ownerId && <EventLandingManager eventId={eventId} ownerId={ownerId} />}
 
       {/* Custos detalhados */}
-      <Card className="glass border-border/60">
-        <CardHeader>
-          <CardTitle>Custos do evento</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Lance custos por categoria (segurança, DJ, banda, som, mídia, lanche…). Crie novas categorias quando precisar.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <EventCostsManager eventId={eventId} />
-        </CardContent>
-      </Card>
-      </>)}
+      {canEventosVerFinanceiro && (
+        <Card className="glass border-border/60">
+          <CardHeader>
+            <CardTitle>Custos do evento</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Lance custos por categoria (segurança, DJ, banda, som, mídia, lanche…). Crie novas categorias quando precisar.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <EventCostsManager eventId={eventId} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
