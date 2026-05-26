@@ -359,6 +359,7 @@ function EventDetailPage() {
           <EventCostsManager eventId={eventId} />
         </CardContent>
       </Card>
+      </>)}
     </div>
   );
 }
