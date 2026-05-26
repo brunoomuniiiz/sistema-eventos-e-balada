@@ -184,7 +184,7 @@ function PortariaPage() {
   if (loading) return null;
   if (!allowed) return <PageHeader title="Portaria" subtitle="Você não tem permissão para acessar esta página" />;
 
-  if (events.length === 0) {
+  if (activeEvent.kind === "none") {
     return (
       <div>
         <PageHeader title="Portaria" subtitle="Nenhum evento aberto no momento" />
