@@ -26,6 +26,7 @@ export const Route = createFileRoute("/_app/eventos/")({
 
 function EventosPage() {
   const { user } = useAuth();
+  const { canEventosCriar, canEventosEditar } = usePermissions();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Event | null>(null);
