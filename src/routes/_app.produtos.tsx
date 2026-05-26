@@ -450,10 +450,12 @@ function ProdutosPage() {
                   aria-label="Disponível no PDV"
                 />
               </div>
-              <div className="flex">
-                <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
-              </div>
+              {(p.product_type === "combo" ? canProdutosCriarCombo : canProdutosCriarEditar) && (
+                <div className="flex">
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              )}
             </div>
           </div>
           {p.product_type === "combo" && items.length > 0 && (
