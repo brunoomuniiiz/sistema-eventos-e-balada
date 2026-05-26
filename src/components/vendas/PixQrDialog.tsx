@@ -157,6 +157,117 @@ export function PixQrDialog({
 
   const mmss = remaining == null ? "" : `${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`;
 
+  const QrPane = (
+    creating || !charge ? (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    ) : status === "approved" ? (
+      <div className="flex flex-col items-center gap-3 py-8">
+        <div className="rounded-full bg-emerald-500/10 p-4">
+          <Check className="h-10 w-10 text-emerald-500" />
+        </div>
+        <div className="font-semibold text-lg">Pagamento aprovado!</div>
+        <div className="text-sm text-muted-foreground">{formatBRL(charge.amount)}</div>
+      </div>
+    ) : status === "rejected" || status === "cancelled" ? (
+      <div className="flex flex-col items-center gap-3 py-8">
+        <div className="rounded-full bg-destructive/10 p-4">
+          <X className="h-10 w-10 text-destructive" />
+        </div>
+        <div className="font-semibold">Pagamento {status === "rejected" ? "recusado" : "cancelado"}</div>
+        <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+      </div>
+    ) : (
+      <div className="space-y-4">
+        {charge.qr_code_base64 && (
+          <div className="flex justify-center bg-white p-3 rounded-lg">
+            <img src={`data:image/png;base64,${charge.qr_code_base64}`} alt="QR Code PIX" className="w-64 h-64" />
+          </div>
+        )}
+        {charge.qr_code && (
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Pix copia-e-cola</div>
+            <div className="flex gap-2">
+              <code className="flex-1 text-[10px] bg-muted rounded px-2 py-2 truncate font-mono">{charge.qr_code}</code>
+              <Button size="icon" variant="outline" onClick={copy}>{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}</Button>
+            </div>
+          </div>
+        )}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Aguardando pagamento…</div>
+          {remaining != null && <div>Expira em {mmss}</div>}
+        </div>
+        <Button variant="outline" className="w-full" onClick={handleClose}>Cancelar</Button>
+        <Button
+          variant="outline"
+          className="w-full border-dashed border-amber-500/60 text-amber-600 hover:bg-amber-500/10"
+          disabled={simulating}
+          onClick={async () => {
+            if (!charge) return;
+            setSimulating(true);
+            try {
+              await simulate({ data: { chargeId: charge.id } });
+              setStatus("approved");
+              await onApproved(charge.id);
+              setTimeout(() => onOpenChange(false), 1000);
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Falha ao simular");
+            } finally {
+              setSimulating(false);
+            }
+          }}
+        >
+          {simulating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          [TESTE] Simular Pagamento Aprovado
+        </Button>
+      </div>
+    )
+  );
+
+  const ChavePane = (
+    <div className="space-y-3">
+      <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+        Use quando o cliente pagou via chave PIX ou QR fora do app. O dono precisa autorizar com PIN.
+      </div>
+      <div>
+        <div className="text-xs text-muted-foreground mb-1">Observação (opcional)</div>
+        <Textarea
+          value={chaveNotes}
+          onChange={(e) => setChaveNotes(e.target.value)}
+          placeholder="Ex.: PIX pago na chave do Itaú do dono"
+          rows={3}
+        />
+      </div>
+      <Button
+        className="w-full"
+        disabled={chaveLoading}
+        onClick={() => setAuthOpen(true)}
+      >
+        {chaveLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+        Confirmar recebimento ({formatBRL(amount)})
+      </Button>
+      <AuthorizationDialog
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+        scope="operation"
+        title="Autorizar PIX por chave"
+        description="Confirme com o PIN do dono que o pagamento foi recebido."
+        onApproved={async (_token, authorizedByName) => {
+          setChaveLoading(true);
+          try {
+            await onChaveApproved?.({ notes: chaveNotes, authorizedByName });
+            onOpenChange(false);
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Erro");
+          } finally {
+            setChaveLoading(false);
+          }
+        }}
+      />
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
       <DialogContent className="max-w-sm">
@@ -167,83 +278,17 @@ export function PixQrDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {creating || !charge ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : status === "approved" ? (
-          <div className="flex flex-col items-center gap-3 py-8">
-            <div className="rounded-full bg-emerald-500/10 p-4">
-              <Check className="h-10 w-10 text-emerald-500" />
-            </div>
-            <div className="font-semibold text-lg">Pagamento aprovado!</div>
-            <div className="text-sm text-muted-foreground">{formatBRL(charge.amount)}</div>
-          </div>
-        ) : status === "rejected" || status === "cancelled" ? (
-          <div className="flex flex-col items-center gap-3 py-8">
-            <div className="rounded-full bg-destructive/10 p-4">
-              <X className="h-10 w-10 text-destructive" />
-            </div>
-            <div className="font-semibold">Pagamento {status === "rejected" ? "recusado" : "cancelado"}</div>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-          </div>
+        {chaveEnabled ? (
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "qr" | "chave")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="qr"><QrIcon className="h-3.5 w-3.5 mr-1" />QR Code</TabsTrigger>
+              <TabsTrigger value="chave"><KeyRound className="h-3.5 w-3.5 mr-1" />Chave PIX</TabsTrigger>
+            </TabsList>
+            <TabsContent value="qr" className="mt-4">{QrPane}</TabsContent>
+            <TabsContent value="chave" className="mt-4">{ChavePane}</TabsContent>
+          </Tabs>
         ) : (
-          <div className="space-y-4">
-            {charge.qr_code_base64 && (
-              <div className="flex justify-center bg-white p-3 rounded-lg">
-                <img
-                  src={`data:image/png;base64,${charge.qr_code_base64}`}
-                  alt="QR Code PIX"
-                  className="w-64 h-64"
-                />
-              </div>
-            )}
-            {charge.qr_code && (
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Pix copia-e-cola</div>
-                <div className="flex gap-2">
-                  <code className="flex-1 text-[10px] bg-muted rounded px-2 py-2 truncate font-mono">
-                    {charge.qr_code}
-                  </code>
-                  <Button size="icon" variant="outline" onClick={copy}>
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-            )}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Aguardando pagamento…
-              </div>
-              {remaining != null && <div>Expira em {mmss}</div>}
-            </div>
-            <Button variant="outline" className="w-full" onClick={handleClose}>
-              Cancelar
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full border-dashed border-amber-500/60 text-amber-600 hover:bg-amber-500/10"
-              disabled={simulating}
-              onClick={async () => {
-                if (!charge) return;
-                setSimulating(true);
-                try {
-                  await simulate({ data: { chargeId: charge.id } });
-                  setStatus("approved");
-                  await onApproved(charge.id);
-                  setTimeout(() => onOpenChange(false), 1000);
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Falha ao simular");
-                } finally {
-                  setSimulating(false);
-                }
-              }}
-            >
-              {simulating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              [TESTE] Simular Pagamento Aprovado
-            </Button>
-          </div>
+          QrPane
         )}
       </DialogContent>
     </Dialog>
