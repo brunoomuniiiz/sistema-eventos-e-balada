@@ -22,8 +22,11 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Promoter = Database["public"]["Tables"]["promoters"]["Row"];
 
+import { usePermissions } from "@/hooks/usePermissions";
+
 export function PromotersPanel() {
   const { user } = useAuth();
+  const { canPromotersGerenciar, canPromotersComissoes, canPromotersVerDesempenho } = usePermissions();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Promoter | null>(null);
