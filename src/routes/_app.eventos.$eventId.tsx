@@ -235,6 +235,7 @@ function EventDetailPage() {
       </Card>
 
 
+      {canEventosVerFinanceiro && (<>
       {/* Resumo financeiro */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="glass border-border/60">
