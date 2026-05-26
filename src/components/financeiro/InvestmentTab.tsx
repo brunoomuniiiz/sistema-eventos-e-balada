@@ -59,10 +59,13 @@ type Group = {
 
 export function InvestmentTab() {
   const { user } = useAuth();
+  const { isOwner, canFinLancarDespesas } = usePermissions();
   const qc = useQueryClient();
   const [openForm, setOpenForm] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [payTarget, setPayTarget] = useState<Row | null>(null);
+
+  const canEdit = isOwner || canFinLancarDespesas;
 
   const { data: rows = [], isLoading } = useQuery<Row[]>({
     queryKey: ["investments", user?.id],
