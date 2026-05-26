@@ -92,7 +92,12 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
   if (!row) return null;
   const isOwnerRow = row.role === "owner";
 
-  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((s) => ({ ...s, [k]: v }));
+  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((s) => {
+    const next = { ...s, [k]: v };
+    // Bug 1: habilitar "Vender (garçom)" liga PIX automaticamente (e desligar libera de volta).
+    if (k === "vendas_garcom" && v === true) next.aceita_pix = true;
+    return next;
+  });
 
   const save = async () => {
     setSaving(true);
