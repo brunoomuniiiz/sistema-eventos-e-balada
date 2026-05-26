@@ -221,13 +221,11 @@ function PortariaPage() {
       <CashGate sector="portaria" sectorLabel="Portaria">
 
       <div className="mb-4">
-        <Label className="text-xs flex items-center gap-1 mb-1"><CalendarDays className="h-3 w-3" />Evento</Label>
-        <Select value={eventId} onValueChange={setEventId}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {events.map((e) => (<SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarDays className="h-4 w-4 text-primary" />
+          <span>Entrada para:</span>
+          <Badge variant="outline" className="font-medium">{eventName}</Badge>
+        </div>
       </div>
 
       <Card className="mb-4">
