@@ -74,6 +74,7 @@ export function usePermissions() {
   const aceitaCartao = isOwner || flagOf("aceita_cartao", true);
   const aceitaCreditoPromoter = isOwner || flagOf("aceita_credito_promoter", false);
   const canConsumacao = isOwner || flagOf("pode_lancar_consumacao", false);
+  const canPixChave = isOwner || flagOf("pode_pix_chave", false);
   const acceptedMethods: AcceptedMethod[] = [];
   if (aceitaDinheiro) acceptedMethods.push("dinheiro");
   if (aceitaCartao) acceptedMethods.push("debito", "credito");
