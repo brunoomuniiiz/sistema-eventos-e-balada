@@ -330,6 +330,7 @@ function EventDetailPage() {
           </form>
         </CardContent>
       </Card>
+      </>)}
 
       {/* Custos detalhados */}
       <Card className="glass border-border/60">
