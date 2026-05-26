@@ -76,12 +76,14 @@ function EventosPage() {
           <CardContent className="py-16 text-center">
             <Calendar className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
             <p className="text-muted-foreground">Nenhum evento cadastrado ainda.</p>
-            <Button
-              onClick={() => { setEditing(null); setOpen(true); }}
-              className="mt-5 bg-gradient-primary text-primary-foreground"
-            >
-              <Plus className="h-4 w-4 mr-1.5" /> Criar primeiro evento
-            </Button>
+            {canEventosCriar && (
+              <Button
+                onClick={() => { setEditing(null); setOpen(true); }}
+                className="mt-5 bg-gradient-primary text-primary-foreground"
+              >
+                <Plus className="h-4 w-4 mr-1.5" /> Criar primeiro evento
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
