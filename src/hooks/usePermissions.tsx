@@ -153,6 +153,7 @@ export function usePermissions() {
     canPromoterCredit: aceitaCreditoPromoter,
     canPromoterCreditoDinheiro,
     canConsumacao,
+    canPixChave,
     canAddProducts,
     canProdutosConferir,
     canProdutosAddEntrada,
