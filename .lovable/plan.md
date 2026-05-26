@@ -1,58 +1,99 @@
-## Bloco 4 — Aplicar sub-permissões nas telas reais
+## Roadmap pra amanhã — 5 blocos pra fechar antes do lançamento
 
-### Diagnóstico do bug do happybeer
-Em `/produtos`, os botões "Novo produto" e "Registrar compra" só aparecem se `canAddProducts = isOwner || (pode_adicionar_bebidas && can("estoque"))`. O funcionário tinha o módulo `estoque`, mas a flag legada `pode_adicionar_bebidas` ficou `false` — por isso nada apareceu. Trocar essa checagem pelas novas flags `produtos_*` resolve.
+Ordem sugerida: **D → B → C → A → E** (do mais barato pro mais delicado, testando entre blocos).
 
-### 4.1 — Expandir `usePermissions` (base de tudo)
+---
 
-Adicionar ao `select` e expor como booleans (cada um = `isOwner || flagOf(...)`, todos com `can("estoque")` / `can("eventos")` / `can("promoters")` / `can("financeiro")` como gate de módulo quando aplicável):
+### Bloco A — Pagamentos externos (maquininhas extras + PIX/cartão "manual")
 
-- Produtos: `canProdutosConferir`, `canProdutosAddEntrada`, `canProdutosCriarEditar`, `canProdutosCriarCombo`, `canProdutosInventario`
-- Eventos: `canEventosCriar`, `canEventosEditar`, `canEventosAbrirEncerrar`, `canEventosVerFinanceiro`
-- Promoters: `canPromotersGerenciar`, `canPromotersComissoes`, `canPromotersVerDesempenho`
-- Vendas (faltam): `canSangria` (já existe via flag antiga `vendas_sangria`, **trocar fonte para `vendas_sangria`** mantido), `canAbrirFecharCaixa` (novo, sobrescreve os atuais `canAbrirCaixa` / `canFechamento`), `canPromoterCreditoDinheiro`
-- Financeiro: `canFinLancarDespesas`, `canFinVerNumeros`, `canFinFecharCaixa`
+**Objetivo:** PIX dinâmico continua MP; permitir registrar venda em PIX por chave avulsa ou cartão em maquininha de terceiros sem integração.
 
-Também propagar no `useViewAs` para o modo "view as" continuar funcionando.
+1. **Schema**
+   - Tabela `payment_terminals` (id, user_id, label, kind: `cartao`|`pix_chave`, active).
+   - Em `sales` e `pix_charges`: `external_terminal_id` (nullable) + `reconciled` boolean.
+2. **UI Configuração** — aba "Pagamentos" (owner-only) com CRUD: nome, tipo, ativa.
+3. **PDV / Garçom** — botões "PIX externo (chave)" e "Cartão externo → [maquininha]". Finaliza sem MP, marca `reconciled = false`.
+4. **Permissão** — sub-flag `vendas_pagamento_externo` (default false). Toggle opcional "exigir PIN do dono em cada uso".
+5. **Histórico / Caixas** — coluna "Conciliado" + filtro "não conciliados" + botão "marcar conciliado".
 
-### 4.2 — Produtos (`src/routes/_app.produtos.tsx`)
-- `canAddProducts` deprecado. Trocar:
-  - Botão **"Registrar compra"** → `canProdutosAddEntrada`
-  - Botão **"Novo produto"** (aba simple) → `canProdutosCriarEditar`
-  - Botão **"Novo combo"** (aba combo) → `canProdutosCriarCombo`
-  - Ações de **editar / ativar / desativar** no card → `canProdutosCriarEditar`
-- Em `_app.estoque.tsx`: aba **Inventário** + botões iniciar/fechar inventário → `canProdutosInventario`. Tela de conferência geral → `canProdutosConferir`.
+---
 
-### 4.3 — Eventos (`_app.eventos.index.tsx` + `_app.eventos.$eventId.tsx`)
-- Botão **"Novo evento"** → `canEventosCriar`
-- Botão **"Editar evento"** + abrir dialog em modo edição → `canEventosEditar`
-- Botões **"Abrir evento" / "Encerrar evento"** → `canEventosAbrirEncerrar`
-- Aba/seção **Financeiro do evento** (custos, receita, lucro) → `canEventosVerFinanceiro`
+### Bloco B — Fluxo de acesso (tirar "criar conta" público)
 
-### 4.4 — Promoters (`PromotersPanel` + páginas relacionadas)
-- Adicionar / excluir promoter → `canPromotersGerenciar`
-- Aba/seção **Comissões** (regras de crédito, campanhas) → `canPromotersComissoes`
-- Painel **Desempenho** (ranking, leads, conversões) → `canPromotersVerDesempenho`
+**Objetivo:** ninguém se auto-cadastra como funcionário.
 
-### 4.5 — Vendas (sub-permissões que faltaram no Bloco 2)
-- `PromoterCreditPicker`: método **dinheiro** só se `canPromoterCreditoDinheiro` (hoje qualquer um com `aceita_credito_promoter` consegue). PIX/cartão continuam abertos para quem tem `aceita_credito_promoter`.
-- `WithdrawalDialog` / botão **Sangria**: confirmar que usa `canSangria` (já está).
-- `OpenCashDialog` / `CashClosingDialog`: trocar para `canAbrirFecharCaixa` único (hoje são duas flags separadas, ambas mapeiam para a nova).
+1. `/auth` vira só **Login** + **Esqueci a senha**.
+2. **Owner inaugural** — definir caminho: landing externa, código de convite ou rota oculta `/signup-owner`.
+3. **Convite de funcionário** (`invite-staff` já existe) — owner cria, gera senha temporária, mostra credencial pra copiar. Primeiro login força troca de senha.
+4. **Reset de senha** — confirmar `/reset-password` funcional.
 
-### 4.6 — Financeiro (`_app.financeiro.tsx`)
-Hoje é owner-only via gate de módulo. Manter assim mas, **se** o módulo estiver em `permissions[]` de um staff:
-- Botão **"Lançar despesa"** / dialogs de investimento → `canFinLancarDespesas`
-- Cards de números (receita, lucro, etc.) → `canFinVerNumeros`
-- Botão **"Fechar caixa global"** → `canFinFecharCaixa`
+---
 
-### Garantias / fora de escopo
-- Nenhuma mudança de schema (já feito no Bloco 1).
-- Nenhuma mudança de RLS (gate grosso continua nos `permissions[]`).
-- Nenhum recálculo de presets — quem foi criado antes do Bloco 1 fica com as novas flags em `false`. Owner abre o card do funcionário, clica no preset desejado e salva (re-aplica o mapa). Documentar isso pro happybeer ao final.
+### Bloco C — Auto-abertura de evento + simplificar portaria/vendas
 
-### Ordem de entrega proposta
-1. **4.1** (hook) — base obrigatória
-2. **4.2** (Produtos) — desbloqueia o caso do happybeer
-3. **4.3 + 4.4 + 4.5 + 4.6** — em sequência
+**Objetivo:** vendedores não escolhem evento. Sistema sabe qual está ativo.
 
-Posso entregar tudo num único turno ou ir por etapas — me diz qual prefere.
+1. **Schema `events`** — `auto_open_minutes_before` (int, default 60), `auto_close_hours_after` (int, default 8).
+2. **Abertura automática** — começar pela opção simples (hook checa eventos do dia no load); migrar pra `pg_cron` chamando `/api/public/events-tick` se precisar.
+3. **Helper `useActiveEvent()`** — retorna único evento `open` do owner; se houver 2+, retorna `multiple` e UI mostra seletor; senão, fixo.
+4. **Portaria** — remover dropdown, mostrar "Entrada para: <nome do evento>" no topo. Bloqueia se nenhum aberto.
+5. **Vendas / PDV / consumação** — vincula `event_id` automaticamente via `useActiveEvent()`.
+6. **Fallback** — botão "Abrir agora" / "Encerrar agora" mantido atrás de `canEventosAbrirEncerrar`.
+
+---
+
+### Bloco D — Fechar Bloco 4 das permissões (resíduo)
+
+1. **`PromoterCreditPicker`** — método "dinheiro" só se `canPromoterCreditoDinheiro`.
+2. **Financeiro (`_app.financeiro.tsx`)** — gating fino:
+   - "Lançar despesa" + dialogs → `canFinLancarDespesas`
+   - Cards de números → `canFinVerNumeros`
+   - "Fechar caixa global" → `canFinFecharCaixa`
+3. Conferir que `OpenCashDialog` / `CashClosingDialog` já usam `canAbrirFecharCaixa`.
+
+---
+
+### Bloco E — Ficha de copa imprimível, personalizada por produto
+
+**Objetivo:** quando vende, imprime ficha (QR + nome + qtd) **só dos produtos elegíveis**. Trident/Halls/pirulito não imprimem; cerveja sim. Vale pros 3 canais: caixa fixo, garçom mobile, e copa entregando pedido online.
+
+**Estado atual:**
+- `src/lib/order-print.ts` já tem `printReceipt`, `printPrepSlips`, `printUnitTickets` (1 ficha por unidade com QR).
+- Garçom (`LojinhaPosView`) já chama `printUnitTickets` ao finalizar — hoje imprime de tudo.
+- Copa (`LojinhaOrdersPanel`) já imprime cupom ao entregar.
+- PDV caixa abre `/pdv-cupom/{saleId}` que auto-printa o cupom — **não imprime ficha de copa hoje**.
+- Impressão é `window.print()` em popup com CSS 80mm — funciona na térmica embutida da maquininha (Cielo Lio, PagBank, Stone) se atendente escolher ela como impressora padrão no navegador.
+
+**Mudanças:**
+
+1. **E.1 Schema** — `ALTER TABLE products ADD COLUMN imprime_ficha_copa boolean NOT NULL DEFAULT true;`
+2. **E.2 UI Produto** — checkbox no form ("Imprimir ficha na copa ao vender"). Ícone discreto na listagem quando desligado.
+3. **E.3 Caixa fixo passa a imprimir ficha** — em `_app.pdv.tsx`, após finalizar venda: buscar `sale_items` + flag, gerar `unit_tickets` só dos elegíveis. Recomendação: **adaptar `pdv-cupom.$saleId.tsx`** pra renderizar **cupom + N fichas com `page-break`** numa única janela — um `window.print()` cospe tudo.
+4. **E.4 Garçom mobile filtra** — `LojinhaPosView`: filtrar `tickets` por `imprime_ficha_copa`. Se 0, pular `printUnitTickets`.
+5. **E.5 Copa filtra** — `LojinhaOrdersPanel`: ao "Entregar", trocar `printReceipt` por `printUnitTickets` só dos elegíveis. Se 0 elegíveis, marca entregue sem imprimir.
+6. **E.6 Help Card** — em Configuração, instruções pro happybeer: "Como usar a maquininha como impressora — abra NightOps no navegador da maquininha, faça venda teste, escolha impressora interna e 'sempre usar'."
+
+**Fora de escopo:** SDK nativo de maquininha (Cielo LIO, PagBank), reimpressão de ficha individual do histórico.
+
+---
+
+### Pontos a confirmar antes de codar
+
+- **A.2** — maquininhas extras são só "etiqueta" mesmo, sem integração?
+- **A.4** — exigir PIN do dono em cada venda externa ou só logar e conferir depois?
+- **B.2** — como o primeiro owner se cria? Landing, convite ou rota oculta?
+- **C.2** — começar pelo check no app ou já montar cron?
+- **C.4** — se 2 eventos abertos ao mesmo tempo, portaria volta a ter dropdown — ok?
+- **E.3** — cupom + fichas numa janela só (recomendação) ou separadas?
+
+---
+
+### Ordem proposta
+
+1. **Bloco D** — rapidinho, fecha o que já começamos
+2. **Bloco B** — auth, melhor mexer cedo
+3. **Bloco C** — auto-evento, UX boa
+4. **Bloco A** — pagamentos externos, maior
+5. **Bloco E** — fichas de copa, depende de tudo acima estar estável
+
+Testar cada bloco antes do próximo.
