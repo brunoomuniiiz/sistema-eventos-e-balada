@@ -5,10 +5,13 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck, Sparkles, Beer, Activity } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck, Sparkles, Beer, Activity, KeyRound, Printer } from "lucide-react";
+import { clearPrintRulesCache } from "@/lib/print-rules";
 
 export type SellerRow = {
   id: string;
@@ -57,11 +60,13 @@ type Draft = {
   aceita_cartao: boolean;
   aceita_credito_promoter: boolean;
   pode_lancar_consumacao: boolean;
+  pode_pix_chave: boolean;
   can_discount: boolean;
   max_discount_percent: number;
 };
 
 function initialDraft(r: SellerRow | null): Draft {
+  const rr = r as unknown as Record<string, unknown> | null;
   return {
     vendas_pdv_caixa: r?.vendas_pdv_caixa ?? true,
     vendas_garcom: r?.vendas_garcom ?? true,
@@ -77,38 +82,88 @@ function initialDraft(r: SellerRow | null): Draft {
     aceita_cartao: r?.aceita_cartao ?? true,
     aceita_credito_promoter: r?.aceita_credito_promoter ?? false,
     pode_lancar_consumacao: r?.pode_lancar_consumacao ?? false,
+    pode_pix_chave: (rr?.["pode_pix_chave"] as boolean | undefined) ?? false,
     can_discount: r?.can_discount ?? false,
     max_discount_percent: Number(r?.max_discount_percent ?? 0),
   };
 }
 
+type RuleState = { print_on_sale: boolean; print_on_scan: boolean };
+
 export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
   const qc = useQueryClient();
   const [d, setD] = useState<Draft>(() => initialDraft(row));
   const [saving, setSaving] = useState(false);
+  const [rules, setRules] = useState<Record<string, RuleState>>({});
 
   useEffect(() => { setD(initialDraft(row)); }, [row]);
+
+  // Carrega categorias do dono
+  const { data: categories } = useQuery({
+    queryKey: ["product_categories", row?.user_id],
+    enabled: !!row?.user_id && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_categories")
+        .select("id, name")
+        .eq("user_id", row!.user_id)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Carrega regras existentes
+  const { data: existingRules } = useQuery({
+    queryKey: ["print_rules", row?.id],
+    enabled: !!row?.id && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("print_rules")
+        .select("category_id, print_on_sale, print_on_scan")
+        .eq("user_role_id", row!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    if (!categories) return;
+    const next: Record<string, RuleState> = {};
+    const map = new Map((existingRules ?? []).map((r) => [r.category_id as string, r]));
+    for (const c of categories) {
+      const r = map.get(c.id);
+      next[c.id] = {
+        print_on_sale: r ? !!r.print_on_sale : true,
+        print_on_scan: r ? !!r.print_on_scan : true,
+      };
+    }
+    setRules(next);
+  }, [categories, existingRules]);
 
   if (!row) return null;
   const isOwnerRow = row.role === "owner";
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((s) => {
     const next = { ...s, [k]: v };
-    // Bug 1: habilitar "Vender (garçom)" liga PIX automaticamente (e desligar libera de volta).
     if (k === "vendas_garcom" && v === true) next.aceita_pix = true;
     return next;
   });
 
+  const setRule = (catId: string, key: keyof RuleState, v: boolean) =>
+    setRules((s) => ({ ...s, [catId]: { ...s[catId], [key]: v } }));
+
+  const setAllRules = (key: keyof RuleState, v: boolean) =>
+    setRules((s) => Object.fromEntries(Object.entries(s).map(([k, r]) => [k, { ...r, [key]: v }])));
+
   const save = async () => {
     setSaving(true);
     try {
-      // Sincroniza permissão base "vendas"/"lojinha" automaticamente
       const basePerms = new Set(row.permissions ?? []);
       const needsVendas = d.vendas_pdv_caixa || d.vendas_fechamento || d.vendas_abre_caixa || d.vendas_sangria;
       const needsLojinha = d.vendas_garcom;
       if (needsVendas) basePerms.add("vendas"); else basePerms.delete("vendas");
       if (needsLojinha) basePerms.add("lojinha"); else basePerms.delete("lojinha");
-      // Validar QR / pedidos / histórico exigem pelo menos uma das duas
       if ((d.vendas_validar_qr || d.vendas_pedidos || d.vendas_historico) && !basePerms.has("vendas") && !basePerms.has("lojinha")) {
         basePerms.add("vendas");
       }
@@ -122,9 +177,26 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
         } as never)
         .eq("id", row.id);
       if (error) throw error;
+
+      // Salva regras de impressão (substitui tudo)
+      const ruleRows = Object.entries(rules).map(([category_id, r]) => ({
+        user_id: row.user_id,
+        user_role_id: row.id,
+        category_id,
+        print_on_sale: r.print_on_sale,
+        print_on_scan: r.print_on_scan,
+      }));
+      if (ruleRows.length > 0) {
+        await supabase.from("print_rules").delete().eq("user_role_id", row.id);
+        const { error: rErr } = await supabase.from("print_rules").insert(ruleRows as never);
+        if (rErr) throw rErr;
+      }
+      clearPrintRulesCache();
+
       toast.success("Permissões atualizadas");
       qc.invalidateQueries({ queryKey: ["seller-perms"] });
       qc.invalidateQueries({ queryKey: ["my-role"] });
+      qc.invalidateQueries({ queryKey: ["print_rules"] });
       onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
@@ -134,6 +206,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
   };
 
   const showDinheiro = d.vendas_pdv_caixa || d.vendas_garcom;
+  const cats = categories ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,66 +223,125 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
             Owner tem acesso total a todas as funções. Não pode ser limitado.
           </div>
         ) : (
-          <div className="space-y-5">
-            <Section title="Acesso às abas de Vendas">
-              <Toggle icon={<ShoppingCart className="h-4 w-4" />} label="PDV Caixa" sub="Vender no caixa presencial" checked={d.vendas_pdv_caixa} onChange={(v) => set("vendas_pdv_caixa", v)} />
-              <Toggle icon={<Store className="h-4 w-4" />} label="Vender (garçom)" sub="PDV mobile / maquininha" checked={d.vendas_garcom} onChange={(v) => set("vendas_garcom", v)} />
-              <Toggle icon={<ScanLine className="h-4 w-4" />} label="Validar QR" sub="Ler QR e entregar pedido" checked={d.vendas_validar_qr} onChange={(v) => set("vendas_validar_qr", v)} />
-              <Toggle icon={<Package className="h-4 w-4" />} label="Pedidos online" sub="Ver lista de pedidos pendentes" checked={d.vendas_pedidos} onChange={(v) => set("vendas_pedidos", v)} />
-              <Toggle icon={<Receipt className="h-4 w-4" />} label="Histórico" sub="Vendas e entregas feitas" checked={d.vendas_historico} onChange={(v) => set("vendas_historico", v)} />
-              <Toggle icon={<LockKeyhole className="h-4 w-4" />} label="Fechamento" sub="Fechamento cego de caixa" checked={d.vendas_fechamento} onChange={(v) => set("vendas_fechamento", v)} />
-              <Toggle icon={<Activity className="h-4 w-4" />} label="Ao vivo" sub="Painel ao vivo do evento (caixa, comparativo, ranking)" checked={d.vendas_ao_vivo} onChange={(v) => set("vendas_ao_vivo", v)} />
-            </Section>
+          <Tabs defaultValue="perms">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="perms">Permissões</TabsTrigger>
+              <TabsTrigger value="print"><Printer className="h-3.5 w-3.5 mr-1" />Impressão</TabsTrigger>
+            </TabsList>
 
-            {showDinheiro && (
-              <>
-                <Separator />
-                <Section title="Operação de dinheiro" subtitle="Toda abertura exige autorização do dono ou gerente.">
-                  <Toggle icon={<Wallet className="h-4 w-4" />} label="Pode abrir caixa" sub="Informar valor inicial e abrir turno" checked={d.vendas_abre_caixa} onChange={(v) => set("vendas_abre_caixa", v)} />
-                  <Toggle icon={<ArrowDownToLine className="h-4 w-4" />} label="Pode pedir sangria" sub="Solicitar retirada de dinheiro" checked={d.vendas_sangria} onChange={(v) => set("vendas_sangria", v)} />
-                </Section>
-              </>
-            )}
+            <TabsContent value="perms" className="space-y-5 mt-4">
+              <Section title="Acesso às abas de Vendas">
+                <Toggle icon={<ShoppingCart className="h-4 w-4" />} label="PDV Caixa" sub="Vender no caixa presencial" checked={d.vendas_pdv_caixa} onChange={(v) => set("vendas_pdv_caixa", v)} />
+                <Toggle icon={<Store className="h-4 w-4" />} label="Vender (garçom)" sub="PDV mobile / maquininha" checked={d.vendas_garcom} onChange={(v) => set("vendas_garcom", v)} />
+                <Toggle icon={<ScanLine className="h-4 w-4" />} label="Validar QR" sub="Ler QR e entregar pedido" checked={d.vendas_validar_qr} onChange={(v) => set("vendas_validar_qr", v)} />
+                <Toggle icon={<Package className="h-4 w-4" />} label="Pedidos online" sub="Ver lista de pedidos pendentes" checked={d.vendas_pedidos} onChange={(v) => set("vendas_pedidos", v)} />
+                <Toggle icon={<Receipt className="h-4 w-4" />} label="Histórico" sub="Vendas e entregas feitas" checked={d.vendas_historico} onChange={(v) => set("vendas_historico", v)} />
+                <Toggle icon={<LockKeyhole className="h-4 w-4" />} label="Fechamento" sub="Fechamento cego de caixa" checked={d.vendas_fechamento} onChange={(v) => set("vendas_fechamento", v)} />
+                <Toggle icon={<Activity className="h-4 w-4" />} label="Ao vivo" sub="Painel ao vivo do evento" checked={d.vendas_ao_vivo} onChange={(v) => set("vendas_ao_vivo", v)} />
+              </Section>
 
-            <Separator />
-            <Section title="Formas de pagamento que pode receber">
-              <Toggle icon={<Banknote className="h-4 w-4" />} label="Dinheiro" checked={d.aceita_dinheiro} onChange={(v) => set("aceita_dinheiro", v)} />
-              <Toggle icon={<QrCode className="h-4 w-4" />} label="Pix" sub={d.vendas_garcom ? "Obrigatório quando o garçom pode vender" : undefined} checked={d.aceita_pix} onChange={(v) => set("aceita_pix", v)} disabled={d.vendas_garcom} />
-              <Toggle icon={<CreditCard className="h-4 w-4" />} label="Cartão (débito e crédito)" checked={d.aceita_cartao} onChange={(v) => set("aceita_cartao", v)} />
-              <Toggle icon={<Sparkles className="h-4 w-4" />} label="Crédito promoter" sub="Abater saldo de promoter como pagamento" checked={d.aceita_credito_promoter} onChange={(v) => set("aceita_credito_promoter", v)} />
-            </Section>
-
-            <Separator />
-            <Section title="Consumação interna" subtitle="Permite lançar bebidas para banda, DJ, segurança, funcionário ou sorteio — sai do estoque sem inflar o faturamento.">
-              <Toggle icon={<Beer className="h-4 w-4" />} label="Pode lançar consumação" sub="Aparece um botão extra no checkout do PDV" checked={d.pode_lancar_consumacao} onChange={(v) => set("pode_lancar_consumacao", v)} />
-            </Section>
-
-            <Separator />
-            <Section title="Desconto">
-              <Toggle icon={<Percent className="h-4 w-4" />} label="Pode dar desconto" checked={d.can_discount} onChange={(v) => set("can_discount", v)} />
-              {d.can_discount && (
-                <div className="flex items-center gap-2 pl-7">
-                  <Label className="text-xs">Até</Label>
-                  <Input type="number" min={0} max={100} className="w-20 h-8"
-                    value={d.max_discount_percent}
-                    onChange={(e) => set("max_discount_percent", Math.max(0, Math.min(100, Number(e.target.value) || 0)))} />
-                  <span className="text-xs text-muted-foreground">%</span>
-                </div>
+              {showDinheiro && (
+                <>
+                  <Separator />
+                  <Section title="Operação de dinheiro" subtitle="Toda abertura exige autorização do dono ou gerente.">
+                    <Toggle icon={<Wallet className="h-4 w-4" />} label="Pode abrir caixa" sub="Informar valor inicial e abrir turno" checked={d.vendas_abre_caixa} onChange={(v) => set("vendas_abre_caixa", v)} />
+                    <Toggle icon={<ArrowDownToLine className="h-4 w-4" />} label="Pode pedir sangria" sub="Solicitar retirada de dinheiro" checked={d.vendas_sangria} onChange={(v) => set("vendas_sangria", v)} />
+                  </Section>
+                </>
               )}
-            </Section>
-          </div>
+
+              <Separator />
+              <Section title="Formas de pagamento que pode receber">
+                <Toggle icon={<Banknote className="h-4 w-4" />} label="Dinheiro" checked={d.aceita_dinheiro} onChange={(v) => set("aceita_dinheiro", v)} />
+                <Toggle icon={<QrCode className="h-4 w-4" />} label="Pix" sub={d.vendas_garcom ? "Obrigatório quando o garçom pode vender" : undefined} checked={d.aceita_pix} onChange={(v) => set("aceita_pix", v)} disabled={d.vendas_garcom} />
+                <Toggle icon={<CreditCard className="h-4 w-4" />} label="Cartão (débito e crédito)" checked={d.aceita_cartao} onChange={(v) => set("aceita_cartao", v)} />
+                <Toggle icon={<Sparkles className="h-4 w-4" />} label="Crédito promoter" sub="Abater saldo de promoter como pagamento" checked={d.aceita_credito_promoter} onChange={(v) => set("aceita_credito_promoter", v)} />
+                <Toggle icon={<KeyRound className="h-4 w-4" />} label="Pode lançar PIX por chave" sub="Confirma manualmente que recebeu PIX via chave/QR externo (exige PIN do dono)" checked={d.pode_pix_chave} onChange={(v) => set("pode_pix_chave", v)} />
+              </Section>
+
+              <Separator />
+              <Section title="Consumação interna" subtitle="Permite lançar bebidas para banda, DJ, segurança, funcionário ou sorteio.">
+                <Toggle icon={<Beer className="h-4 w-4" />} label="Pode lançar consumação" sub="Aparece um botão extra no checkout do PDV" checked={d.pode_lancar_consumacao} onChange={(v) => set("pode_lancar_consumacao", v)} />
+              </Section>
+
+              <Separator />
+              <Section title="Desconto">
+                <Toggle icon={<Percent className="h-4 w-4" />} label="Pode dar desconto" checked={d.can_discount} onChange={(v) => set("can_discount", v)} />
+                {d.can_discount && (
+                  <div className="flex items-center gap-2 pl-7">
+                    <Label className="text-xs">Até</Label>
+                    <Input type="number" min={0} max={100} className="w-20 h-8"
+                      value={d.max_discount_percent}
+                      onChange={(e) => set("max_discount_percent", Math.max(0, Math.min(100, Number(e.target.value) || 0)))} />
+                    <span className="text-xs text-muted-foreground">%</span>
+                  </div>
+                )}
+              </Section>
+            </TabsContent>
+
+            <TabsContent value="print" className="space-y-4 mt-4">
+              <p className="text-xs text-muted-foreground">
+                Selecione quais categorias devem imprimir na impressora desse funcionário em cada momento. Categorias desmarcadas não saem na impressora dele.
+              </p>
+              {cats.length === 0 ? (
+                <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                  Nenhuma categoria cadastrada ainda.
+                </div>
+              ) : (
+                <Tabs defaultValue="sale">
+                  <TabsList className="grid grid-cols-2">
+                    <TabsTrigger value="sale">Ao vender</TabsTrigger>
+                    <TabsTrigger value="scan">Ao escanear</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="sale" className="mt-3 space-y-1">
+                    <BulkRow onAll={() => setAllRules("print_on_sale", true)} onNone={() => setAllRules("print_on_sale", false)} />
+                    {cats.map((c) => (
+                      <CategoryRow key={c.id} name={c.name} checked={rules[c.id]?.print_on_sale ?? true} onChange={(v) => setRule(c.id, "print_on_sale", v)} />
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="scan" className="mt-3 space-y-1">
+                    <BulkRow onAll={() => setAllRules("print_on_scan", true)} onNone={() => setAllRules("print_on_scan", false)} />
+                    {cats.map((c) => (
+                      <CategoryRow key={c.id} name={c.name} checked={rules[c.id]?.print_on_scan ?? true} onChange={(v) => setRule(c.id, "print_on_scan", v)} />
+                    ))}
+                  </TabsContent>
+                </Tabs>
+              )}
+            </TabsContent>
+          </Tabs>
         )}
 
         <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           {!isOwnerRow && (
             <Button onClick={save} disabled={saving}>
-              <ShieldCheck className="h-4 w-4" /> {saving ? "Salvando..." : "Salvar permissões"}
+              <ShieldCheck className="h-4 w-4" /> {saving ? "Salvando..." : "Salvar"}
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function BulkRow({ onAll, onNone }: { onAll: () => void; onNone: () => void }) {
+  return (
+    <div className="flex items-center gap-2 pb-2 mb-1 border-b">
+      <span className="text-xs text-muted-foreground flex-1">Marcar:</span>
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onAll}>Todas</Button>
+      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onNone}>Nenhuma</Button>
+    </div>
+  );
+}
+
+function CategoryRow({ name, checked, onChange }: { name: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40 cursor-pointer">
+      <Checkbox checked={checked} onCheckedChange={(v) => onChange(v === true)} />
+      <span className="text-sm flex-1">{name}</span>
+    </label>
   );
 }
 
