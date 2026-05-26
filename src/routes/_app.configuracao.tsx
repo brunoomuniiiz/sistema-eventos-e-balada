@@ -25,15 +25,15 @@ function ConfiguracaoPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Configuração" subtitle="Identidade do bar, funcionários, promoters e maquininhas" />
-      <Tabs defaultValue="identidade">
+      <Tabs defaultValue={isOwner ? "identidade" : "promoters"}>
         <CompactTabsList>
-          <CompactTabsTrigger value="identidade" icon={Settings} short="Ident.">Identidade</CompactTabsTrigger>
-          <CompactTabsTrigger value="funcionarios" icon={UserCog} short="Func.">Funcionários</CompactTabsTrigger>
+          {isOwner && <CompactTabsTrigger value="identidade" icon={Settings} short="Ident.">Identidade</CompactTabsTrigger>}
+          {isOwner && <CompactTabsTrigger value="funcionarios" icon={UserCog} short="Func.">Funcionários</CompactTabsTrigger>}
           <CompactTabsTrigger value="promoters" icon={Users} short="Promo.">Promoters</CompactTabsTrigger>
           {isOwner && <CompactTabsTrigger value="maquininhas" icon={Smartphone} short="Maq.">Maquininhas</CompactTabsTrigger>}
         </CompactTabsList>
-        <TabsContent value="identidade" className="mt-4"><BarIdentityPanel /></TabsContent>
-        <TabsContent value="funcionarios" className="mt-4"><TeamPanel /></TabsContent>
+        {isOwner && <TabsContent value="identidade" className="mt-4"><BarIdentityPanel /></TabsContent>}
+        {isOwner && <TabsContent value="funcionarios" className="mt-4"><TeamPanel /></TabsContent>}
         <TabsContent value="promoters" className="mt-4"><PromotersPanel /></TabsContent>
         {isOwner && <TabsContent value="maquininhas" className="mt-4"><LojinhaDevicesPanel /></TabsContent>}
       </Tabs>
