@@ -1,38 +1,44 @@
-## Problema
+## Objetivo
 
-Na aba **Vender (garçom)**, deslizar nas categorias arrasta a **página inteira** horizontalmente, em vez de mover só a tira de chips. A `CategoryChipBar` já é desenhada para rolar internamente (`overflow-x-auto` + `min-w-0`), mas como ela contém chips com `min-w-max` dentro de um pai flex que não trava largura, o overflow "vaza" para cima e empurra `<main>` para fora da viewport.
+Garantir, de forma **global**, que em qualquer página/dispositivo nunca apareça scroll horizontal — só vertical. Componentes que precisam rolar de lado internamente (como a roleta de categorias) continuam funcionando porque têm seu próprio container com `overflow-x-auto`.
 
-## Causa raiz
+## O que já está no projeto
 
-Em `src/components/AppLayout.tsx` o shell é um flex:
+- `src/styles.css` já tem `body { overflow-x: hidden }` e `html, body, #root { max-width: 100vw }`.
+- `src/components/AppLayout.tsx` (corrigido agora há pouco) tem `min-w-0 overflow-x-hidden` no `<main>` e `min-w-0` no wrapper interno.
 
-```text
-<div class="min-h-screen flex">
-  <aside ... />            ← sidebar fixa
-  <main class="flex-1 ..."> ← SEM min-w-0
-    <div class="px-4 md:px-8 ... max-w-7xl mx-auto"> ← SEM min-w-0 / overflow-x-hidden
-      <Outlet />
+Mesmo assim o scroll lateral aparecia porque `overflow-x: hidden` ainda cria um *scroll container*: filhos com `min-w-max` (chips, tabelas largas, etc.) podem ser puxados de lado via toque/wheel. A solução robusta é usar `overflow-x: clip`, que **só recorta** sem permitir scroll.
+
+## Mudança proposta — somente CSS global
+
+`src/styles.css` (bloco `@layer base`):
+
+1. Trocar `body { overflow-x: hidden }` por `overflow-x: clip` e replicar em `html` e `#root` para que nenhum nível raiz vire scroll container.
+2. Manter `max-width: 100vw` em `html, body, #root` (já existe).
+3. Adicionar fallback para navegadores sem suporte a `clip`:
+   ```css
+   @supports not (overflow: clip) {
+     html, body, #root { overflow-x: hidden; }
+   }
+   ```
+
+Resultado:
+
+```css
+html { color-scheme: dark; overflow-x: clip; }
+body { ...; overflow-x: clip; }
+html, body, #root { max-width: 100vw; overflow-x: clip; }
 ```
 
-Em flex, um filho com `flex-1` cresce até o conteúdo quando não tem `min-w-0` — esse é o "flex blowout" clássico. Qualquer filho com `min-w-max` (os chips da categoria) faz a `<main>` ficar maior que a viewport e a página inteira ganha scroll horizontal.
+Nenhuma media query é necessária — `overflow-x: clip` é seguro em desktop também (não atrapalha o scroll vertical da página).
 
-## Mudança proposta (cirúrgica, só CSS)
+## O que NÃO muda
 
-`src/components/AppLayout.tsx`:
-
-1. Linha 116 — adicionar `min-w-0` e `overflow-x-hidden` ao `<main>`:
-   ```tsx
-   <main className="flex-1 min-w-0 overflow-x-hidden md:ml-16 pb-[...] md:pb-8">
-   ```
-2. Linha 132 — adicionar `min-w-0` ao wrapper interno:
-   ```tsx
-   <div className="px-4 md:px-8 py-6 md:py-8 max-w-7xl mx-auto min-w-0">
-   ```
-
-Nada na `CategoryChipBar` nem na `LojinhaPosView` precisa mudar — elas já estão corretas; só estavam sendo "estouradas" pelo pai.
+- `CategoryChipBar` e qualquer outro container com `overflow-x-auto` continua arrastando lateralmente normalmente, porque `clip` no ancestral só impede que o overflow vaze para fora, não impede scroll **dentro** do filho.
+- Nenhum componente, hook ou lógica de negócio é tocado.
 
 ## Validação
 
-- Abrir `/vendas` → aba **Vender (garçom)** no viewport mobile (≈673px).
-- Arrastar lateralmente nos chips: só a tira deve rolar, página fica parada.
-- Conferir outras rotas (Configuração, Estoque, Eventos) — layout permanece igual, sem novo clipping indesejado.
+- Aba **Vender (garçom)** no mobile (≤768px): arrastar nos chips só move a tira; arrastar fora dos chips não move nada lateralmente.
+- Tablet (≈820px) e desktop: mesmo comportamento, sem regressão.
+- Páginas com tabelas largas (Histórico de Vendas, Caixas): conferir se a tabela ainda rola dentro do próprio container — se não rolar, é porque a tabela não tinha um wrapper com `overflow-x-auto` próprio (problema separado, fora do escopo desta correção).
