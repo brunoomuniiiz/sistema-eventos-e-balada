@@ -80,7 +80,36 @@ export function usePermissions() {
   if (aceitaPix) acceptedMethods.push("pix");
   const canSellCash = aceitaDinheiro;
 
-  const canAddProducts = isOwner || (flagOf("pode_adicionar_bebidas", false) && can("estoque"));
+  const hasEstoque = can("estoque");
+  const hasEventos = can("eventos");
+  const hasPromoters = can("promoters");
+  const hasFinanceiro = can("financeiro");
+
+  // Produtos (sub-permissões; fallback legado `pode_adicionar_bebidas` para criar/editar/entrada)
+  const legacyAddProducts = flagOf("pode_adicionar_bebidas", false);
+  const canProdutosConferir = isOwner || (hasEstoque && flagOf("produtos_conferir_estoque", false));
+  const canProdutosAddEntrada = isOwner || (hasEstoque && (flagOf("produtos_adicionar_entrada", false) || legacyAddProducts));
+  const canProdutosCriarEditar = isOwner || (hasEstoque && (flagOf("produtos_criar_editar", false) || legacyAddProducts));
+  const canProdutosCriarCombo = isOwner || (hasEstoque && (flagOf("produtos_criar_combo", false) || legacyAddProducts));
+  const canProdutosInventario = isOwner || (hasEstoque && flagOf("produtos_inventario", false));
+  // Mantém compat: qualquer permissão de Produtos = "pode entrar no módulo e fazer algo"
+  const canAddProducts = canProdutosCriarEditar || canProdutosAddEntrada || canProdutosCriarCombo;
+
+  // Eventos
+  const canEventosCriar = isOwner || (hasEventos && flagOf("eventos_criar", false));
+  const canEventosEditar = isOwner || (hasEventos && flagOf("eventos_editar", false));
+  const canEventosAbrirEncerrar = isOwner || (hasEventos && flagOf("eventos_abrir_encerrar", false));
+  const canEventosVerFinanceiro = isOwner || (hasEventos && flagOf("eventos_ver_financeiro", false));
+
+  // Promoters
+  const canPromotersGerenciar = isOwner || (hasPromoters && flagOf("promoters_gerenciar", false));
+  const canPromotersComissoes = isOwner || (hasPromoters && flagOf("promoters_comissoes", false));
+  const canPromotersVerDesempenho = isOwner || (hasPromoters && flagOf("promoters_ver_desempenho", false));
+
+  // Financeiro
+  const canFinLancarDespesas = isOwner || (hasFinanceiro && flagOf("financeiro_lancar_despesas", false));
+  const canFinVerNumeros = isOwner || (hasFinanceiro && flagOf("financeiro_ver_numeros", false));
+  const canFinFecharCaixa = isOwner || (hasFinanceiro && flagOf("financeiro_fechar_caixa", false));
 
   const lojinhaCanSell = isOwner || flagOf("lojinha_can_sell", false);
   const lojinhaPaymentMethods = (
@@ -95,10 +124,14 @@ export function usePermissions() {
   const canValidarQr = isOwner || ((hasVendas || hasLojinha) && flagOf("vendas_validar_qr", true));
   const canVerPedidos = isOwner || ((hasVendas || hasLojinha) && flagOf("vendas_pedidos", true));
   const canVerHistorico = isOwner || ((hasVendas || hasLojinha) && flagOf("vendas_historico", true));
-  const canFechamento = isOwner || (hasVendas && flagOf("vendas_fechamento", true));
-  const canAbrirCaixa = isOwner || (hasVendas && flagOf("vendas_abre_caixa", true));
+  // Nova flag única "abrir/fechar caixa" engloba as 2 antigas; mantemos retrocompat
+  const canAbrirFecharCaixa = isOwner || (hasVendas && (flagOf("vendas_abrir_fechar_caixa", false) || flagOf("vendas_abre_caixa", false) || flagOf("vendas_fechamento", false)));
+  const canFechamento = canAbrirFecharCaixa;
+  const canAbrirCaixa = canAbrirFecharCaixa;
   const canSangria = isOwner || (hasVendas && flagOf("vendas_sangria", true));
   const canAoVivo = isOwner || flagOf("vendas_ao_vivo", false);
+  // Crédito promoter em DINHEIRO (sub-flag de aceita_credito_promoter)
+  const canPromoterCreditoDinheiro = isOwner || (aceitaCreditoPromoter && flagOf("vendas_promoter_creditos_dinheiro", false));
 
   return {
     isOwner,
@@ -117,8 +150,24 @@ export function usePermissions() {
     aceitaCartao,
     aceitaCreditoPromoter,
     canPromoterCredit: aceitaCreditoPromoter,
+    canPromoterCreditoDinheiro,
     canConsumacao,
     canAddProducts,
+    canProdutosConferir,
+    canProdutosAddEntrada,
+    canProdutosCriarEditar,
+    canProdutosCriarCombo,
+    canProdutosInventario,
+    canEventosCriar,
+    canEventosEditar,
+    canEventosAbrirEncerrar,
+    canEventosVerFinanceiro,
+    canPromotersGerenciar,
+    canPromotersComissoes,
+    canPromotersVerDesempenho,
+    canFinLancarDespesas,
+    canFinVerNumeros,
+    canFinFecharCaixa,
     lojinhaCanSell,
     lojinhaPaymentMethods,
     lojinhaPointDeviceId,
@@ -129,6 +178,7 @@ export function usePermissions() {
     canVerHistorico,
     canFechamento,
     canAbrirCaixa,
+    canAbrirFecharCaixa,
     canSangria,
     canAoVivo,
     loading: isLoading,
