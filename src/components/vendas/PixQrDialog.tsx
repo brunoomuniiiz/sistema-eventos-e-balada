@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Copy, Check, Loader2, X } from "lucide-react";
+import { Copy, Check, Loader2, X, KeyRound, QrCode as QrIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { createPixCharge, getPixChargeStatus, cancelPixCharge } from "@/lib/pix.functions";
 import { simulatePixApproval } from "@/lib/pix-public.functions";
 import { formatBRL } from "@/lib/format";
+import { AuthorizationDialog } from "@/components/AuthorizationDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type Props = {
   open: boolean;
@@ -18,6 +22,8 @@ type Props = {
   orderId?: string | null;
   salePayload?: unknown;
   onApproved: (chargeId: string) => void | Promise<void>;
+  /** Quando informado e o usuário tem pode_pix_chave, libera a aba "Chave PIX" */
+  onChaveApproved?: (info: { notes: string; authorizedByName: string }) => void | Promise<void>;
 };
 
 type Charge = {
