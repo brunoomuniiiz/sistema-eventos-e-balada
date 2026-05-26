@@ -89,12 +89,16 @@ export function PromotersPanel() {
           {promoters.length} {promoters.length === 1 ? "promoter cadastrado" : "promoters cadastrados"}
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => setGlobalRuleOpen(true)}>
-            <Settings2 className="h-4 w-4 mr-1.5" /> Regra padrão de crédito
-          </Button>
-          <Button onClick={() => { setEditing(null); setOpen(true); }} className="bg-gradient-primary text-primary-foreground glow-primary">
-            <Plus className="h-4 w-4 mr-1.5" /> Novo promoter
-          </Button>
+          {canPromotersComissoes && (
+            <Button variant="outline" onClick={() => setGlobalRuleOpen(true)}>
+              <Settings2 className="h-4 w-4 mr-1.5" /> Regra padrão de crédito
+            </Button>
+          )}
+          {canPromotersGerenciar && (
+            <Button onClick={() => { setEditing(null); setOpen(true); }} className="bg-gradient-primary text-primary-foreground glow-primary">
+              <Plus className="h-4 w-4 mr-1.5" /> Novo promoter
+            </Button>
+          )}
         </div>
       </div>
 
