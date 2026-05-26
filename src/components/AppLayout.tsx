@@ -129,7 +129,7 @@ function AppLayoutInner() {
           </div>
         </header>
 
-        <div className="px-4 md:px-8 py-6 md:py-8 max-w-7xl mx-auto">
+        <div className="px-4 md:px-8 py-6 md:py-8 max-w-7xl mx-auto min-w-0">
           <Outlet />
         </div>
       </main>
