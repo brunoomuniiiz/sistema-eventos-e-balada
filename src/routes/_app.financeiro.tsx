@@ -37,7 +37,7 @@ type FinancialRow = {
 };
 
 function FinanceiroPage() {
-  const { ownerId, can, loading } = usePermissions();
+  const { ownerId, can, loading, canFinLancarDespesas, canFinVerNumeros, canFinFecharCaixa } = usePermissions();
 
   const { data, isLoading } = useQuery({
     queryKey: ["financeiro-real", ownerId],
