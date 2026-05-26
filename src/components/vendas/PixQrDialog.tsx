@@ -44,7 +44,14 @@ export function PixQrDialog({
   orderId,
   salePayload,
   onApproved,
+  onChaveApproved,
 }: Props) {
+  const { canPixChave } = usePermissions();
+  const chaveEnabled = !!onChaveApproved && canPixChave;
+  const [tab, setTab] = useState<"qr" | "chave">("qr");
+  const [chaveNotes, setChaveNotes] = useState("");
+  const [authOpen, setAuthOpen] = useState(false);
+  const [chaveLoading, setChaveLoading] = useState(false);
   const create = useServerFn(createPixCharge);
   const checkStatus = useServerFn(getPixChargeStatus);
   const cancel = useServerFn(cancelPixCharge);
