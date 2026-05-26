@@ -29,16 +29,17 @@ function VendasPage() {
   const {
     ownerId, isOwner, loading, can,
     canPdvCaixa, canVenderGarcom, canValidarQr, canVerPedidos, canVerHistorico,
+    canFinFecharCaixa,
   } = usePermissions();
   const isManager = isOwner || can("financeiro");
   const { tab } = useSearch({ from: "/_app/vendas" });
   const navigate = useNavigate();
 
-  const hasAny = canPdvCaixa || canVenderGarcom || canValidarQr || canVerPedidos || canVerHistorico || isManager;
+  const hasAny = canPdvCaixa || canVenderGarcom || canValidarQr || canVerPedidos || canVerHistorico || isManager || canFinFecharCaixa;
   const showPdvCaixa = canPdvCaixa;
   const showPdvGarcom = canVenderGarcom;
   const allowedTabs = [
-    ...(isManager ? ["caixas"] : []),
+    ...((isOwner || canFinFecharCaixa) ? ["caixas"] : []),
     ...(showPdvCaixa ? ["pdv"] : []),
     ...(showPdvGarcom ? ["vender"] : []),
     ...(canValidarQr ? ["scanner"] : []),

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignupOwnerRouteImport } from './routes/signup-owner'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
@@ -41,6 +42,11 @@ import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp-w
 import { Route as AppEventosEventIdRouteImport } from './routes/_app.eventos.$eventId'
 import { Route as LojaSlugPedidoOrderIdRouteImport } from './routes/loja.$slug_.pedido.$orderId'
 
+const SignupOwnerRoute = SignupOwnerRouteImport.update({
+  id: '/signup-owner',
+  path: '/signup-owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup-owner': typeof SignupOwnerRoute
   '/admin-caixas': typeof AppAdminCaixasRoute
   '/ao-vivo': typeof AppAoVivoRoute
   '/bar-settings': typeof AppBarSettingsRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup-owner': typeof SignupOwnerRoute
   '/admin-caixas': typeof AppAdminCaixasRoute
   '/ao-vivo': typeof AppAoVivoRoute
   '/bar-settings': typeof AppBarSettingsRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup-owner': typeof SignupOwnerRoute
   '/_app/admin-caixas': typeof AppAdminCaixasRoute
   '/_app/ao-vivo': typeof AppAoVivoRoute
   '/_app/bar-settings': typeof AppBarSettingsRoute
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/signup-owner'
     | '/admin-caixas'
     | '/ao-vivo'
     | '/bar-settings'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/signup-owner'
     | '/admin-caixas'
     | '/ao-vivo'
     | '/bar-settings'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/auth'
     | '/reset-password'
+    | '/signup-owner'
     | '/_app/admin-caixas'
     | '/_app/ao-vivo'
     | '/_app/bar-settings'
@@ -399,6 +411,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupOwnerRoute: typeof SignupOwnerRoute
   ESlugRoute: typeof ESlugRoute
   ListaSlugRoute: typeof ListaSlugRoute
   LojaSlugRoute: typeof LojaSlugRoute
@@ -409,6 +422,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signup-owner': {
+      id: '/signup-owner'
+      path: '/signup-owner'
+      fullPath: '/signup-owner'
+      preLoaderRoute: typeof SignupOwnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -684,6 +704,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SignupOwnerRoute: SignupOwnerRoute,
   ESlugRoute: ESlugRoute,
   ListaSlugRoute: ListaSlugRoute,
   LojaSlugRoute: LojaSlugRoute,
@@ -694,13 +715,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

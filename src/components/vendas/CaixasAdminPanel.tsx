@@ -20,11 +20,11 @@ import { ptBR } from "date-fns/locale";
 import { AuthorizationDialog } from "@/components/AuthorizationDialog";
 
 export function CaixasAdminPanel() {
-  const { isOwner, can } = usePermissions();
+  const { isOwner, canFinFecharCaixa } = usePermissions();
   const { data: rows = [], isLoading } = useSectorStatuses();
 
-  if (!(isOwner || can("financeiro"))) {
-    return <Card><CardContent className="p-6 text-muted-foreground">Apenas o dono ou gerente pode acessar.</CardContent></Card>;
+  if (!(isOwner || canFinFecharCaixa)) {
+    return <Card><CardContent className="p-6 text-muted-foreground">Apenas o dono ou quem tem permissão de fechar caixa pode acessar.</CardContent></Card>;
   }
 
   const bar = rows.find((r) => r.sector === "bar");

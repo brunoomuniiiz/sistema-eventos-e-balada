@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 import { usePermissions } from "@/hooks/usePermissions";
+import { useActiveEvent } from "@/hooks/useActiveEvent";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,8 +51,8 @@ function PortariaPage() {
   const { ownerId, isOwner, can, acceptedMethods, loading } = usePermissions();
   const allowed = isOwner || can("portaria");
   const qc = useQueryClient();
+  const { activeEvent } = useActiveEvent();
 
-  const [eventId, setEventId] = useState<string>("");
   const [search, setSearch] = useState("");
   const [openCash, setOpenCash] = useState(false);
   const [closingCash, setClosingCash] = useState(false);
@@ -80,21 +81,8 @@ function PortariaPage() {
     },
   });
 
-  const { data: events = [] } = useQuery({
-    queryKey: ["portaria-events", ownerId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("id, name, date, status")
-        .in("status", ["upcoming", "ongoing"])
-        .order("date", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!ownerId && allowed,
-  });
-
-  useEffect(() => { if (!eventId && events.length > 0) setEventId(events[0].id); }, [events, eventId]);
+  const eventId = activeEvent.kind === "single" ? activeEvent.event.id : "";
+  const eventName = activeEvent.kind === "single" ? activeEvent.event.name : activeEvent.kind === "multiple" ? "Múltiplos eventos" : "Nenhum evento aberto";
 
   const { data: guests = [] } = useQuery({
     queryKey: ["portaria-guests", eventId],
@@ -196,7 +184,7 @@ function PortariaPage() {
   if (loading) return null;
   if (!allowed) return <PageHeader title="Portaria" subtitle="Você não tem permissão para acessar esta página" />;
 
-  if (events.length === 0) {
+  if (activeEvent.kind === "none") {
     return (
       <div>
         <PageHeader title="Portaria" subtitle="Nenhum evento aberto no momento" />
@@ -233,13 +221,11 @@ function PortariaPage() {
       <CashGate sector="portaria" sectorLabel="Portaria">
 
       <div className="mb-4">
-        <Label className="text-xs flex items-center gap-1 mb-1"><CalendarDays className="h-3 w-3" />Evento</Label>
-        <Select value={eventId} onValueChange={setEventId}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {events.map((e) => (<SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarDays className="h-4 w-4 text-primary" />
+          <span>Entrada para:</span>
+          <Badge variant="outline" className="font-medium">{eventName}</Badge>
+        </div>
       </div>
 
       <Card className="mb-4">

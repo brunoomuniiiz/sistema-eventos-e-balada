@@ -12,7 +12,7 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-type Mode = "signin" | "signup" | "forgot";
+type Mode = "signin" | "forgot";
 
 function AuthPage() {
   const { user, loading: authLoading } = useAuth();
@@ -21,7 +21,6 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [displayName, setDisplayName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -32,18 +31,7 @@ function AuthPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: { display_name: displayName || email.split("@")[0] },
-          },
-        });
-        if (error) throw error;
-        toast.success("Conta criada! Você já está logado.");
-      } else if (mode === "signin") {
+      if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
@@ -63,12 +51,10 @@ function AuthPage() {
     }
   };
 
-  const title = mode === "signin" ? "Entrar" : mode === "signup" ? "Criar conta" : "Recuperar senha";
+  const title = mode === "signin" ? "Entrar" : "Recuperar senha";
   const subtitle =
     mode === "signin"
       ? "Acesse o painel da sua casa"
-      : mode === "signup"
-      ? "Comece a gerenciar seus eventos"
       : "Enviaremos um link para o seu email";
 
   return (
@@ -85,17 +71,6 @@ function AuthPage() {
           <p className="text-sm text-muted-foreground text-center mt-1.5">{subtitle}</p>
 
           <form onSubmit={onSubmit} className="mt-7 space-y-4">
-            {mode === "signup" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Como você quer ser chamado"
-                />
-              </div>
-            )}
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -153,8 +128,6 @@ function AuthPage() {
                 ? "Aguarde..."
                 : mode === "signin"
                 ? "Entrar"
-                : mode === "signup"
-                ? "Criar conta"
                 : "Enviar link de recuperação"}
             </Button>
           </form>
@@ -164,20 +137,10 @@ function AuthPage() {
               <button onClick={() => setMode("signin")} className="text-primary hover:underline font-medium">
                 Voltar para login
               </button>
-            ) : mode === "signin" ? (
-              <>
-                Não tem conta?{" "}
-                <button onClick={() => setMode("signup")} className="text-primary hover:underline font-medium">
-                  Criar agora
-                </button>
-              </>
             ) : (
-              <>
-                Já tem conta?{" "}
-                <button onClick={() => setMode("signin")} className="text-primary hover:underline font-medium">
-                  Entrar
-                </button>
-              </>
+              <p className="text-xs">
+                O acesso é restrito. Se precisar de uma conta, fale com o responsável.
+              </p>
             )}
           </div>
         </div>

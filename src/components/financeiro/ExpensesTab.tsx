@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +66,7 @@ type ExpenseRow = {
 
 export function ExpensesTab({ kind }: { kind: Kind }) {
   const { user } = useAuth();
+  const { isOwner, canFinLancarDespesas } = usePermissions();
   const qc = useQueryClient();
   const [openForm, setOpenForm] = useState(false);
   const [payTarget, setPayTarget] = useState<ExpenseRow | null>(null);
@@ -72,6 +74,8 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  const canEdit = isOwner || canFinLancarDespesas;
 
   const { start, end } = monthRange(month);
 
@@ -162,9 +166,11 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
             {recentMonths(12).map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button className="ml-auto" onClick={() => setOpenForm(true)}>
-          <Plus className="h-4 w-4" /> Novo lançamento
-        </Button>
+        {canEdit && (
+          <Button className="ml-auto" onClick={() => setOpenForm(true)}>
+            <Plus className="h-4 w-4" /> Novo lançamento
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -221,6 +227,7 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
                 <CardContent className="p-3 flex items-center gap-3">
                   <button
                     onClick={() => {
+                      if (!canEdit) return toast.error("Sem permissão para alterar pagamentos.");
                       if (r.paid) {
                         if (confirm("Desfazer pagamento desta despesa?")) undoPay.mutate(r.id);
                       } else {
@@ -229,7 +236,7 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
                     }}
                     className={`h-9 w-9 rounded-full grid place-items-center shrink-0 ${
                       r.paid ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
-                    }`}
+                    } ${!canEdit ? "opacity-50 cursor-not-allowed" : ""}`}
                     title={r.paid ? "Pago — clique para desfazer" : "A pagar — clique para registrar"}
                   >
                     {r.paid ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
@@ -281,10 +288,12 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
                     )}
                   </div>
 
-                  <Button size="icon" variant="ghost"
-                    onClick={() => { if (confirm("Remover este lançamento?")) remove.mutate(r.id); }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {canEdit && (
+                    <Button size="icon" variant="ghost"
+                      onClick={() => { if (confirm("Remover este lançamento?")) remove.mutate(r.id); }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );

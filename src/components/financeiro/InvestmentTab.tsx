@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -58,10 +59,13 @@ type Group = {
 
 export function InvestmentTab() {
   const { user } = useAuth();
+  const { isOwner, canFinLancarDespesas } = usePermissions();
   const qc = useQueryClient();
   const [openForm, setOpenForm] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [payTarget, setPayTarget] = useState<Row | null>(null);
+
+  const canEdit = isOwner || canFinLancarDespesas;
 
   const { data: rows = [], isLoading } = useQuery<Row[]>({
     queryKey: ["investments", user?.id],
@@ -190,9 +194,11 @@ export function InvestmentTab() {
         <p className="text-xs text-muted-foreground">
           Equipamentos, obras e melhorias. Não baixam o lucro do mês.
         </p>
-        <Button onClick={() => setOpenForm(true)}>
-          <Plus className="h-4 w-4" /> Novo investimento
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setOpenForm(true)}>
+            <Plus className="h-4 w-4" /> Novo investimento
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -321,18 +327,20 @@ export function InvestmentTab() {
                           </div>
                         );
                       })}
-                      <div className="p-2 flex justify-end">
-                        <Button
-                          variant="ghost" size="sm"
-                          onClick={() => {
-                            if (confirm(`Remover o investimento "${g.name}" e todas as ${g.installmentsCount} parcelas?`)) {
-                              removeGroup.mutate(g.key);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Remover investimento
-                        </Button>
-                      </div>
+                      {canEdit && (
+                        <div className="p-2 flex justify-end">
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => {
+                              if (confirm(`Remover o investimento "${g.name}" e todas as ${g.installmentsCount} parcelas?`)) {
+                                removeGroup.mutate(g.key);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Remover investimento
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

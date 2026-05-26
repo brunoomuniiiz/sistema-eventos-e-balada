@@ -797,6 +797,8 @@ export type Database = {
       }
       events: {
         Row: {
+          auto_close_hours_after: number
+          auto_open_minutes_before: number
           created_at: string
           date: string
           description: string | null
@@ -813,6 +815,8 @@ export type Database = {
           whatsapp_group_url: string | null
         }
         Insert: {
+          auto_close_hours_after?: number
+          auto_open_minutes_before?: number
           created_at?: string
           date: string
           description?: string | null
@@ -829,6 +833,8 @@ export type Database = {
           whatsapp_group_url?: string | null
         }
         Update: {
+          auto_close_hours_after?: number
+          auto_open_minutes_before?: number
           created_at?: string
           date?: string
           description?: string | null
