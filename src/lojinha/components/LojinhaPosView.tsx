@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy } from "lucide-react";
+import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { createPosOrder, confirmDeliveryPos, markPosPaid, reserveCartItem } from
 import { createPixCharge } from "@/lib/pix.functions";
 import { ProductCard } from "@/components/sales/ProductCard";
 import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
+import { printPrepSlips, qrSvgString } from "@/lib/order-print";
 
 type Product = {
   id: string;
