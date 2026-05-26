@@ -327,18 +327,20 @@ export function InvestmentTab() {
                           </div>
                         );
                       })}
-                      <div className="p-2 flex justify-end">
-                        <Button
-                          variant="ghost" size="sm"
-                          onClick={() => {
-                            if (confirm(`Remover o investimento "${g.name}" e todas as ${g.installmentsCount} parcelas?`)) {
-                              removeGroup.mutate(g.key);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Remover investimento
-                        </Button>
-                      </div>
+                      {canEdit && (
+                        <div className="p-2 flex justify-end">
+                          <Button
+                            variant="ghost" size="sm"
+                            onClick={() => {
+                              if (confirm(`Remover o investimento "${g.name}" e todas as ${g.installmentsCount} parcelas?`)) {
+                                removeGroup.mutate(g.key);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Remover investimento
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
