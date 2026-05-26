@@ -66,6 +66,7 @@ type ExpenseRow = {
 
 export function ExpensesTab({ kind }: { kind: Kind }) {
   const { user } = useAuth();
+  const { isOwner, canFinLancarDespesas } = usePermissions();
   const qc = useQueryClient();
   const [openForm, setOpenForm] = useState(false);
   const [payTarget, setPayTarget] = useState<ExpenseRow | null>(null);
@@ -73,6 +74,8 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  const canEdit = isOwner || canFinLancarDespesas;
 
   const { start, end } = monthRange(month);
 
