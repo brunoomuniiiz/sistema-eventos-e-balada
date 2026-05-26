@@ -227,6 +227,7 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
                 <CardContent className="p-3 flex items-center gap-3">
                   <button
                     onClick={() => {
+                      if (!canEdit) return toast.error("Sem permissão para alterar pagamentos.");
                       if (r.paid) {
                         if (confirm("Desfazer pagamento desta despesa?")) undoPay.mutate(r.id);
                       } else {
@@ -235,7 +236,7 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
                     }}
                     className={`h-9 w-9 rounded-full grid place-items-center shrink-0 ${
                       r.paid ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
-                    }`}
+                    } ${!canEdit ? "opacity-50 cursor-not-allowed" : ""}`}
                     title={r.paid ? "Pago — clique para desfazer" : "A pagar — clique para registrar"}
                   >
                     {r.paid ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
