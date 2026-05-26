@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck, KeyRound } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { requestAuthGrant } from "@/lib/auth-grant.functions";
 import { grantViaPin, hasOwnerPin } from "@/lib/owner-pin.functions";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 
 type Scope = "withdrawal" | "discount" | "closing" | "open_cash" | "operation" | "refund" | "report";
 
@@ -24,17 +24,12 @@ interface Props {
 }
 
 export function AuthorizationDialog({ open, onOpenChange, scope, title, description, onApproved }: Props) {
-  const [mode, setMode] = useState<"pin" | "email">("pin");
   const [pin, setPin] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fnEmail = useServerFn(requestAuthGrant);
   const fnPin = useServerFn(grantViaPin);
   const fnHas = useServerFn(hasOwnerPin);
 
-  // Detecta se workspace tem PIN cadastrado pra escolher modo padrão
   const { data: pinStatus } = useQuery({
     queryKey: ["has-owner-pin"],
     queryFn: () => fnHas(),
@@ -43,30 +38,19 @@ export function AuthorizationDialog({ open, onOpenChange, scope, title, descript
   });
 
   useEffect(() => {
-    if (open) {
-      setMode(pinStatus?.exists ? "pin" : "email");
-      setPin(""); setEmail(""); setPassword("");
-    }
-  }, [open, pinStatus]);
-
-  const scopeForEmail = (["operation", "refund", "report"] as Scope[]).includes(scope)
-    ? "withdrawal" // server fn antigo não conhece os novos scopes; mantém compatibilidade
-    : scope as "withdrawal" | "discount" | "closing" | "open_cash";
+    if (open) setPin("");
+  }, [open]);
 
   const submit = async () => {
+    if (!/^[0-9]{4,8}$/.test(pin)) {
+      toast.error("Digite o PIN (4 a 8 dígitos)");
+      return;
+    }
     setLoading(true);
     try {
-      if (mode === "pin") {
-        if (!/^[0-9]{4,8}$/.test(pin)) return toast.error("Digite o PIN (4 a 8 dígitos)");
-        const res = await fnPin({ data: { pin, scope } });
-        onApproved(res.token, res.authorized_by_name);
-        toast.success(`Autorizado por ${res.authorized_by_name}`);
-      } else {
-        if (!email || !password) return toast.error("Preencha e-mail e senha");
-        const res = await fnEmail({ data: { email: email.trim(), password, scope: scopeForEmail } });
-        onApproved(res.token, res.authorized_by_name);
-        toast.success(`Autorizado por ${res.authorized_by_name}`);
-      }
+      const res = await fnPin({ data: { pin, scope } });
+      onApproved(res.token, res.authorized_by_name);
+      toast.success(`Autorizado por ${res.authorized_by_name}`);
       onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha na autorização");
@@ -85,7 +69,12 @@ export function AuthorizationDialog({ open, onOpenChange, scope, title, descript
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        {mode === "pin" ? (
+        {pinStatus && !pinStatus.exists ? (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm space-y-2">
+            <p className="font-medium">PIN do dono ainda não foi cadastrado.</p>
+            <p className="text-muted-foreground text-xs">Vá em <Link to="/minha-conta" className="underline">Minha conta</Link> e cadastre um PIN antes de autorizar operações sensíveis.</p>
+          </div>
+        ) : (
           <div className="space-y-3">
             <Label className="flex items-center gap-1.5"><KeyRound className="h-3.5 w-3.5" /> PIN do dono</Label>
             <Input
@@ -100,40 +89,12 @@ export function AuthorizationDialog({ open, onOpenChange, scope, title, descript
               placeholder="••••"
               className="h-14 text-2xl text-center tracking-[0.6em] font-bold"
             />
-            <button
-              type="button"
-              onClick={() => setMode("email")}
-              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-            >
-              Usar e-mail e senha
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div>
-              <Label>E-mail do responsável</Label>
-              <Input type="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="dono@bar.com" />
-            </div>
-            <div>
-              <Label>Senha</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
-            </div>
-            {pinStatus?.exists && (
-              <button
-                type="button"
-                onClick={() => setMode("pin")}
-                className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-              >
-                Voltar para PIN
-              </button>
-            )}
           </div>
         )}
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submit} disabled={loading}>
+          <Button onClick={submit} disabled={loading || (pinStatus && !pinStatus.exists)}>
             {loading ? "Verificando..." : "Autorizar"}
           </Button>
         </DialogFooter>

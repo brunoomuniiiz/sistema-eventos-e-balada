@@ -1305,6 +1305,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_terminals: {
+        Row: {
+          accepts_credito: boolean
+          accepts_debito: boolean
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          mp_device_id: string | null
+          owner_label: string | null
+          provider: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepts_credito?: boolean
+          accepts_debito?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          mp_device_id?: string | null
+          owner_label?: string | null
+          provider: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepts_credito?: boolean
+          accepts_debito?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          mp_device_id?: string | null
+          owner_label?: string | null
+          provider?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pix_charges: {
         Row: {
           amount: number
@@ -1372,6 +1414,84 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      print_rules: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          print_on_sale: boolean
+          print_on_scan: boolean
+          updated_at: string
+          user_id: string
+          user_role_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          print_on_sale?: boolean
+          print_on_scan?: boolean
+          updated_at?: string
+          user_id: string
+          user_role_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          print_on_sale?: boolean
+          print_on_scan?: boolean
+          updated_at?: string
+          user_id?: string
+          user_role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_rules_user_role_id_fkey"
+            columns: ["user_role_id"]
+            isOneToOne: false
+            referencedRelation: "user_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      printers: {
+        Row: {
+          created_at: string
+          id: string
+          location: string | null
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          name: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       product_categories: {
         Row: {
@@ -1923,8 +2043,10 @@ export type Database = {
           created_at: string
           id: string
           method: string
+          notes: string | null
           promoter_id: string | null
           sale_id: string
+          terminal_id: string | null
           user_id: string
         }
         Insert: {
@@ -1932,8 +2054,10 @@ export type Database = {
           created_at?: string
           id?: string
           method: string
+          notes?: string | null
           promoter_id?: string | null
           sale_id: string
+          terminal_id?: string | null
           user_id: string
         }
         Update: {
@@ -1941,8 +2065,10 @@ export type Database = {
           created_at?: string
           id?: string
           method?: string
+          notes?: string | null
           promoter_id?: string | null
           sale_id?: string
+          terminal_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1951,6 +2077,13 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_payments_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "payment_terminals"
             referencedColumns: ["id"]
           },
         ]
@@ -1985,6 +2118,7 @@ export type Database = {
           released_by_name: string | null
           session_id: string | null
           status: string
+          terminal_id: string | null
           total: number
           updated_at: string
           user_id: string
@@ -2018,6 +2152,7 @@ export type Database = {
           released_by_name?: string | null
           session_id?: string | null
           status?: string
+          terminal_id?: string | null
           total?: number
           updated_at?: string
           user_id: string
@@ -2051,6 +2186,7 @@ export type Database = {
           released_by_name?: string | null
           session_id?: string | null
           status?: string
+          terminal_id?: string | null
           total?: number
           updated_at?: string
           user_id?: string
@@ -2061,6 +2197,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "payment_terminals"
             referencedColumns: ["id"]
           },
         ]
@@ -2439,6 +2582,7 @@ export type Database = {
           pix_key: string | null
           pode_adicionar_bebidas: boolean
           pode_lancar_consumacao: boolean
+          pode_pix_chave: boolean
           produtos_adicionar_entrada: boolean
           produtos_conferir_estoque: boolean
           produtos_criar_combo: boolean
@@ -2494,6 +2638,7 @@ export type Database = {
           pix_key?: string | null
           pode_adicionar_bebidas?: boolean
           pode_lancar_consumacao?: boolean
+          pode_pix_chave?: boolean
           produtos_adicionar_entrada?: boolean
           produtos_conferir_estoque?: boolean
           produtos_criar_combo?: boolean
@@ -2549,6 +2694,7 @@ export type Database = {
           pix_key?: string | null
           pode_adicionar_bebidas?: boolean
           pode_lancar_consumacao?: boolean
+          pode_pix_chave?: boolean
           produtos_adicionar_entrada?: boolean
           produtos_conferir_estoque?: boolean
           produtos_criar_combo?: boolean
