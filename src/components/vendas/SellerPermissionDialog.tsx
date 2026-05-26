@@ -174,7 +174,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
             <Separator />
             <Section title="Formas de pagamento que pode receber">
               <Toggle icon={<Banknote className="h-4 w-4" />} label="Dinheiro" checked={d.aceita_dinheiro} onChange={(v) => set("aceita_dinheiro", v)} />
-              <Toggle icon={<QrCode className="h-4 w-4" />} label="Pix" checked={d.aceita_pix} onChange={(v) => set("aceita_pix", v)} />
+              <Toggle icon={<QrCode className="h-4 w-4" />} label="Pix" sub={d.vendas_garcom ? "Obrigatório quando o garçom pode vender" : undefined} checked={d.aceita_pix} onChange={(v) => set("aceita_pix", v)} disabled={d.vendas_garcom} />
               <Toggle icon={<CreditCard className="h-4 w-4" />} label="Cartão (débito e crédito)" checked={d.aceita_cartao} onChange={(v) => set("aceita_cartao", v)} />
               <Toggle icon={<Sparkles className="h-4 w-4" />} label="Crédito promoter" sub="Abater saldo de promoter como pagamento" checked={d.aceita_credito_promoter} onChange={(v) => set("aceita_credito_promoter", v)} />
             </Section>
