@@ -225,9 +225,9 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   );
 }
 
-function Toggle({ icon, label, sub, checked, onChange }: { icon?: React.ReactNode; label: string; sub?: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ icon, label, sub, checked, onChange, disabled }: { icon?: React.ReactNode; label: string; sub?: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
-    <label className="flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-muted/40 cursor-pointer">
+    <label className={`flex items-center justify-between gap-3 p-2 rounded-lg ${disabled ? "opacity-60 cursor-not-allowed" : "hover:bg-muted/40 cursor-pointer"}`}>
       <div className="flex items-start gap-2 min-w-0">
         {icon && <span className="text-muted-foreground mt-0.5">{icon}</span>}
         <div className="min-w-0">
@@ -235,7 +235,7 @@ function Toggle({ icon, label, sub, checked, onChange }: { icon?: React.ReactNod
           {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
         </div>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </label>
   );
 }
