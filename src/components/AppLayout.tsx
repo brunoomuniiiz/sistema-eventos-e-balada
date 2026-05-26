@@ -113,7 +113,7 @@ function AppLayoutInner() {
         </div>
       </aside>
 
-      <main className="flex-1 md:ml-16 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-8">
+      <main className="flex-1 min-w-0 overflow-x-hidden md:ml-16 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-8">
         <header className="md:hidden sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85 border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-primary grid place-items-center">
