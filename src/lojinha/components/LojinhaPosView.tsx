@@ -13,7 +13,7 @@ import { createPosOrder, confirmDeliveryPos, markPosPaid, reserveCartItem } from
 import { createPixCharge } from "@/lib/pix.functions";
 import { ProductCard } from "@/components/sales/ProductCard";
 import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
-import { printPrepSlips, qrSvgString } from "@/lib/order-print";
+import { printUnitTickets, qrSvgString } from "@/lib/order-print";
 
 type Product = {
   id: string;
