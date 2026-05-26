@@ -194,9 +194,11 @@ export function InvestmentTab() {
         <p className="text-xs text-muted-foreground">
           Equipamentos, obras e melhorias. Não baixam o lucro do mês.
         </p>
-        <Button onClick={() => setOpenForm(true)}>
-          <Plus className="h-4 w-4" /> Novo investimento
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setOpenForm(true)}>
+            <Plus className="h-4 w-4" /> Novo investimento
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
