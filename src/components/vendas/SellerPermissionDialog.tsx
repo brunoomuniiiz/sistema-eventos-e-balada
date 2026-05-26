@@ -60,11 +60,13 @@ type Draft = {
   aceita_cartao: boolean;
   aceita_credito_promoter: boolean;
   pode_lancar_consumacao: boolean;
+  pode_pix_chave: boolean;
   can_discount: boolean;
   max_discount_percent: number;
 };
 
 function initialDraft(r: SellerRow | null): Draft {
+  const rr = r as unknown as Record<string, unknown> | null;
   return {
     vendas_pdv_caixa: r?.vendas_pdv_caixa ?? true,
     vendas_garcom: r?.vendas_garcom ?? true,
@@ -80,6 +82,7 @@ function initialDraft(r: SellerRow | null): Draft {
     aceita_cartao: r?.aceita_cartao ?? true,
     aceita_credito_promoter: r?.aceita_credito_promoter ?? false,
     pode_lancar_consumacao: r?.pode_lancar_consumacao ?? false,
+    pode_pix_chave: (rr?.["pode_pix_chave"] as boolean | undefined) ?? false,
     can_discount: r?.can_discount ?? false,
     max_discount_percent: Number(r?.max_discount_percent ?? 0),
   };
