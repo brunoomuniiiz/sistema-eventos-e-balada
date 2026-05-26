@@ -145,25 +145,31 @@ export function PromotersPanel() {
                   <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-border/50">
                     {p.user_id ? (
                       <Badge variant="secondary" className="text-[10px] mr-auto"><CheckCircle2 className="h-3 w-3 mr-1" />acesso liberado</Badge>
-                    ) : (
+                    ) : canPromotersGerenciar ? (
                       <Button size="sm" variant="outline" className="mr-auto" onClick={() => setInviting(p)}>
                         <KeyRound className="h-3.5 w-3.5 mr-1" /> Convidar acesso
                       </Button>
+                    ) : null}
+                    {canPromotersComissoes && (
+                      <Button size="sm" variant="ghost" onClick={() => setRuleFor(p)} title="Regras de crédito">
+                        <Settings2 className="h-3.5 w-3.5" />
+                      </Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => setRuleFor(p)} title="Regras de crédito">
-                      <Settings2 className="h-3.5 w-3.5" />
-                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => setHistoryOf(p)}>
                       <History className="h-3.5 w-3.5" /> histórico
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => {
-                      if (confirm(`Remover "${p.name}"?`)) deleteMut.mutate(p.id);
-                    }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {canPromotersGerenciar && (
+                      <Button size="sm" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {canPromotersGerenciar && (
+                      <Button size="sm" variant="ghost" onClick={() => {
+                        if (confirm(`Remover "${p.name}"?`)) deleteMut.mutate(p.id);
+                      }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
