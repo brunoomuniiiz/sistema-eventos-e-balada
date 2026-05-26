@@ -74,3 +74,43 @@ Para linhas existentes onde `role_preset` está preenchido, rodar `apply_role_pr
 - `\d user_roles` mostra todas as colunas novas com default `false`/`true` corretos.
 - `select apply_role_preset('<id>', 'garcom')` em uma linha de teste preenche os booleanos esperados e seta `role_preset='garcom'`.
 - App existente continua rodando idêntico (nada lê os booleanos novos ainda).
+
+
+---
+
+## Bloco 2 — UI "Funcionários" (owner): presets + accordion de sub-permissões
+
+### Onde
+- Reformular `src/components/config/TeamPanel.tsx` (continua dentro de Configuração → aba Equipe; aba "Funcionários" no menu já redireciona pra lá).
+- Sem novas rotas. Sem mexer no `invite-staff` (Edge Function continua igual; aplicamos sub-toggles via update logo após o insert).
+
+### Estrutura do diálogo Novo/Editar funcionário
+1. **Identidade**: Nome, Email, Senha (só no novo).
+2. **Cargo (preset)** — 5 cards selecionáveis:
+   - Garçom
+   - Caixa/Garçom
+   - Caixa Bar
+   - Caixa Portaria
+   - Gerente
+   Selecionar um card aplica localmente os booleans + `permissions[]` conforme o mapa do Bloco 1 (mesma fonte de verdade da função `apply_role_preset`). Usuário pode então ajustar qualquer toggle abaixo — vira "personalizado" (mantém `role_preset` selecionado, mas marca um indicador "ajustado").
+3. **Accordion por módulo** (cada um aparece só se o módulo está em `permissions[]`, com opção "ativar módulo"):
+   - **Vendas**: PDV caixa · Vender (garçom) · Autorizar pagamentos · Conceder descontos (+max %) · Sangria · Abrir/fechar caixa · Validar QR · Lançar crédito de promoter (dinheiro) · aceita dinheiro/pix/cartão
+   - **Produtos** (rótulo novo; token RLS continua `estoque`): Conferir estoque · Adicionar entrada · Criar/editar produto · Criar combo · Inventário
+   - **Eventos**: Criar · Editar · Abrir/encerrar · Ver financeiro do evento
+   - **Promoters**: Gerenciar (add/excluir) · Comissões · Ver desempenho
+   - **Portaria**: (gate de módulo; sem sub-toggles próprios — usa `vendas_validar_qr` e `vendas_pdv_caixa` de Vendas)
+   - **Lojinha**: como hoje (vender balcão pix/cartão + device).
+   - **Financeiro**: **oculto** no diálogo de staff (owner-only por padrão). Mostrar aviso "Acesso financeiro apenas para o dono".
+
+### Salvar
+- **Editar**: 1 `update` em `user_roles` com `permissions[]`, `role_preset` e todos os booleans novos + antigos.
+- **Novo**: chama `invite-staff` como hoje (envia campos atuais); depois faz `update` na linha recém-criada com os booleans novos das 4 áreas (Eventos, Produtos, Promoters, Vendas-extras). RLS já permite (owner edita seu staff).
+- Não usaremos a RPC `apply_role_preset` neste fluxo — o preset é aplicado client-side com o mesmo mapa. A RPC fica disponível para usos futuros (CLI/admin).
+
+### Lista de funcionários (cards existentes)
+- Mantém como está. Badge mostra `role_preset` (label do preset) + `Autoriza` se aplicável.
+
+### O que NÃO entra neste bloco
+- Renomear módulo Estoque → Produtos no menu lateral (vai no Bloco 3).
+- Tornar a aba "Funcionários" do menu lateral oculta para quem não é owner (já redireciona; ocultar visualmente fica no Bloco 3).
+- Telas onde as novas sub-permissões serão **lidas** (ex.: esconder botão "Sangria" se `!vendas_sangria`) — Bloco 4.
