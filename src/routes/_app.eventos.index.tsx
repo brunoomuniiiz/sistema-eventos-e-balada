@@ -121,14 +121,18 @@ function EventosPage() {
                   <Button asChild size="sm" className="flex-1 bg-gradient-primary text-primary-foreground">
                     <Link to="/eventos/$eventId" params={{ eventId: event.id }}>Ver detalhes</Link>
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => { setEditing(event); setOpen(true); }}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => {
-                    if (confirm(`Remover "${event.name}"?`)) deleteMut.mutate(event.id);
-                  }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {canEventosEditar && (
+                    <Button size="sm" variant="secondary" onClick={() => { setEditing(event); setOpen(true); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {canEventosEditar && (
+                    <Button size="sm" variant="ghost" onClick={() => {
+                      if (confirm(`Remover "${event.name}"?`)) deleteMut.mutate(event.id);
+                    }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
