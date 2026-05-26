@@ -208,32 +208,36 @@ function FinanceiroPage() {
         subtitle="Receita real do PDV + portaria, consolidada por evento"
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        <Stat label="Faturamento" value={formatBRL(totals.gross)} accent="success" />
-        <Stat label="Custos totais" value={formatBRL(totals.costs)} accent="destructive" />
-        <Stat label="Lucro líquido" value={formatBRL(totals.net)} accent="primary" big />
-        <Stat label="Bar fora de evento" value={formatBRL(barNoEvent.revenue)} sub={`Lucro ${formatBRL(barNoEvent.profit)}`} />
-      </div>
+      {(canFinVerNumeros || isOwner) && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <Stat label="Faturamento" value={formatBRL(totals.gross)} accent="success" />
+            <Stat label="Custos totais" value={formatBRL(totals.costs)} accent="destructive" />
+            <Stat label="Lucro líquido" value={formatBRL(totals.net)} accent="primary" big />
+            <Stat label="Bar fora de evento" value={formatBRL(barNoEvent.revenue)} sub={`Lucro ${formatBRL(barNoEvent.profit)}`} />
+          </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
-        <MiniStat icon={Wine} label="Bar (eventos)" value={formatBRL(totals.bar)} />
-        <MiniStat icon={DoorOpen} label="Portaria" value={formatBRL(totals.door)} />
-        <MiniStat icon={ShoppingBag} label="Eventos com lançamento" value={String(rows.length)} />
-        <MiniStat icon={Repeat} label="Custos fixos (mês)" value={formatBRL(monthExpenses?.fixed ?? 0)} />
-        <MiniStat icon={Receipt} label="Custos variáveis (mês)" value={formatBRL(monthExpenses?.variable ?? 0)} />
-        <MiniStat icon={TrendingDown} label="Juros pagos (mês)" value={formatBRL(monthExpenses?.interest ?? 0)} />
-        <MiniStat icon={Sparkles} label="Investimentos pagos (mês)" value={formatBRL(monthExpenses?.investments ?? 0)} />
-        <MiniStat
-          icon={TrendingUp}
-          label="Líquido real (mês)"
-          value={formatBRL(
-            totals.net
-              - (monthExpenses?.fixed ?? 0)
-              - (monthExpenses?.variable ?? 0)
-              - (monthExpenses?.interest ?? 0),
-          )}
-        />
-      </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+            <MiniStat icon={Wine} label="Bar (eventos)" value={formatBRL(totals.bar)} />
+            <MiniStat icon={DoorOpen} label="Portaria" value={formatBRL(totals.door)} />
+            <MiniStat icon={ShoppingBag} label="Eventos com lançamento" value={String(rows.length)} />
+            <MiniStat icon={Repeat} label="Custos fixos (mês)" value={formatBRL(monthExpenses?.fixed ?? 0)} />
+            <MiniStat icon={Receipt} label="Custos variáveis (mês)" value={formatBRL(monthExpenses?.variable ?? 0)} />
+            <MiniStat icon={TrendingDown} label="Juros pagos (mês)" value={formatBRL(monthExpenses?.interest ?? 0)} />
+            <MiniStat icon={Sparkles} label="Investimentos pagos (mês)" value={formatBRL(monthExpenses?.investments ?? 0)} />
+            <MiniStat
+              icon={TrendingUp}
+              label="Líquido real (mês)"
+              value={formatBRL(
+                totals.net
+                  - (monthExpenses?.fixed ?? 0)
+                  - (monthExpenses?.variable ?? 0)
+                  - (monthExpenses?.interest ?? 0),
+              )}
+            />
+          </div>
+        </>
+      )}
 
       <Tabs defaultValue="eventos">
         <CompactTabsList>
