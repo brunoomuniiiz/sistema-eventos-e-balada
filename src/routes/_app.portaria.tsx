@@ -51,8 +51,8 @@ function PortariaPage() {
   const { ownerId, isOwner, can, acceptedMethods, loading } = usePermissions();
   const allowed = isOwner || can("portaria");
   const qc = useQueryClient();
+  const { activeEvent } = useActiveEvent();
 
-  const [eventId, setEventId] = useState<string>("");
   const [search, setSearch] = useState("");
   const [openCash, setOpenCash] = useState(false);
   const [closingCash, setClosingCash] = useState(false);
@@ -81,21 +81,8 @@ function PortariaPage() {
     },
   });
 
-  const { data: events = [] } = useQuery({
-    queryKey: ["portaria-events", ownerId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("events")
-        .select("id, name, date, status")
-        .in("status", ["upcoming", "ongoing"])
-        .order("date", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!ownerId && allowed,
-  });
-
-  useEffect(() => { if (!eventId && events.length > 0) setEventId(events[0].id); }, [events, eventId]);
+  const eventId = activeEvent.kind === "single" ? activeEvent.event.id : "";
+  const eventName = activeEvent.kind === "single" ? activeEvent.event.name : activeEvent.kind === "multiple" ? "Múltiplos eventos" : "Nenhum evento aberto";
 
   const { data: guests = [] } = useQuery({
     queryKey: ["portaria-guests", eventId],
