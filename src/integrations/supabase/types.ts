@@ -2415,6 +2415,13 @@ export type Database = {
           created_at: string
           display_name: string | null
           email: string | null
+          eventos_abrir_encerrar: boolean
+          eventos_criar: boolean
+          eventos_editar: boolean
+          eventos_ver_financeiro: boolean
+          financeiro_fechar_caixa: boolean
+          financeiro_lancar_despesas: boolean
+          financeiro_ver_numeros: boolean
           id: string
           lojinha_can_sell: boolean
           lojinha_payment_methods: string[]
@@ -2426,17 +2433,27 @@ export type Database = {
           pix_key: string | null
           pode_adicionar_bebidas: boolean
           pode_lancar_consumacao: boolean
+          produtos_adicionar_entrada: boolean
+          produtos_conferir_estoque: boolean
+          produtos_criar_combo: boolean
+          produtos_criar_editar: boolean
+          produtos_inventario: boolean
+          promoters_comissoes: boolean
+          promoters_gerenciar: boolean
+          promoters_ver_desempenho: boolean
           role: Database["public"]["Enums"]["app_role"]
           role_preset: string | null
           updated_at: string
           user_id: string
           vendas_abre_caixa: boolean
+          vendas_abrir_fechar_caixa: boolean
           vendas_ao_vivo: boolean
           vendas_fechamento: boolean
           vendas_garcom: boolean
           vendas_historico: boolean
           vendas_pdv_caixa: boolean
           vendas_pedidos: boolean
+          vendas_promoter_creditos_dinheiro: boolean
           vendas_sangria: boolean
           vendas_validar_qr: boolean
           whatsapp: string | null
@@ -2453,6 +2470,13 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          eventos_abrir_encerrar?: boolean
+          eventos_criar?: boolean
+          eventos_editar?: boolean
+          eventos_ver_financeiro?: boolean
+          financeiro_fechar_caixa?: boolean
+          financeiro_lancar_despesas?: boolean
+          financeiro_ver_numeros?: boolean
           id?: string
           lojinha_can_sell?: boolean
           lojinha_payment_methods?: string[]
@@ -2464,17 +2488,27 @@ export type Database = {
           pix_key?: string | null
           pode_adicionar_bebidas?: boolean
           pode_lancar_consumacao?: boolean
+          produtos_adicionar_entrada?: boolean
+          produtos_conferir_estoque?: boolean
+          produtos_criar_combo?: boolean
+          produtos_criar_editar?: boolean
+          produtos_inventario?: boolean
+          promoters_comissoes?: boolean
+          promoters_gerenciar?: boolean
+          promoters_ver_desempenho?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           role_preset?: string | null
           updated_at?: string
           user_id: string
           vendas_abre_caixa?: boolean
+          vendas_abrir_fechar_caixa?: boolean
           vendas_ao_vivo?: boolean
           vendas_fechamento?: boolean
           vendas_garcom?: boolean
           vendas_historico?: boolean
           vendas_pdv_caixa?: boolean
           vendas_pedidos?: boolean
+          vendas_promoter_creditos_dinheiro?: boolean
           vendas_sangria?: boolean
           vendas_validar_qr?: boolean
           whatsapp?: string | null
@@ -2491,6 +2525,13 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          eventos_abrir_encerrar?: boolean
+          eventos_criar?: boolean
+          eventos_editar?: boolean
+          eventos_ver_financeiro?: boolean
+          financeiro_fechar_caixa?: boolean
+          financeiro_lancar_despesas?: boolean
+          financeiro_ver_numeros?: boolean
           id?: string
           lojinha_can_sell?: boolean
           lojinha_payment_methods?: string[]
@@ -2502,17 +2543,27 @@ export type Database = {
           pix_key?: string | null
           pode_adicionar_bebidas?: boolean
           pode_lancar_consumacao?: boolean
+          produtos_adicionar_entrada?: boolean
+          produtos_conferir_estoque?: boolean
+          produtos_criar_combo?: boolean
+          produtos_criar_editar?: boolean
+          produtos_inventario?: boolean
+          promoters_comissoes?: boolean
+          promoters_gerenciar?: boolean
+          promoters_ver_desempenho?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           role_preset?: string | null
           updated_at?: string
           user_id?: string
           vendas_abre_caixa?: boolean
+          vendas_abrir_fechar_caixa?: boolean
           vendas_ao_vivo?: boolean
           vendas_fechamento?: boolean
           vendas_garcom?: boolean
           vendas_historico?: boolean
           vendas_pdv_caixa?: boolean
           vendas_pedidos?: boolean
+          vendas_promoter_creditos_dinheiro?: boolean
           vendas_sangria?: boolean
           vendas_validar_qr?: boolean
           whatsapp?: string | null
@@ -2599,6 +2650,10 @@ export type Database = {
           _slug: string
         }
         Returns: Json
+      }
+      apply_role_preset: {
+        Args: { p_preset: string; p_user_role_id: string }
+        Returns: undefined
       }
       authorize_open_sector: {
         Args: { _notes?: string; _opening_amount: number; _sector: string }
