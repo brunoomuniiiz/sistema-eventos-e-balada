@@ -71,15 +71,17 @@ export function PromotersPanel() {
   });
 
   return (
-    <Tabs defaultValue="promoters" className="space-y-4">
+    <Tabs defaultValue={canPromotersVerDesempenho ? "promoters" : "campanhas"} className="space-y-4">
       <TabsList className="grid grid-cols-2 w-full max-w-md">
-        <TabsTrigger value="promoters">Promoters</TabsTrigger>
-        <TabsTrigger value="campanhas"><Sparkles className="h-3.5 w-3.5 mr-1.5" />Campanhas de crédito</TabsTrigger>
+        <TabsTrigger value="promoters" disabled={!canPromotersVerDesempenho}>Promoters</TabsTrigger>
+        <TabsTrigger value="campanhas" disabled={!canPromotersComissoes}><Sparkles className="h-3.5 w-3.5 mr-1.5" />Campanhas de crédito</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="campanhas">
-        <PromoterCampaignsPanel />
-      </TabsContent>
+      {canPromotersComissoes && (
+        <TabsContent value="campanhas">
+          <PromoterCampaignsPanel />
+        </TabsContent>
+      )}
 
       <TabsContent value="promoters" className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
