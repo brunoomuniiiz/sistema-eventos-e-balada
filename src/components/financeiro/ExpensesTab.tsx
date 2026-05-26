@@ -166,9 +166,11 @@ export function ExpensesTab({ kind }: { kind: Kind }) {
             {recentMonths(12).map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button className="ml-auto" onClick={() => setOpenForm(true)}>
-          <Plus className="h-4 w-4" /> Novo lançamento
-        </Button>
+        {canEdit && (
+          <Button className="ml-auto" onClick={() => setOpenForm(true)}>
+            <Plus className="h-4 w-4" /> Novo lançamento
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
