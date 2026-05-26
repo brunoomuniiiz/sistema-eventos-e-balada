@@ -65,15 +65,18 @@ export function PixQrDialog({
   const [remaining, setRemaining] = useState<number | null>(null);
   const startedRef = useRef(false);
 
-  // Gera cobrança ao abrir
+  // Gera cobrança ao abrir (apenas aba QR)
   useEffect(() => {
     if (!open) {
       startedRef.current = false;
       setCharge(null);
       setStatus("pending");
       setCopied(false);
+      setTab("qr");
+      setChaveNotes("");
       return;
     }
+    if (tab !== "qr") return;
     if (startedRef.current) return;
     startedRef.current = true;
     setCreating(true);
