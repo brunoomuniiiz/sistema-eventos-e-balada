@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_app/eventos/$eventId")({
 function EventDetailPage() {
   const { eventId } = Route.useParams();
   const { user } = useAuth();
-  const { ownerId } = usePermissions();
+  const { ownerId, canEventosEditar, canEventosVerFinanceiro } = usePermissions();
   const qc = useQueryClient();
   const navigate = useNavigate();
 
