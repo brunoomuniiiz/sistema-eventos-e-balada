@@ -227,23 +227,29 @@ export function LojinhaPosView() {
         const [unitsRes, orderRes, barRes, userRes] = await Promise.all([
           supabase
             .from("lojinha_order_units")
-            .select("qr_token, product_name_snapshot, product_id, products(category_id)")
+            .select("qr_token, product_name_snapshot, product_id")
             .eq("order_id", orderId),
           supabase.from("lojinha_orders").select("daily_number, seller_name").eq("id", orderId).maybeSingle(),
           supabase.from("bar_settings").select("bar_name").eq("user_id", ownerId!).maybeSingle(),
           supabase.auth.getUser(),
         ]);
-        const units = (unitsRes.data ?? []) as Array<{
-          qr_token: string;
-          product_name_snapshot: string;
-          products: { category_id: string | null } | null;
-        }>;
+        const units = unitsRes.data ?? [];
         const allowed = userRes.data.user
           ? await getAllowedCategoryIds(userRes.data.user.id, "sale")
           : null;
-        const filteredUnits = allowed
-          ? units.filter((u) => u.products?.category_id && allowed.has(u.products.category_id))
-          : units;
+        let filteredUnits = units;
+        if (allowed && units.length > 0) {
+          const productIds = Array.from(new Set(units.map((u) => u.product_id)));
+          const { data: prods } = await supabase
+            .from("products")
+            .select("id, category_id")
+            .in("id", productIds);
+          const catById = new Map((prods ?? []).map((p) => [p.id, p.category_id as string | null]));
+          filteredUnits = units.filter((u) => {
+            const cat = catById.get(u.product_id);
+            return cat && allowed.has(cat);
+          });
+        }
         if (filteredUnits.length > 0) {
           const tickets = await Promise.all(filteredUnits.map(async (u) => ({
             product_name: u.product_name_snapshot,
