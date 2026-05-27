@@ -18,6 +18,9 @@ import { formatBRL, formatPercent, calcEventGross, calcEventNet, calcBarMargin }
 import { EventCostsManager } from "@/components/EventCostsManager";
 import { EventPromotersManager } from "@/components/EventPromotersManager";
 import { EventLandingManager } from "@/components/EventLandingManager";
+import { EventClosingTab } from "@/components/eventos/EventClosingTab";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { LockKeyhole } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export const Route = createFileRoute("/_app/eventos/$eventId")({
