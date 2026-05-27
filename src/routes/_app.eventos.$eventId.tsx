@@ -18,6 +18,9 @@ import { formatBRL, formatPercent, calcEventGross, calcEventNet, calcBarMargin }
 import { EventCostsManager } from "@/components/EventCostsManager";
 import { EventPromotersManager } from "@/components/EventPromotersManager";
 import { EventLandingManager } from "@/components/EventLandingManager";
+import { EventClosingTab } from "@/components/eventos/EventClosingTab";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { LockKeyhole } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export const Route = createFileRoute("/_app/eventos/$eventId")({
@@ -27,7 +30,7 @@ export const Route = createFileRoute("/_app/eventos/$eventId")({
 function EventDetailPage() {
   const { eventId } = Route.useParams();
   const { user } = useAuth();
-  const { ownerId, canEventosEditar, canEventosVerFinanceiro } = usePermissions();
+  const { ownerId, canEventosEditar, canEventosVerFinanceiro, isOwner } = usePermissions();
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -234,6 +237,22 @@ function EventDetailPage() {
         </div>
       </Card>
 
+
+      {isOwner && (
+        <Card className="glass border-border/60">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LockKeyhole className="h-4 w-4 text-primary" /> Fechamento por funcionário
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Feche um a um (vendedor, porteiro, garçom). O relatório da maquininha sobrescreve o sistema.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <EventClosingTab eventId={eventId} />
+          </CardContent>
+        </Card>
+      )}
 
       {canEventosVerFinanceiro && (<>
       {/* Resumo financeiro */}

@@ -1,67 +1,119 @@
-# Plano — Janela de operação + funcionário-promoter
 
-## 1. Migration
+# Fechamento de Evento — funcionário por funcionário (relatório da maquininha é a verdade)
 
-- Adicionar `promoter_id uuid` em `user_roles` (FK opcional → `promoters.id`).
-- Função SQL `public.close_expired_events()`: marca `status = 'ended'` em eventos `ongoing` onde `now() > date + (auto_close_hours_after + 1) * interval '1 hour'`.
-- Cron a cada 15 min chamando essa função (pg_cron direto, SQL-only — não precisa de endpoint).
+## Lógica central
+- Você fecha **um funcionário por vez** (vendedor, porteiro, garçom — qualquer um que operou).
+- Para cada um:
+  - **Dinheiro** (só se aceita receber dinheiro): você digita o contado real. Diferença vs esperado vira **ajuste no faturamento** dele.
+  - **Maquininhas atribuídas**: o "vendido no sistema" aparece travado (read-only). Você digita o **valor do relatório da maquininha** — esse é o que **sobrescreve** o faturamento.
+  - **PIX QR (MP)**: não aparece pra digitar. Puxa direto do webhook do MP e já entra como faturamento dele.
+  - **PIX chave manual**: lista transação por transação com ✓ Recebi / ✗ Não recebi. "Não recebi" **subtrai do faturamento** (raro).
+- No fim, o consolidado vira o faturamento real do evento e sobe pro Financeiro.
 
-## 2. Hook `useOperationWindow()`
+## 1. PIN de operação (já tem RPC, falta UI)
+- Card em **Configuração → Segurança**: definir / trocar / remover PIN do owner (4–8 dígitos), usando `set_owner_pin` / `has_owner_pin`.
+- Adicionar aba **PIN** no `AuthorizationDialog` (hoje só email+senha). Quando o owner tem PIN, vira o padrão. Liga em `grant_via_pin`.
+- Com isso você fecha caixa no celular do funcionário sem ter que deslogar/logar.
 
-Novo `src/hooks/useOperationWindow.ts`:
-- Busca próximo evento (`upcoming` ou `ongoing`) do owner.
-- Retorna `{ isOpen, currentEvent, nextEventDate, closesAt }`.
-- `isOpen = true` quando `now ∈ [event.date - 1h, event.date + auto_close_hours_after + 1h]`.
+## 2. Funcionário "aceita dinheiro"
+- Em `user_roles` (ou tabela `employees`), adicionar `accepts_cash boolean default false`.
+- TeamPanel: toggle "Pode receber dinheiro" por funcionário.
+- Quem não aceita dinheiro pula o passo de dinheiro no fechamento dele.
 
-## 3. Gate global em `_app.tsx`
+## 3. Aba "Fechamento" dentro do Evento (só owner)
+Local: `src/routes/_app.eventos.$eventId.tsx` — nova tab `Fechamento`.
 
-Wrapper que decide acesso fora da janela:
-- **Owner** → passa sempre.
-- **Tem permissão `eventos` OU `promoters`** → passa, mas o sidebar esconde abas operacionais (PDV, Estoque, Portaria, Financeiro, Lojinha) — só vê Eventos/Promoters.
-- **Tem `promoter_id` vinculado** → redireciona pra `/meus-eventos` (visão promoter comum).
-- **Demais** → tela cheia "Bar fechado. Próximo evento: {data} às {hora}."
+Layout:
+```
+EVENTO: Sexta 30/05 — Happy Beer
+─────────────────────────────────
+Faturamento bruto: R$ X (sistema) → R$ Y (relatório)  Δ +Z
+─────────────────────────────────
+FUNCIONÁRIOS A FECHAR
+[ ] Bruno (vendedor)            Pendente   →
+[✓] Léo (porteiro)              Fechado    Δ 0
+[ ] Ana (vendedora)             Pendente   →
+[ ] Caixa solto (PIX chave)     Pendente   →
+```
 
-Dentro da janela tudo funciona normal como hoje.
+Clicando num funcionário abre o fechamento dele.
 
-## 4. TeamPanel — funcionário é promoter
+## 4. Tela "Fechar funcionário"
 
-Em `src/components/config/TeamPanel.tsx`, em cada card de funcionário:
-- Toggle **"Também é promoter"**.
-- Quando ligado: select com promoters cadastrados → grava `user_roles.promoter_id`.
-- Desligar limpa o vínculo.
+Passo único, scroll vertical (mobile-first, dá pra fazer no celular do funcionário também):
 
-## 5. Lojinha pública com gate
+```
+BRUNO — vendedor
 
-Em `src/routes/loja.$slug.tsx`:
-- Mesma checagem de janela do owner dono da lojinha.
-- Fora da janela: tela "Loja fechada. Reabre em {data} às {hora}."
-- `lojinha_settings.enabled` continua manual (mestre liga/desliga); a janela só sobrepõe quando `enabled = true`.
+💵 DINHEIRO (aceita)
+  Esperado:   R$ 1.350,34
+  [ Contado: R$ ________ ]   ← você digita
+  Diferença: +169,66 (vai pro faturamento)
 
-## 6. PIX externo no relatório
+🟦 MAQUININHA 1 (Cielo parceiro)
+  Sistema:    R$ 2.388,66  🔒
+  [ Relatório: R$ ________ ]  ← verdade
+  Diferença vira ajuste no faturamento
 
-Pequeno ajuste em `TerminalsBreakdown.tsx`: separar `pix_chave` (PIX manual) de `pix` (QR MP) como duas linhas distintas.
+🟦 MAQUININHA 2 (MP integrada)
+  Sistema:    R$ 1.200,00  🔒
+  [ Relatório: R$ ________ ]  ← verdade
 
-## Arquivos
+🟩 PIX QR (Mercado Pago)        R$ 800,00  🔒 (automático)
+
+🟪 PIX CHAVE — conferir 1 a 1
+  22:14 — R$ 50    [✓ Recebi] [✗ Não]
+  22:31 — R$ 120   [✓ Recebi] [✗ Não]
+  ...
+
+[ Confirmar fechamento — PIN _ _ _ _ ]
+```
+
+Regras:
+- Tudo que está com 🔒 é só leitura.
+- O valor de cada maquininha digitado **sobrescreve** o faturamento do sistema daquele terminal pra esse funcionário no evento.
+- PIX chave "Não recebi" estorna a venda (status `refunded_pix_chave`) e tira do faturamento.
+
+## 5. Consolidação no Financeiro
+- Quando todos os funcionários do evento estão "Fechado", o evento ganha status `closing_done`.
+- Atalho **"Ver fechamento"** aparece no card do evento dentro de `_app.financeiro.tsx` (eventos).
+- Faturamento do evento no Financeiro usa o **valor reconciliado** (relatório > sistema), não o cru.
+
+## 6. Banco
+
+Migration:
+- `user_roles.accepts_cash boolean default false` (ou em `employees`)
+- Nova tabela `event_closings`:
+  - `event_id`, `user_id` (owner), `staff_user_id` (quem foi fechado), `cash_counted numeric`, `cash_diff numeric`, `pix_chave_refunded jsonb` (sale_ids), `closed_at`, `closed_by`, `pin_used boolean`
+- Nova tabela `event_closing_terminals`:
+  - `closing_id`, `terminal_id`, `system_total numeric`, `reported_total numeric`, `diff numeric`
+- RPC `get_event_staff_to_close(event_id)` → lista funcionários que operaram no evento + status (pendente/fechado)
+- RPC `get_staff_closing_breakdown(event_id, staff_id)` → totais por terminal, PIX QR, PIX chave do funcionário no evento
+- RPC `submit_staff_closing(event_id, staff_id, cash_counted, terminals jsonb, pix_chave_confirmed uuid[], _grant_token)` → grava e marca PIX chave não-recebido como estornado
+- Trigger: quando todos os staff do evento têm closing, evento vira `closing_done` e financials são recalculados com valores reportados.
+
+## 7. Arquivos
 
 **Criar:**
-- `src/hooks/useOperationWindow.ts`
-- `src/components/OperationClosedScreen.tsx`
-- Migration com `promoter_id` + função + cron
+- `src/components/config/OperatorPinPanel.tsx` (UI do PIN)
+- `src/components/eventos/EventClosingTab.tsx` (lista de funcionários)
+- `src/components/eventos/StaffClosingSheet.tsx` (tela do fechamento individual)
+- Migration com tabelas + RPCs
 
 **Editar:**
-- `src/routes/_app.tsx` (gate global)
-- `src/components/config/TeamPanel.tsx` (toggle promoter)
-- `src/routes/loja.$slug.tsx` (gate público)
-- `src/components/financeiro/TerminalsBreakdown.tsx` (linha PIX manual)
-- `src/hooks/usePermissions.tsx` (expor `promoterId`)
+- `src/components/AuthorizationDialog.tsx` (aba PIN)
+- `src/components/config/TeamPanel.tsx` (toggle "aceita dinheiro")
+- `src/routes/_app.eventos.$eventId.tsx` (nova tab Fechamento)
+- `src/routes/_app.financeiro.tsx` (atalho "Ver fechamento" no card do evento)
 
 ## Ordem
+1. Migration (accepts_cash + event_closings + RPCs)
+2. PIN UI + aba PIN no AuthorizationDialog
+3. Tab "Fechamento" no evento + lista de funcionários
+4. Sheet de fechamento individual (dinheiro + maquininhas + PIX chave)
+5. Atalho no Financeiro + recálculo do faturamento do evento
 
-1. Migration (promoter_id + cron de fechar evento)
-2. Hook `useOperationWindow` + tela "Bar fechado"
-3. Gate em `_app.tsx` (com regras de exceção)
-4. TeamPanel toggle promoter
-5. Gate na lojinha pública
-6. Ajuste PIX manual no relatório
-
-Confirma pra eu partir pro passo 1.
+## Confirmar antes
+1. **Onde mora `accepts_cash`** — em `user_roles` (por bar) ou em `employees`? Sugiro `user_roles` porque é onde já estão as permissões.
+2. **PIX chave "Não recebi"** estorna a venda **automaticamente** ou só marca como pendente pra você decidir depois?
+3. **Reabrir fechamento de um funcionário** — só owner, com PIN, sem limite? Ou trava depois de X horas?

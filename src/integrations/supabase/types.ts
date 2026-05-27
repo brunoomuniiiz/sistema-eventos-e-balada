@@ -565,6 +565,140 @@ export type Database = {
         }
         Relationships: []
       }
+      event_closing_terminals: {
+        Row: {
+          closing_id: string
+          created_at: string
+          diff: number
+          id: string
+          reported_total: number
+          system_total: number
+          terminal_id: string
+          terminal_label: string | null
+          user_id: string
+        }
+        Insert: {
+          closing_id: string
+          created_at?: string
+          diff?: number
+          id?: string
+          reported_total?: number
+          system_total?: number
+          terminal_id: string
+          terminal_label?: string | null
+          user_id: string
+        }
+        Update: {
+          closing_id?: string
+          created_at?: string
+          diff?: number
+          id?: string
+          reported_total?: number
+          system_total?: number
+          terminal_id?: string
+          terminal_label?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_closing_terminals_closing_id_fkey"
+            columns: ["closing_id"]
+            isOneToOne: false
+            referencedRelation: "event_closings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_closing_terminals_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "payment_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_closings: {
+        Row: {
+          cash_counted: number
+          cash_diff: number
+          cash_expected: number
+          closed_at: string
+          closed_by: string | null
+          closed_by_name: string | null
+          created_at: string
+          event_id: string
+          id: string
+          notes: string | null
+          pix_chave_confirmed_total: number
+          pix_chave_refunded_sale_ids: Json
+          pix_chave_refunded_total: number
+          pix_qr_total: number
+          reopened_at: string | null
+          reopened_by: string | null
+          staff_name: string | null
+          staff_user_id: string
+          total_reported: number
+          total_system: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cash_counted?: number
+          cash_diff?: number
+          cash_expected?: number
+          closed_at?: string
+          closed_by?: string | null
+          closed_by_name?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          notes?: string | null
+          pix_chave_confirmed_total?: number
+          pix_chave_refunded_sale_ids?: Json
+          pix_chave_refunded_total?: number
+          pix_qr_total?: number
+          reopened_at?: string | null
+          reopened_by?: string | null
+          staff_name?: string | null
+          staff_user_id: string
+          total_reported?: number
+          total_system?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cash_counted?: number
+          cash_diff?: number
+          cash_expected?: number
+          closed_at?: string
+          closed_by?: string | null
+          closed_by_name?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          pix_chave_confirmed_total?: number
+          pix_chave_refunded_sale_ids?: Json
+          pix_chave_refunded_total?: number
+          pix_qr_total?: number
+          reopened_at?: string | null
+          reopened_by?: string | null
+          staff_name?: string | null
+          staff_user_id?: string
+          total_reported?: number
+          total_system?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_closings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_costs: {
         Row: {
           amount: number
@@ -2907,6 +3041,18 @@ export type Database = {
       }
       get_event_consumacao: { Args: { _event_id: string }; Returns: Json }
       get_event_landing: { Args: { _slug: string }; Returns: Json }
+      get_event_staff_to_close: {
+        Args: { _event_id: string }
+        Returns: {
+          accepts_cash: boolean
+          closed_at: string
+          closing_id: string
+          staff_name: string
+          staff_user_id: string
+          total_reported: number
+          total_system: number
+        }[]
+      }
       get_guest_list_info: {
         Args: { _slug: string }
         Returns: {
@@ -2969,6 +3115,10 @@ export type Database = {
         }
       }
       get_session_expected_totals: { Args: never; Returns: Json }
+      get_staff_closing_breakdown: {
+        Args: { _event_id: string; _staff_user_id: string }
+        Returns: Json
+      }
       get_supplier_consumacao_history: {
         Args: { _expense_id: string; _from?: string; _to?: string }
         Returns: Json
@@ -3225,6 +3375,10 @@ export type Database = {
         }
         Returns: string
       }
+      reopen_staff_closing: {
+        Args: { _closing_id: string }
+        Returns: undefined
+      }
       request_close_sector: {
         Args: { _declared?: Json; _sector: string }
         Returns: string
@@ -3248,6 +3402,17 @@ export type Database = {
       }
       set_owner_pin: { Args: { _pin: string }; Returns: undefined }
       start_event: { Args: { _event_id: string }; Returns: undefined }
+      submit_staff_closing: {
+        Args: {
+          _cash_counted: number
+          _event_id: string
+          _notes?: string
+          _pix_chave_refunded: string[]
+          _staff_user_id: string
+          _terminals: Json
+        }
+        Returns: string
+      }
       transfer_stock: {
         Args: {
           _from_location: string
