@@ -1,7 +1,9 @@
-import { LogOut, Moon } from "lucide-react";
+import { LogOut, Moon, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "@tanstack/react-router";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useViewAs } from "@/hooks/useViewAs";
 
 function formatNext(date: Date | null): string {
   if (!date) return "sem evento programado";
@@ -24,10 +26,27 @@ export function OperationClosedScreen({
 }) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const { realIsOwner } = usePermissions();
+  const { persona, setPersona } = useViewAs();
+  const masking = realIsOwner && persona !== "dono";
 
   return (
     <div className="min-h-screen grid place-items-center bg-background px-6">
       <div className="max-w-md w-full text-center space-y-6">
+        {masking && (
+          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-left text-xs space-y-2">
+            <div className="font-medium text-amber-500 flex items-center gap-1.5">
+              <Eye className="h-3.5 w-3.5" /> Você está em modo "Ver como"
+            </div>
+            <p className="text-muted-foreground">
+              Está simulando outro perfil — por isso o sistema te bloqueou junto. Volte pra visão de Dono pra entrar normalmente.
+            </p>
+            <Button size="sm" className="w-full" onClick={() => setPersona("dono")}>
+              Voltar para visão de Dono
+            </Button>
+          </div>
+        )}
+
         <div className="h-20 w-20 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 grid place-items-center">
           <Moon className="h-10 w-10 text-primary" />
         </div>
