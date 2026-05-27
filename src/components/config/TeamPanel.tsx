@@ -106,6 +106,7 @@ const ALL_OFF: SubFlags = {
   lojinha_can_sell: false,
   lojinha_payment_methods: [],
   lojinha_point_device_id: null,
+  promoter_id: null,
 };
 
 type Preset = {
