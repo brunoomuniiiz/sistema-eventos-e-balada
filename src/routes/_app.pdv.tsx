@@ -264,12 +264,16 @@ export function PdvView() {
 
   const removeItem = (id: string) => setCart((prev) => prev.filter((i) => i.product_id !== id));
 
-  const recordSale = async () => {
+  const recordSale = async (chaveInfo?: { notes: string; authorizedByName: string }) => {
     if (!user || !ownerId) return;
     if (!locationId || !session) return;
     setSubmitting(true);
     try {
-      const dominant = dominantMethod(payments);
+      // Se PIX foi confirmado via chave (PIN do dono), troca método para "pix_chave"
+      const effectivePayments = chaveInfo
+        ? payments.map((p) => p.method === "pix" ? { ...p, method: "pix_chave" as unknown as typeof p.method } : p)
+        : payments;
+      const dominant = dominantMethod(effectivePayments as typeof payments);
       const { data: sale, error: saleErr } = await supabase
         .from("sales")
         .insert({
@@ -285,6 +289,7 @@ export function PdvView() {
           discount_value: discountValue,
           discount_by: discountPercent > 0 ? user.id : null,
           session_id: session.id,
+          notes: chaveInfo ? `PIX chave (${chaveInfo.authorizedByName})${chaveInfo.notes ? ` — ${chaveInfo.notes}` : ""}` : null,
         })
         .select()
         .single();
