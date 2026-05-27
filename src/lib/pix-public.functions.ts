@@ -131,6 +131,12 @@ export const getPublicPixChargeStatus = createServerFn({ method: "POST" })
 export const simulatePixApproval = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ chargeId: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
+    // Gate: only available outside production. In production this is a no-op
+    // to prevent free order fulfillment via simulated PIX approvals.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Simulação de PIX desabilitada em produção");
+    }
+
     const nowIso = new Date().toISOString();
 
     const { data: updated, error } = await supabaseAdmin
@@ -161,3 +167,4 @@ export const simulatePixApproval = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
