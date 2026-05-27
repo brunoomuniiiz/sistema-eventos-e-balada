@@ -192,33 +192,48 @@ export type Database = {
         Row: {
           accent_color: string | null
           bar_name: string | null
+          bg_color: string | null
+          button_color: string | null
           created_at: string
+          font_family: string | null
           id: string
           instagram_handle: string | null
           logo_url: string | null
           owner_pin_hash: string | null
+          text_color: string | null
+          theme_mode: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           accent_color?: string | null
           bar_name?: string | null
+          bg_color?: string | null
+          button_color?: string | null
           created_at?: string
+          font_family?: string | null
           id?: string
           instagram_handle?: string | null
           logo_url?: string | null
           owner_pin_hash?: string | null
+          text_color?: string | null
+          theme_mode?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           accent_color?: string | null
           bar_name?: string | null
+          bg_color?: string | null
+          button_color?: string | null
           created_at?: string
+          font_family?: string | null
           id?: string
           instagram_handle?: string | null
           logo_url?: string | null
           owner_pin_hash?: string | null
+          text_color?: string | null
+          theme_mode?: string | null
           updated_at?: string
           user_id?: string
         }
