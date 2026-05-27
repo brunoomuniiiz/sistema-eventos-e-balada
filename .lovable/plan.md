@@ -1,45 +1,67 @@
-# Plano — Fechar Blocos A (Pagamentos) e E (Impressão)
+# Plano — Janela de operação + funcionário-promoter
 
-A base já está pronta (tabelas, painéis de Maquininhas/Impressoras, PIN simplificado, flag `canPixChave`). Falta plugar a lógica nas telas de venda e nas permissões dos funcionários.
+## 1. Migration
 
-## 1. Permissões do funcionário (`SellerPermissionDialog`)
-- Adicionar toggle **"Pode lançar PIX por chave"** (grava `pode_pix_chave` em `user_roles`).
-- Criar 2 sub-abas:
-  - **Imprimir ao vender**: lista de categorias → marcar quais saem na impressora desse funcionário.
-  - **Imprimir ao escanear**: idem, para o fluxo da portaria/scanner.
-- Grava em `print_rules` (`user_role_id`, `category_id`, `print_on_sale`, `print_on_scan`).
-- Default ao criar funcionário: todas categorias marcadas nas duas abas.
+- Adicionar `promoter_id uuid` em `user_roles` (FK opcional → `promoters.id`).
+- Função SQL `public.close_expired_events()`: marca `status = 'ended'` em eventos `ongoing` onde `now() > date + (auto_close_hours_after + 1) * interval '1 hour'`.
+- Cron a cada 15 min chamando essa função (pg_cron direto, SQL-only — não precisa de endpoint).
 
-## 2. PIX por chave (`PixQrDialog`)
-- Adicionar aba **"Chave PIX"** ao lado de "QR Code".
-- Aba só aparece se `canPixChave === true` no funcionário logado.
-- Ao confirmar: abre `AuthorizationDialog` exigindo **PIN do dono** (já sem email).
-- Venda salva com `payment_method = 'pix_chave'` e observação em `notes`.
+## 2. Hook `useOperationWindow()`
 
-## 3. Split por terminal (`SplitPaymentEditor`)
-- Cada linha de cartão (crédito/débito) ganha um seletor de **Maquininha** (lista de `payment_terminals` ativas que aceitam aquela bandeira).
-- Permite 2+ linhas de cartão apontando para terminais diferentes (ex: R$100 MP Point + R$100 Itaú manual).
-- Grava `terminal_id` em `sale_payments`.
+Novo `src/hooks/useOperationWindow.ts`:
+- Busca próximo evento (`upcoming` ou `ongoing`) do owner.
+- Retorna `{ isOpen, currentEvent, nextEventDate, closesAt }`.
+- `isOpen = true` quando `now ∈ [event.date - 1h, event.date + auto_close_hours_after + 1h]`.
 
-## 4. Filtro de impressão por categoria
-- `src/lib/print-rules.ts` (novo): helper `getAllowedCategories(userRoleId, trigger)` que lê `print_rules`.
-- `src/lib/order-print.ts`: `printUnitTickets()` e `printPrepSlips()` aceitam parâmetro `allowedCategoryIds` e filtram os itens antes de imprimir.
-- Chamadas existentes (PDV, Garçom, Scanner da portaria) passam o filtro do role atual.
+## 3. Gate global em `_app.tsx`
 
-## 5. Relatórios por terminal
-- **Financeiro** (`ExpensesTab`/visão de receitas) e **Caixas** (`CaixasAdminPanel`): agrupar entradas de cartão/PIX por `terminal_id` com nome do terminal.
+Wrapper que decide acesso fora da janela:
+- **Owner** → passa sempre.
+- **Tem permissão `eventos` OU `promoters`** → passa, mas o sidebar esconde abas operacionais (PDV, Estoque, Portaria, Financeiro, Lojinha) — só vê Eventos/Promoters.
+- **Tem `promoter_id` vinculado** → redireciona pra `/meus-eventos` (visão promoter comum).
+- **Demais** → tela cheia "Bar fechado. Próximo evento: {data} às {hora}."
+
+Dentro da janela tudo funciona normal como hoje.
+
+## 4. TeamPanel — funcionário é promoter
+
+Em `src/components/config/TeamPanel.tsx`, em cada card de funcionário:
+- Toggle **"Também é promoter"**.
+- Quando ligado: select com promoters cadastrados → grava `user_roles.promoter_id`.
+- Desligar limpa o vínculo.
+
+## 5. Lojinha pública com gate
+
+Em `src/routes/loja.$slug.tsx`:
+- Mesma checagem de janela do owner dono da lojinha.
+- Fora da janela: tela "Loja fechada. Reabre em {data} às {hora}."
+- `lojinha_settings.enabled` continua manual (mestre liga/desliga); a janela só sobrepõe quando `enabled = true`.
+
+## 6. PIX externo no relatório
+
+Pequeno ajuste em `TerminalsBreakdown.tsx`: separar `pix_chave` (PIX manual) de `pix` (QR MP) como duas linhas distintas.
 
 ## Arquivos
-- Editar: `SellerPermissionDialog.tsx`, `PixQrDialog.tsx`, `SplitPaymentEditor.tsx`, `order-print.ts`, `ExpensesTab.tsx`, `CaixasAdminPanel.tsx`, chamadas de impressão no PDV/Garçom/Scanner.
-- Criar: `src/lib/print-rules.ts`.
-- Sem nova migração (schema já existe).
 
-## Ordem de execução
-1. `SellerPermissionDialog` (permissão + sub-abas) — desbloqueia tudo o resto
-2. `print-rules.ts` + filtro em `order-print.ts` + chamadas
-3. `SplitPaymentEditor` com terminal
-4. `PixQrDialog` aba Chave + PIN
-5. Relatórios por terminal
+**Criar:**
+- `src/hooks/useOperationWindow.ts`
+- `src/components/OperationClosedScreen.tsx`
+- Migration com `promoter_id` + função + cron
 
-Confirmar para implementar.
+**Editar:**
+- `src/routes/_app.tsx` (gate global)
+- `src/components/config/TeamPanel.tsx` (toggle promoter)
+- `src/routes/loja.$slug.tsx` (gate público)
+- `src/components/financeiro/TerminalsBreakdown.tsx` (linha PIX manual)
+- `src/hooks/usePermissions.tsx` (expor `promoterId`)
 
+## Ordem
+
+1. Migration (promoter_id + cron de fechar evento)
+2. Hook `useOperationWindow` + tela "Bar fechado"
+3. Gate em `_app.tsx` (com regras de exceção)
+4. TeamPanel toggle promoter
+5. Gate na lojinha pública
+6. Ajuste PIX manual no relatório
+
+Confirma pra eu partir pro passo 1.
