@@ -393,6 +393,7 @@ export function TeamPanel() {
       lojinha_can_sell: form.lojinha_can_sell,
       lojinha_payment_methods: form.lojinha_payment_methods,
       lojinha_point_device_id: form.lojinha_point_device_id,
+      promoter_id: form.promoter_id,
     };
   };
 
