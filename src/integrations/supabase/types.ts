@@ -3049,6 +3049,7 @@ export type Database = {
         Args: { _order_id: string; _payment_id: string }
         Returns: Json
       }
+      lojinha_operation_window: { Args: { _slug: string }; Returns: Json }
       lojinha_release_expired_reservations: { Args: never; Returns: undefined }
       lojinha_release_order_reservation: {
         Args: { _order_id: string }
