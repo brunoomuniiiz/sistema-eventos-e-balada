@@ -509,6 +509,27 @@ export function TeamPanel() {
                       </div>
                     </div>
                   )}
+                  <div className="rounded-md border p-3 space-y-2">
+                    <Toggle
+                      label="Também é promoter"
+                      hint="Fora da janela do evento, esse funcionário acessa só a área de promoter."
+                      checked={!!form.promoter_id}
+                      onChange={(v) => set("promoter_id", v ? (promotersList[0]?.id ?? null) : null)}
+                    />
+                    {form.promoter_id && (
+                      <Select
+                        value={form.promoter_id}
+                        onValueChange={(v) => set("promoter_id", v)}
+                      >
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Selecione o promoter" /></SelectTrigger>
+                        <SelectContent>
+                          {promotersList.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 </div>
 
                 {/* Presets */}
