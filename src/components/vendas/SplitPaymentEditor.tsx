@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Banknote, CreditCard, Smartphone, Plus, Trash2, ArrowLeft, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 
 export type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix" | "promoter_credit";
@@ -12,6 +15,8 @@ export interface PaymentLine {
   promoter_id?: string;
   promoter_name?: string;
   campaign_id?: string | null;
+  terminal_id?: string | null;
+  terminal_label?: string | null;
 }
 
 const METHODS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
