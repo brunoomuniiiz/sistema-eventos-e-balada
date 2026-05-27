@@ -61,6 +61,7 @@ const channelLabels: Record<string, string> = {
 };
 
 export function LiveDashboardPanel() {
+  const { isOwner } = usePermissions();
   const { data: openEvent } = useQuery({
     queryKey: ["dashboard-open-event"],
     queryFn: async () => {
