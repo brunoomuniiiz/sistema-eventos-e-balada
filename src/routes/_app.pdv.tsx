@@ -310,7 +310,7 @@ export function PdvView() {
 
       let remaining = total;
       const payRows: { user_id: string; sale_id: string; method: string; amount: number; promoter_id?: string; terminal_id?: string | null }[] = [];
-      const ordered = [...payments].sort((a, b) =>
+      const ordered = [...effectivePayments].sort((a, b) =>
         a.method === "dinheiro" ? 1 : b.method === "dinheiro" ? -1 : 0
       );
       for (const p of ordered) {
