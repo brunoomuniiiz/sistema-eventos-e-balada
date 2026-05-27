@@ -248,21 +248,11 @@ function EventDetailPage() {
 
       {isOwner && (
         <Card className="glass border-border/60">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wine className="h-4 w-4 text-primary" /> Custo de drinks (ao vivo)
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Lance cada garrafa fechada que abrir para drinks durante o evento.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <LiveDrinkCostPanel eventId={eventId} />
+          <CardContent className="p-4 text-sm text-muted-foreground">
+            O painel de drinks ao vivo agora fica na página <Link to="/ao-vivo" className="text-primary underline">Ao vivo</Link>, dentro de Consumação interna.
           </CardContent>
         </Card>
       )}
-
-      {isOwner && <DrinkMarginCard eventId={eventId} />}
 
       {isOwner && (
         <Card className="glass border-border/60">
