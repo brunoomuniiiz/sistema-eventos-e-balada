@@ -185,6 +185,7 @@ export type PrepSlipPayload = {
   components: { name: string; qty: number }[];
   waiter: string | null;
   created_at: string;
+  category_id: string | null;
 };
 
 export async function orderRelease(source: "sale" | "order", id: string) {

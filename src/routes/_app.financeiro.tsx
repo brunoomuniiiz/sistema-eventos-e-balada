@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { ExpensesTab } from "@/components/financeiro/ExpensesTab";
 import { InvestmentTab } from "@/components/financeiro/InvestmentTab";
+import { TerminalsBreakdown } from "@/components/financeiro/TerminalsBreakdown";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -243,6 +244,7 @@ function FinanceiroPage() {
         <CompactTabsList>
           <CompactTabsTrigger value="eventos" short="Eve.">Por evento</CompactTabsTrigger>
           <CompactTabsTrigger value="bar" short="Bar">Bar avulso</CompactTabsTrigger>
+          <CompactTabsTrigger value="maquininhas" short="Maq.">Maquininhas</CompactTabsTrigger>
           <CompactTabsTrigger value="fixos" short="Fixos">Custos fixos</CompactTabsTrigger>
           <CompactTabsTrigger value="variaveis" short="Var.">Custos variáveis</CompactTabsTrigger>
           <CompactTabsTrigger value="investimento" short="Inv.">Investimento</CompactTabsTrigger>
@@ -323,6 +325,10 @@ function FinanceiroPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="maquininhas" className="mt-4">
+          <TerminalsBreakdown />
         </TabsContent>
 
         <TabsContent value="fixos" className="mt-4">

@@ -21,6 +21,7 @@ export type PrepSlip = {
   components: { name: string; qty: number }[];
   waiter: string | null;
   created_at: string;
+  category_id?: string | null;
 };
 
 const BRL = (n: number) =>

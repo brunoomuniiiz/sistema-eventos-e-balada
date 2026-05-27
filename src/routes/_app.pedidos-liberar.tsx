@@ -14,6 +14,8 @@ import { orderLookupByToken, orderRelease } from "@/lojinha/api";
 import { formatBRL } from "@/lib/format";
 import { formatOrderNo } from "@/lib/print-receipt";
 import { printPrepSlips } from "@/lib/order-print";
+import { getAllowedCategoryIds } from "@/lib/print-rules";
+import { supabase } from "@/integrations/supabase/client";
 
 type Search = { token?: string };
 
@@ -74,9 +76,16 @@ function ReleasePage() {
     try {
       const res = await orderRelease(data.source, data.id);
       if (res.prep_slips.length > 0) {
-        const ok = printPrepSlips(res.prep_slips);
-        if (!ok) {
-          toast.warning("Habilite popups para imprimir as fichas de preparo");
+        const { data: u } = await supabase.auth.getUser();
+        const allowed = u.user ? await getAllowedCategoryIds(u.user.id, "scan") : null;
+        const filtered = allowed
+          ? res.prep_slips.filter((s) => s.category_id && allowed.has(s.category_id))
+          : res.prep_slips;
+        if (filtered.length > 0) {
+          const ok = printPrepSlips(filtered);
+          if (!ok) {
+            toast.warning("Habilite popups para imprimir as fichas de preparo");
+          }
         }
       }
       setReleased(true);
