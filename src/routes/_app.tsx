@@ -44,7 +44,7 @@ function AppGuard() {
  *   - Demais funcionários veem a tela "Bar fechado".
  */
 function OperationGate() {
-  const { isOwner, can, promoterId, rolePreset, loading } = usePermissions();
+  const { isOwner, realIsOwner, can, promoterId, rolePreset, loading } = usePermissions();
   const window = useOperationWindow();
   const navigate = useNavigate();
 
@@ -55,11 +55,11 @@ function OperationGate() {
   useEffect(() => {
     if (loading) return;
     if (window.isOpen) return;
-    if (isOwner || hasEventosOrPromoters || isPromoterMode) return;
+    if (realIsOwner || isOwner || hasEventosOrPromoters || isPromoterMode) return;
     if (promoterId) {
       navigate({ to: "/meus-eventos", replace: true });
     }
-  }, [loading, window.isOpen, isOwner, hasEventosOrPromoters, isPromoterMode, promoterId, navigate]);
+  }, [loading, window.isOpen, realIsOwner, isOwner, hasEventosOrPromoters, isPromoterMode, promoterId, navigate]);
 
   if (loading) {
     return (
@@ -71,6 +71,7 @@ function OperationGate() {
 
   if (
     !window.isOpen &&
+    !realIsOwner &&
     !isOwner &&
     !hasEventosOrPromoters &&
     !isPromoterMode &&
