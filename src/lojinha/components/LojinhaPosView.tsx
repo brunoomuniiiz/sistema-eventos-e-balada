@@ -14,6 +14,7 @@ import { createPixCharge } from "@/lib/pix.functions";
 import { ProductCard } from "@/components/sales/ProductCard";
 import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
 import { printUnitTickets, qrSvgString } from "@/lib/order-print";
+import { getAllowedCategoryIds } from "@/lib/print-rules";
 
 type Product = {
   id: string;
@@ -223,14 +224,28 @@ export function LojinhaPosView() {
 
       // Imprime 1 ticket com QR por unidade entregue (combo expande nos componentes)
       try {
-        const [unitsRes, orderRes, barRes] = await Promise.all([
-          supabase.from("lojinha_order_units").select("qr_token, product_name_snapshot").eq("order_id", orderId),
+        const [unitsRes, orderRes, barRes, userRes] = await Promise.all([
+          supabase
+            .from("lojinha_order_units")
+            .select("qr_token, product_name_snapshot, product_id, products(category_id)")
+            .eq("order_id", orderId),
           supabase.from("lojinha_orders").select("daily_number, seller_name").eq("id", orderId).maybeSingle(),
           supabase.from("bar_settings").select("bar_name").eq("user_id", ownerId!).maybeSingle(),
+          supabase.auth.getUser(),
         ]);
-        const units = unitsRes.data ?? [];
-        if (units.length > 0) {
-          const tickets = await Promise.all(units.map(async (u) => ({
+        const units = (unitsRes.data ?? []) as Array<{
+          qr_token: string;
+          product_name_snapshot: string;
+          products: { category_id: string | null } | null;
+        }>;
+        const allowed = userRes.data.user
+          ? await getAllowedCategoryIds(userRes.data.user.id, "sale")
+          : null;
+        const filteredUnits = allowed
+          ? units.filter((u) => u.products?.category_id && allowed.has(u.products.category_id))
+          : units;
+        if (filteredUnits.length > 0) {
+          const tickets = await Promise.all(filteredUnits.map(async (u) => ({
             product_name: u.product_name_snapshot,
             qr_token: u.qr_token,
             qr_svg_string: await qrSvgString(u.qr_token),
