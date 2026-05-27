@@ -38,6 +38,17 @@ interface Props {
 }
 
 export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acceptedMethods, canPromoterCredit, onPickPromoterCredit }: Props) {
+  const { data: terminals = [] } = useQuery({
+    queryKey: ["payment-terminals-active"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("payment_terminals")
+        .select("id, label, owner_label, accepts_credito, accepts_debito")
+        .eq("is_active", true)
+        .order("label");
+      return (data ?? []) as { id: string; label: string; owner_label: string | null; accepts_credito: boolean; accepts_debito: boolean }[];
+    },
+  });
   const paid = payments.reduce((s, p) => s + p.amount, 0);
   const dinheiroPaid = payments
     .filter((p) => p.method === "dinheiro")
