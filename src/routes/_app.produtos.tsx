@@ -72,6 +72,9 @@ type Product = {
   visivel_pdv_caixa?: boolean;
   visivel_mobile_garcom?: boolean;
   visivel_lojinha_cliente?: boolean;
+  is_sellable?: boolean;
+  is_drink_input?: boolean;
+  is_drink?: boolean;
 };
 
 
@@ -116,6 +119,9 @@ function ProdutosPage() {
     visivel_pdv_caixa: true,
     visivel_mobile_garcom: true,
     visivel_lojinha_cliente: true,
+    is_sellable: true,
+    is_drink_input: false,
+    is_drink: false,
   });
 
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
@@ -141,7 +147,7 @@ function ProdutosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available, sell_online, online_price, ativo_geral, visivel_pdv_caixa, visivel_mobile_garcom, visivel_lojinha_cliente")
+        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available, sell_online, online_price, ativo_geral, visivel_pdv_caixa, visivel_mobile_garcom, visivel_lojinha_cliente, is_sellable, is_drink_input, is_drink")
         .order("name");
       if (error) throw error;
       return data as Product[];
@@ -188,6 +194,9 @@ function ProdutosPage() {
       visivel_pdv_caixa: true,
       visivel_mobile_garcom: true,
       visivel_lojinha_cliente: true,
+      is_sellable: true,
+      is_drink_input: false,
+      is_drink: false,
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -215,6 +224,9 @@ function ProdutosPage() {
       visivel_pdv_caixa: p.visivel_pdv_caixa ?? true,
       visivel_mobile_garcom: p.visivel_mobile_garcom ?? true,
       visivel_lojinha_cliente: p.visivel_lojinha_cliente ?? (p.sell_online ?? true),
+      is_sellable: p.is_sellable ?? true,
+      is_drink_input: p.is_drink_input ?? false,
+      is_drink: p.is_drink ?? false,
     });
 
     if (p.product_type === "combo") {
@@ -296,6 +308,9 @@ function ProdutosPage() {
       visivel_pdv_caixa: form.visivel_pdv_caixa,
       visivel_mobile_garcom: form.visivel_mobile_garcom,
       visivel_lojinha_cliente: form.visivel_lojinha_cliente,
+      is_sellable: form.is_sellable,
+      is_drink_input: form.is_drink_input,
+      is_drink: form.is_drink,
     };
 
 
