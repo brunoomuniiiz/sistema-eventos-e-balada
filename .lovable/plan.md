@@ -1,119 +1,82 @@
 
-# Fechamento de Evento — funcionário por funcionário (relatório da maquininha é a verdade)
+# Custo dos drinks no Ao Vivo + Margem Móvel
 
-## Lógica central
-- Você fecha **um funcionário por vez** (vendedor, porteiro, garçom — qualquer um que operou).
-- Para cada um:
-  - **Dinheiro** (só se aceita receber dinheiro): você digita o contado real. Diferença vs esperado vira **ajuste no faturamento** dele.
-  - **Maquininhas atribuídas**: o "vendido no sistema" aparece travado (read-only). Você digita o **valor do relatório da maquininha** — esse é o que **sobrescreve** o faturamento.
-  - **PIX QR (MP)**: não aparece pra digitar. Puxa direto do webhook do MP e já entra como faturamento dele.
-  - **PIX chave manual**: lista transação por transação com ✓ Recebi / ✗ Não recebi. "Não recebi" **subtrai do faturamento** (raro).
-- No fim, o consolidado vira o faturamento real do evento e sobe pro Financeiro.
+## Conceito
 
-## 1. PIN de operação (já tem RPC, falta UI)
-- Card em **Configuração → Segurança**: definir / trocar / remover PIN do owner (4–8 dígitos), usando `set_owner_pin` / `has_owner_pin`.
-- Adicionar aba **PIN** no `AuthorizationDialog` (hoje só email+senha). Quando o owner tem PIN, vira o padrão. Liga em `grant_via_pin`.
-- Com isso você fecha caixa no celular do funcionário sem ter que deslogar/logar.
+- No Ao Vivo do evento, owner clica `+1 Orloff`, `+1 Beefeater`, `+1 Fim Rocks`. Cada clique = 1 garrafa fechada aberta para drinks.
+- O custo unitário da garrafa (snapshot no momento) é lançado como CMV de drinks **do evento atual** e dá baixa de 1 unidade no estoque da locação do evento.
+- Faturamento continua sempre por evento. O CMV bruto por evento pode ser injusto isoladamente (abriu no fim, mal usou) — então a métrica oficial é **margem dos drinks em janela móvel** (últimos N eventos ou últimos 30 dias):
+  - Margem % = (Faturamento Drinks − CMV Drinks) / Faturamento Drinks
+  - Custo médio por drink = CMV Drinks / nº drinks vendidos
+- "Insumos não vendáveis" (Fim Rocks, 51, Gin Beefeater) ficam no catálogo de produtos com flag `não vendável` — não aparecem no PDV, aparecem na grade de insumos do ao vivo e continuam tendo estoque/custo.
 
-## 2. Funcionário "aceita dinheiro"
-- Em `user_roles` (ou tabela `employees`), adicionar `accepts_cash boolean default false`.
-- TeamPanel: toggle "Pode receber dinheiro" por funcionário.
-- Quem não aceita dinheiro pula o passo de dinheiro no fechamento dele.
+## Mudanças de banco
 
-## 3. Aba "Fechamento" dentro do Evento (só owner)
-Local: `src/routes/_app.eventos.$eventId.tsx` — nova tab `Fechamento`.
+1. `products`
+   - `is_sellable boolean default true` — quando `false`, o produto some do PDV e da lojinha, continua no estoque e no painel de insumos.
+   - `is_drink_input boolean default false` — atalho que faz o produto aparecer na grade rápida de insumos do Ao Vivo (Orloff, Red Label, Gin, Fim Rocks, 51 ficam pinados).
+   - (já existe `cost_price` / preço de custo — usaremos como fonte do snapshot)
 
-Layout:
-```
-EVENTO: Sexta 30/05 — Happy Beer
-─────────────────────────────────
-Faturamento bruto: R$ X (sistema) → R$ Y (relatório)  Δ +Z
-─────────────────────────────────
-FUNCIONÁRIOS A FECHAR
-[ ] Bruno (vendedor)            Pendente   →
-[✓] Léo (porteiro)              Fechado    Δ 0
-[ ] Ana (vendedora)             Pendente   →
-[ ] Caixa solto (PIX chave)     Pendente   →
-```
+2. Nova tabela `event_drink_consumption`
+   - `event_id`, `product_id`, `product_name_snapshot`, `unit_cost_snapshot`, `quantity` (default 1), `total_cost`, `stock_location_id`, `created_by`, `created_by_name`, `created_at`.
+   - RLS: owner CRUD; vendas/eventos permission = SELECT.
+   - Trigger ou RPC `register_drink_consumption(event_id, product_id, qty)`:
+     - lê `cost_price` atual
+     - insere o registro
+     - chama o mesmo caminho de baixa de estoque que combos/vendas já usam (locação do evento)
+     - retorna o item criado
 
-Clicando num funcionário abre o fechamento dele.
+3. RPC `get_event_drink_margin(p_event_id uuid, p_window_events int default 4)`
+   - Retorna do próprio evento: `revenue_drinks`, `cmv_drinks`, `drinks_qty`, `margin_pct`, `avg_cost_per_drink`.
+   - Retorna também janela móvel: mesmos números agregando os últimos N eventos (incluindo o atual) do mesmo owner. Para identificar "venda de drink" usamos `products.category = 'drink'` (ou um flag `is_drink` — confirmar qual já existe; se não houver, adiciono `products.is_drink boolean`).
 
-## 4. Tela "Fechar funcionário"
+## UI
 
-Passo único, scroll vertical (mobile-first, dá pra fazer no celular do funcionário também):
+1. **`ProductForm`** (catálogo): dois switches novos
+   - "Não vendável (insumo)" — esconde do PDV/lojinha.
+   - "Insumo de drink (atalho no Ao Vivo)" — pinna na grade rápida.
 
-```
-BRUNO — vendedor
+2. **Novo componente `LiveDrinkCostPanel.tsx`** dentro de `_app.eventos.$eventId.tsx`, visível só para owner, na aba Ao Vivo:
+   - Grade de cards dos produtos `is_drink_input = true` com nome + custo unit + botão grande `+1 garrafa`.
+   - Busca rápida pra adicionar outro produto pontualmente.
+   - Lista cronológica dos lançamentos do evento (produto, hora, quem lançou, custo) com "desfazer" (RPC inverso, devolve estoque) nos últimos 5 minutos.
+   - Totalizador: `CMV Drinks deste evento: R$ XXX (Y garrafas)`.
 
-💵 DINHEIRO (aceita)
-  Esperado:   R$ 1.350,34
-  [ Contado: R$ ________ ]   ← você digita
-  Diferença: +169,66 (vai pro faturamento)
+3. **Card "Margem de Drinks" no `EventFinancialsPanel`** (e atalho no financeiro do evento):
+   - Toggle: `Este evento` | `Últimos 4 eventos` | `Últimos 30 dias`.
+   - Mostra Faturamento, CMV, Margem %, Custo médio/drink, Volume.
+   - Texto guia explicando por que a janela móvel é a métrica de referência.
 
-🟦 MAQUININHA 1 (Cielo parceiro)
-  Sistema:    R$ 2.388,66  🔒
-  [ Relatório: R$ ________ ]  ← verdade
-  Diferença vira ajuste no faturamento
+4. **Filtro no PDV**: queries de produtos vendáveis ganham `is_sellable = true` (1 linha em cada listagem do PDV + lojinha).
 
-🟦 MAQUININHA 2 (MP integrada)
-  Sistema:    R$ 1.200,00  🔒
-  [ Relatório: R$ ________ ]  ← verdade
+## Fluxo do owner
 
-🟩 PIX QR (Mercado Pago)        R$ 800,00  🔒 (automático)
+1. Cadastra Fim Rocks e 51 cachaça em Produtos com "Não vendável" + "Insumo de drink" + preço de custo.
+2. Marca Orloff/Red Label/Beefeater como "Insumo de drink" também (continuam vendáveis).
+3. Durante o evento, abre o painel "Custo dos Drinks" e vai clicando `+1` conforme abre as garrafas.
+4. No financeiro do evento vê CMV bruto + Margem Móvel — a margem móvel é a referência real.
 
-🟪 PIX CHAVE — conferir 1 a 1
-  22:14 — R$ 50    [✓ Recebi] [✗ Não]
-  22:31 — R$ 120   [✓ Recebi] [✗ Não]
-  ...
+## Arquivos
 
-[ Confirmar fechamento — PIN _ _ _ _ ]
-```
+**Migração** (1):
+- `add_drink_consumption_and_product_flags.sql`: colunas em `products`, tabela `event_drink_consumption` + grants/RLS, RPC `register_drink_consumption`, RPC `undo_drink_consumption`, RPC `get_event_drink_margin`.
 
-Regras:
-- Tudo que está com 🔒 é só leitura.
-- O valor de cada maquininha digitado **sobrescreve** o faturamento do sistema daquele terminal pra esse funcionário no evento.
-- PIX chave "Não recebi" estorna a venda (status `refunded_pix_chave`) e tira do faturamento.
+**Novos**:
+- `src/components/eventos/LiveDrinkCostPanel.tsx`
+- `src/components/eventos/DrinkMarginCard.tsx`
 
-## 5. Consolidação no Financeiro
-- Quando todos os funcionários do evento estão "Fechado", o evento ganha status `closing_done`.
-- Atalho **"Ver fechamento"** aparece no card do evento dentro de `_app.financeiro.tsx` (eventos).
-- Faturamento do evento no Financeiro usa o **valor reconciliado** (relatório > sistema), não o cru.
+**Editar**:
+- `src/components/produtos/ProductForm.tsx` (2 switches)
+- `src/routes/_app.eventos.$eventId.tsx` (montar os 2 novos componentes, owner-only)
+- queries do PDV (`useProducts` / lojinha listagens) — filtrar `is_sellable`
+- `EventFinancialsPanel` — incluir `DrinkMarginCard`
 
-## 6. Banco
+## Fora do escopo (intencional)
 
-Migration:
-- `user_roles.accepts_cash boolean default false` (ou em `employees`)
-- Nova tabela `event_closings`:
-  - `event_id`, `user_id` (owner), `staff_user_id` (quem foi fechado), `cash_counted numeric`, `cash_diff numeric`, `pix_chave_refunded jsonb` (sale_ids), `closed_at`, `closed_by`, `pin_used boolean`
-- Nova tabela `event_closing_terminals`:
-  - `closing_id`, `terminal_id`, `system_total numeric`, `reported_total numeric`, `diff numeric`
-- RPC `get_event_staff_to_close(event_id)` → lista funcionários que operaram no evento + status (pendente/fechado)
-- RPC `get_staff_closing_breakdown(event_id, staff_id)` → totais por terminal, PIX QR, PIX chave do funcionário no evento
-- RPC `submit_staff_closing(event_id, staff_id, cash_counted, terminals jsonb, pix_chave_confirmed uuid[], _grant_token)` → grava e marca PIX chave não-recebido como estornado
-- Trigger: quando todos os staff do evento têm closing, evento vira `closing_done` e financials são recalculados com valores reportados.
+- Medir ml/fração de garrafa.
+- Rateio retroativo entre eventos. A justiça vem da janela móvel, não do rateio.
+- Receita de drink (qual garrafa entra em qual drink). Você só registra "abri 1 X" — basta pro objetivo.
 
-## 7. Arquivos
+## Pergunta final antes de implementar
 
-**Criar:**
-- `src/components/config/OperatorPinPanel.tsx` (UI do PIN)
-- `src/components/eventos/EventClosingTab.tsx` (lista de funcionários)
-- `src/components/eventos/StaffClosingSheet.tsx` (tela do fechamento individual)
-- Migration com tabelas + RPCs
-
-**Editar:**
-- `src/components/AuthorizationDialog.tsx` (aba PIN)
-- `src/components/config/TeamPanel.tsx` (toggle "aceita dinheiro")
-- `src/routes/_app.eventos.$eventId.tsx` (nova tab Fechamento)
-- `src/routes/_app.financeiro.tsx` (atalho "Ver fechamento" no card do evento)
-
-## Ordem
-1. Migration (accepts_cash + event_closings + RPCs)
-2. PIN UI + aba PIN no AuthorizationDialog
-3. Tab "Fechamento" no evento + lista de funcionários
-4. Sheet de fechamento individual (dinheiro + maquininhas + PIX chave)
-5. Atalho no Financeiro + recálculo do faturamento do evento
-
-## Confirmar antes
-1. **Onde mora `accepts_cash`** — em `user_roles` (por bar) ou em `employees`? Sugiro `user_roles` porque é onde já estão as permissões.
-2. **PIX chave "Não recebi"** estorna a venda **automaticamente** ou só marca como pendente pra você decidir depois?
-3. **Reabrir fechamento de um funcionário** — só owner, com PIN, sem limite? Ou trava depois de X horas?
+Para identificar "venda de drink" no faturamento, posso usar a `category` do produto (ex.: categoria chamada "Drinks") ou prefere um flag explícito `products.is_drink boolean`? O flag é mais robusto se você tiver subcategorias; a categoria é mais simples se já existe uma única "Drinks".
