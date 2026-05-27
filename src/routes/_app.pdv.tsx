@@ -474,6 +474,7 @@ export function PdvView() {
         origin="pdv"
         sector="bar"
         onApproved={async () => { await recordSale(); }}
+        onChaveApproved={async (info) => { await recordSale(info); }}
       />
 
       {session && (
