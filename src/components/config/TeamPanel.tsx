@@ -302,6 +302,7 @@ export function TeamPanel() {
       lojinha_can_sell: !!m.lojinha_can_sell,
       lojinha_payment_methods: m.lojinha_payment_methods ?? [],
       lojinha_point_device_id: m.lojinha_point_device_id ?? null,
+      promoter_id: m.promoter_id ?? null,
     });
     setOpen(true);
   };
