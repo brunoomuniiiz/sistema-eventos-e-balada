@@ -1,42 +1,38 @@
 ## Problema
+Funcionária Marília tem permissão **Eventos**, mas não enxerga nada na página de eventos.
 
-A cor "botões" das Configurações só sobrescreve `--primary`, mas a maior parte do roxo do app vem de outras variáveis que continuam fixas em magenta:
+Causa: as policies RLS de `events` (e tabelas relacionadas) só liberam para o dono (`auth.uid() = user_id`) ou para promoters linkados. Não existe regra que considere staff com permissão `eventos`, então a query volta vazia.
 
-- `--gradient-primary` (usado em `bg-gradient-primary`, `text-gradient`, headers do Dashboard, botão "Novo evento", chips ativos)
-- `--primary-glow` e `--shadow-glow-primary` (brilho dos botões e da logo)
-- `--accent`, `--chart-1`, `--ring` (gráficos, focos, badges)
-- `--sidebar-primary` e ícone ativo das abas mobile (`text-primary` + `drop-shadow` apontando para `--color-primary`)
+## Regra de permissão (confirmada com você)
+- Quem tem permissão **Eventos** → **vê** tudo do módulo (lista, detalhes, custos, financeiro, promoters, lista de convidados).
+- Para **editar/criar/encerrar/lançar custos** continua valendo as sub-flags já existentes em `user_roles` (`eventos_criar`, `eventos_editar`, `eventos_abrir_encerrar`, `eventos_ver_financeiro`) — sem elas, a tela mostra os dados mas os botões/ações ficam bloqueados (o frontend já checa isso via `usePermissions`).
 
-Resultado: mesmo trocando a cor, Dashboard, "Novo evento", títulos de abas mobile e chips continuam roxos.
+## Correção (1 migration de RLS, sem mudar frontend)
 
-## Correção
+### `events`
+- **SELECT**: dono OU staff com permissão `eventos` no owner. *(libera Marília a enxergar a página)*
+- **INSERT**: dono OU staff com `eventos_criar`.
+- **UPDATE**: dono OU staff com `eventos_editar` ou `eventos_abrir_encerrar`.
+- **DELETE**: só dono.
 
-Expandir `BrandingProvider` (`src/hooks/useBranding.tsx`) para, quando `button_color` estiver definida, recalcular e injetar todas as variáveis derivadas em vez de só `--primary`:
+### `event_costs`
+- **SELECT**: dono OU staff com `eventos` (qualquer um do módulo já vê os custos listados).
+- **INSERT/UPDATE/DELETE**: dono OU staff com `eventos_editar`.
 
-1. Sobrescrever em `:root`:
-   - `--primary`, `--primary-glow` (mesma cor, levemente clareada)
-   - `--gradient-primary` = `linear-gradient(135deg, button_color, primary-glow)`
-   - `--gradient-accent` (mesma base)
-   - `--shadow-glow-primary` (usando a nova cor com alpha)
-   - `--ring`, `--sidebar-primary`, `--sidebar-ring`, `--chart-1`
-   - `--accent` (deixar igual ao botão para sumir o ciano onde aparece junto)
-2. Helper interno `lighten(hex, amount)` para gerar o tom do glow sem dependência externa (manipulação simples em RGB).
-3. Aplicar o mesmo tratamento para `bg_color` e `text_color`: além de `--background`/`--foreground`, atualizar `--card`, `--popover`, `--secondary`, `--muted`, `--sidebar-accent` (derivados levemente mais claros que o fundo) e `--muted-foreground` (derivado do texto com opacidade) para não ficarem destoando do tema escolhido.
-4. Limpar todas essas variáveis quando o usuário voltar aos valores padrão (sem cor salva).
+### `event_financials`
+- **SELECT**: dono OU staff com `eventos_ver_financeiro` (financeiro do evento é dado sensível).
+- **INSERT/UPDATE/DELETE**: dono OU staff com `eventos_ver_financeiro` + `eventos_editar`.
 
-## Pontos que voltam a ficar coloridos automaticamente após o fix
+### `event_promoters` e `event_promoter_commissions`
+- Adicionar **SELECT** para staff com `eventos` (mantendo as policies de promoter já existentes).
+- **INSERT/UPDATE/DELETE**: dono OU staff com `eventos_editar`.
 
-- Dashboard (cards "text-gradient", barra de progresso, ícones)
-- Botão "Novo evento" e demais botões `bg-gradient-primary`
-- Aba ativa no menu inferior mobile (ícone + label)
-- Logo no canto superior
-- Chips de categoria ativos em Vendas
-- Gráficos (`chart-1`) no Dashboard
+### `guest_list_entries`
+- Adicionar **SELECT** para staff com `eventos` (mantendo as policies de promoter e portaria já existentes).
+- Sem INSERT/UPDATE extra — checkin continua sendo da portaria, criação continua sendo do promoter/dono.
 
-## Arquivos a editar
+## Onde fica o PIN de operação (pergunta lateral)
+O PIN de operação se cadastra em **Minha Conta** (toque no avatar no topo da tela → "Minha conta" → seção **PIN de operação**), não na tela de Configurações. Quem precisa do PIN é o dono — funcionários não usam.
 
-- `src/hooks/useBranding.tsx` — única alteração necessária; nada muda em componentes.
-
-## Sem mudanças de banco
-
-A migração já criada cobre todos os campos.
+## Fora de escopo
+Nenhuma mudança em código frontend. Marília só precisa recarregar a página depois da migration.
