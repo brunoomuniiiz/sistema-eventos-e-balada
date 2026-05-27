@@ -19,6 +19,8 @@ import { EventCostsManager } from "@/components/EventCostsManager";
 import { EventPromotersManager } from "@/components/EventPromotersManager";
 import { EventLandingManager } from "@/components/EventLandingManager";
 import { EventClosingTab } from "@/components/eventos/EventClosingTab";
+import { LiveDrinkCostPanel } from "@/components/eventos/LiveDrinkCostPanel";
+import { DrinkMarginCard } from "@/components/eventos/DrinkMarginCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LockKeyhole } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -237,6 +239,24 @@ function EventDetailPage() {
         </div>
       </Card>
 
+
+      {isOwner && (
+        <Card className="glass border-border/60">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wine className="h-4 w-4 text-primary" /> Custo de drinks (ao vivo)
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Lance cada garrafa fechada que abrir para drinks durante o evento.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <LiveDrinkCostPanel eventId={eventId} />
+          </CardContent>
+        </Card>
+      )}
+
+      {isOwner && <DrinkMarginCard eventId={eventId} />}
 
       {isOwner && (
         <Card className="glass border-border/60">
