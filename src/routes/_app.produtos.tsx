@@ -72,6 +72,9 @@ type Product = {
   visivel_pdv_caixa?: boolean;
   visivel_mobile_garcom?: boolean;
   visivel_lojinha_cliente?: boolean;
+  is_sellable?: boolean;
+  is_drink_input?: boolean;
+  is_drink?: boolean;
 };
 
 
@@ -116,6 +119,9 @@ function ProdutosPage() {
     visivel_pdv_caixa: true,
     visivel_mobile_garcom: true,
     visivel_lojinha_cliente: true,
+    is_sellable: true,
+    is_drink_input: false,
+    is_drink: false,
   });
 
   const [draftComponents, setDraftComponents] = useState<DraftComponent[]>([]);
@@ -141,7 +147,7 @@ function ProdutosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available, sell_online, online_price, ativo_geral, visivel_pdv_caixa, visivel_mobile_garcom, visivel_lojinha_cliente")
+        .select("id, name, price, cost_price, stock_quantity, product_type, track_stock, description, pickup_description, photo_url, unit, category_id, is_available, sell_online, online_price, ativo_geral, visivel_pdv_caixa, visivel_mobile_garcom, visivel_lojinha_cliente, is_sellable, is_drink_input, is_drink")
         .order("name");
       if (error) throw error;
       return data as Product[];
@@ -188,6 +194,9 @@ function ProdutosPage() {
       visivel_pdv_caixa: true,
       visivel_mobile_garcom: true,
       visivel_lojinha_cliente: true,
+      is_sellable: true,
+      is_drink_input: false,
+      is_drink: false,
     });
     setDraftComponents([]);
     setPickComponentId("");
@@ -215,6 +224,9 @@ function ProdutosPage() {
       visivel_pdv_caixa: p.visivel_pdv_caixa ?? true,
       visivel_mobile_garcom: p.visivel_mobile_garcom ?? true,
       visivel_lojinha_cliente: p.visivel_lojinha_cliente ?? (p.sell_online ?? true),
+      is_sellable: p.is_sellable ?? true,
+      is_drink_input: p.is_drink_input ?? false,
+      is_drink: p.is_drink ?? false,
     });
 
     if (p.product_type === "combo") {
@@ -296,6 +308,9 @@ function ProdutosPage() {
       visivel_pdv_caixa: form.visivel_pdv_caixa,
       visivel_mobile_garcom: form.visivel_mobile_garcom,
       visivel_lojinha_cliente: form.visivel_lojinha_cliente,
+      is_sellable: form.is_sellable,
+      is_drink_input: form.is_drink_input,
+      is_drink: form.is_drink,
     };
 
 
@@ -670,7 +685,45 @@ function ProdutosPage() {
                 <div>
                   <Label className="cursor-pointer">Visível na lojinha pública</Label>
                   <p className="text-[11px] text-muted-foreground">Catálogo do cliente final (PIX).</p>
+            </div>
+
+            <div className="p-3 rounded-lg border bg-card/40 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Custos de drinks (eventos)</div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">Não vendável (insumo)</Label>
+                  <p className="text-[11px] text-muted-foreground">Esconde do PDV e da lojinha. Use para garrafas que só entram em drinks (ex: Fim Rocks, 51, Gin).</p>
                 </div>
+                <Switch
+                  checked={!(form.is_sellable ?? true)}
+                  onCheckedChange={(v) => setForm({ ...form, is_sellable: !v })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">Insumo de drink (atalho no Ao Vivo)</Label>
+                  <p className="text-[11px] text-muted-foreground">Fica pinado na grade rápida do painel de custo de drinks do evento.</p>
+                </div>
+                <Switch
+                  checked={form.is_drink_input}
+                  onCheckedChange={(v) => setForm({ ...form, is_drink_input: v })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">É drink (entra na margem de drinks)</Label>
+                  <p className="text-[11px] text-muted-foreground">Vendas deste produto somam no faturamento de drinks para calcular margem.</p>
+                </div>
+                <Switch
+                  checked={form.is_drink}
+                  onCheckedChange={(v) => setForm({ ...form, is_drink: v })}
+                />
+              </div>
+            </div>
+
                 <Switch
                   checked={form.visivel_lojinha_cliente}
                   disabled={!form.ativo_geral}

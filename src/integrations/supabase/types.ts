@@ -750,6 +750,51 @@ export type Database = {
           },
         ]
       }
+      event_drink_consumption: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          event_id: string
+          id: string
+          product_id: string
+          product_name_snapshot: string
+          quantity: number
+          stock_location_id: string | null
+          total_cost: number
+          unit_cost_snapshot: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          event_id: string
+          id?: string
+          product_id: string
+          product_name_snapshot: string
+          quantity?: number
+          stock_location_id?: string | null
+          total_cost?: number
+          unit_cost_snapshot?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          event_id?: string
+          id?: string
+          product_id?: string
+          product_name_snapshot?: string
+          quantity?: number
+          stock_location_id?: string | null
+          total_cost?: number
+          unit_cost_snapshot?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       event_entries: {
         Row: {
           amount_paid: number
@@ -1709,6 +1754,9 @@ export type Database = {
           disponivel_venda: boolean
           id: string
           is_available: boolean
+          is_drink: boolean
+          is_drink_input: boolean
+          is_sellable: boolean
           name: string
           online_price: number | null
           photo_url: string | null
@@ -1734,6 +1782,9 @@ export type Database = {
           disponivel_venda?: boolean
           id?: string
           is_available?: boolean
+          is_drink?: boolean
+          is_drink_input?: boolean
+          is_sellable?: boolean
           name: string
           online_price?: number | null
           photo_url?: string | null
@@ -1759,6 +1810,9 @@ export type Database = {
           disponivel_venda?: boolean
           id?: string
           is_available?: boolean
+          is_drink?: boolean
+          is_drink_input?: boolean
+          is_sellable?: boolean
           name?: string
           online_price?: number | null
           photo_url?: string | null
@@ -3040,6 +3094,10 @@ export type Database = {
         }[]
       }
       get_event_consumacao: { Args: { _event_id: string }; Returns: Json }
+      get_event_drink_margin: {
+        Args: { p_event_id: string; p_window_events?: number }
+        Returns: Json
+      }
       get_event_landing: { Args: { _slug: string }; Returns: Json }
       get_event_staff_to_close: {
         Args: { _event_id: string }
@@ -3331,6 +3389,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      register_drink_consumption: {
+        Args: { p_event_id: string; p_product_id: string; p_quantity?: number }
+        Returns: string
+      }
       register_event_entry: {
         Args: {
           _amount: number
@@ -3423,6 +3485,7 @@ export type Database = {
         }
         Returns: string
       }
+      undo_drink_consumption: { Args: { p_id: string }; Returns: undefined }
       upsert_promoter_credit_campaign: {
         Args: {
           _applies_to_promotions: boolean
