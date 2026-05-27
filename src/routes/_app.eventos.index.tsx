@@ -100,9 +100,15 @@ function EventosPage() {
                   </div>
                 )}
                 <Badge className="absolute top-2 right-2" variant={
-                  event.status === "upcoming" ? "default" : event.status === "finished" ? "secondary" : "destructive"
+                  event.status === "upcoming" ? "default"
+                  : event.status === "ongoing" || event.status === "live" ? "default"
+                  : event.status === "finished" ? "secondary"
+                  : "destructive"
                 }>
-                  {event.status === "upcoming" ? "Próximo" : event.status === "finished" ? "Realizado" : "Cancelado"}
+                  {event.status === "upcoming" ? "Próximo"
+                    : event.status === "ongoing" || event.status === "live" ? "Ao vivo"
+                    : event.status === "finished" ? "Realizado"
+                    : "Cancelado"}
                 </Badge>
               </div>
               <CardContent className="p-4">
