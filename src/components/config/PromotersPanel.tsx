@@ -282,6 +282,9 @@ function PromoterDialog({ open, onOpenChange, promoter }: { open: boolean; onOpe
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [guestMessage, setGuestMessage] = useState("");
+
 
   // Comissões
   const [wfT, setWfT] = useState<"fixed" | "percent">("fixed");
@@ -299,7 +302,10 @@ function PromoterDialog({ open, onOpenChange, promoter }: { open: boolean; onOpe
       setPhone(promoter?.phone ?? "");
       setEmail(promoter?.email ?? "");
       setNotes(promoter?.notes ?? "");
+      setInstagram((promoter as { instagram_handle?: string | null } | null)?.instagram_handle ?? "");
+      setGuestMessage((promoter as { guest_message?: string | null } | null)?.guest_message ?? "");
       setWfT((promoter?.comm_woman_free_type ?? "fixed") as "fixed" | "percent");
+
       setWfV(Number(promoter?.comm_woman_free_value ?? 3));
       setWpT((promoter?.comm_woman_paid_type ?? "percent") as "fixed" | "percent");
       setWpV(Number(promoter?.comm_woman_paid_value ?? 25));
@@ -319,6 +325,9 @@ function PromoterDialog({ open, onOpenChange, promoter }: { open: boolean; onOpe
         phone: phone.trim() || null,
         email: email.trim() || null,
         notes: notes.trim() || null,
+        instagram_handle: instagram.trim().replace(/^@/, "") || null,
+        guest_message: guestMessage.trim() || null,
+
         comm_woman_free_type: wfT,
         comm_woman_free_value: wfV,
         comm_woman_paid_type: wpT,
@@ -374,9 +383,26 @@ function PromoterDialog({ open, onOpenChange, promoter }: { open: boolean; onOpe
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="p-notes">Anotações</Label>
-                <Textarea id="p-notes" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <Label htmlFor="p-insta">Instagram (@)</Label>
+                <Input id="p-insta" value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="seuinsta" />
+                <p className="text-[11px] text-muted-foreground">Aparece destacado na página da lista do promoter.</p>
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-msg">Mensagem para os convidados</Label>
+                <Textarea
+                  id="p-msg"
+                  rows={3}
+                  value={guestMessage}
+                  onChange={(e) => setGuestMessage(e.target.value)}
+                  placeholder="Você é meu convidado! Bora celebrar 🔥 — me segue lá no @seuinsta"
+                />
+                <p className="text-[11px] text-muted-foreground">Sugerimos colocar o @ do Instagram pra ganhar seguidores também.</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-notes">Anotações internas</Label>
+                <Textarea id="p-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </div>
+
             </TabsContent>
 
             <TabsContent value="comissoes" className="space-y-3 pt-4">

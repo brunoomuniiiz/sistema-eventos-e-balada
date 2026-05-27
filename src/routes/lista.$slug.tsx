@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Sparkles, Users, Check, MessageCircle, Download, Share2, MapPin } from "lucide-react";
+import { Calendar, Sparkles, Users, Check, MessageCircle, Download, Share2, MapPin, Instagram } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/lista/$slug")({
   component: GuestListPage,
@@ -96,8 +98,18 @@ function GuestListPage() {
   const showRealCount = Boolean(data.show_real_count_when_big) && isEventDay && Number(data.total_entries) >= 400;
   const waGroup = (data as { event_whatsapp_group_url?: string | null }).event_whatsapp_group_url ?? null;
 
+  const d = data as {
+    promoter_avatar_url?: string | null;
+    promoter_instagram?: string | null;
+    promoter_guest_message?: string | null;
+  };
+  const promoterAvatar = d.promoter_avatar_url ?? null;
+  const promoterInsta = (d.promoter_instagram ?? "").replace(/^@/, "").trim();
+  const guestMessage = (d.promoter_guest_message ?? "").trim() || `Você é meu convidado no ${data.event_name}! 🔥`;
+  const initials = String(data.promoter_name ?? "?").slice(0, 2).toUpperCase();
+
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-  const shareText = `Tô indo no ${data.event_name} 🔥 entra na lista com ${data.promoter_name}: ${shareUrl}`;
+  const shareText = `${guestMessage} Entra na minha lista: ${shareUrl}`;
   const waShareHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
   return (
@@ -111,8 +123,8 @@ function GuestListPage() {
 
         <Card className="glass overflow-hidden">
           {data.event_flyer_url && (
-            <div className="relative">
-              <img src={data.event_flyer_url} alt={data.event_name} className="w-full aspect-[4/5] object-cover" />
+            <div className="relative bg-black/40 grid place-items-center">
+              <img src={data.event_flyer_url} alt={data.event_name} className="w-full h-auto object-contain max-h-[80vh]" />
               <div className="absolute top-3 right-3 flex gap-2">
                 <a
                   href={data.event_flyer_url}
@@ -151,15 +163,41 @@ function GuestListPage() {
                 <MapPin className="h-4 w-4" /> {data.event_location}
               </div>
             )}
-            <p className="text-sm mt-3">
-              Lista do promoter <strong>{data.promoter_name}</strong>
-            </p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+
+            {/* Card destacado do promoter */}
+            <div className="mt-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-14 w-14 ring-2 ring-primary/40">
+                  <AvatarImage src={promoterAvatar ?? undefined} alt={data.promoter_name} />
+                  <AvatarFallback className="bg-gradient-primary text-primary-foreground font-bold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">Seu promoter</div>
+                  <div className="font-bold truncate">{data.promoter_name}</div>
+                  {promoterInsta && (
+                    <a
+                      href={`https://instagram.com/${promoterInsta}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-muted-foreground inline-flex items-center gap-1 hover:text-primary"
+                    >
+                      <Instagram className="h-3 w-3" /> @{promoterInsta}
+                    </a>
+                  )}
+                </div>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed whitespace-pre-wrap">{guestMessage}</p>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
               <Users className="h-3 w-3" />
               {showRealCount
                 ? <>{Number(data.total_entries)} confirmados</>
                 : <>{fakeViewing} pessoas vendo agora</>}
             </div>
+
 
             {closed ? (
               <div className="mt-6 p-4 rounded-md bg-secondary/40 text-center text-sm text-muted-foreground">

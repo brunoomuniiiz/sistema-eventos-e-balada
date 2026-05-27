@@ -152,19 +152,30 @@ function EventosPage() {
   );
 }
 
+// Helpers para datetime-local sem perder fuso horário
+function toLocalInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fromLocalInputValue(v: string): string {
+  // "yyyy-mm-ddTHH:MM" sem timezone — interpretado como local pelo Date()
+  return new Date(v).toISOString();
+}
+
 function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChange: (v: boolean) => void; event: Event | null }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [name, setName] = useState(event?.name ?? "");
   const [description, setDescription] = useState(event?.description ?? "");
-  const [date, setDate] = useState(event?.date ? new Date(event.date).toISOString().slice(0, 16) : "");
+  const [date, setDate] = useState(toLocalInputValue(event?.date));
   const [location, setLocation] = useState(event?.location ?? "");
   const [status, setStatus] = useState<"upcoming" | "ongoing" | "finished" | "cancelled">((event?.status as "upcoming" | "ongoing" | "finished" | "cancelled") ?? "upcoming");
   const [flyerUrl, setFlyerUrl] = useState(event?.flyer_url ?? "");
   const [endDate, setEndDate] = useState(
-    (event as { end_date?: string | null } | null)?.end_date
-      ? new Date((event as { end_date: string }).end_date).toISOString().slice(0, 16)
-      : ""
+    toLocalInputValue((event as { end_date?: string | null } | null)?.end_date)
   );
   const [waGroupUrl, setWaGroupUrl] = useState(
     (event as { whatsapp_group_url?: string | null } | null)?.whatsapp_group_url ?? ""
@@ -179,17 +190,17 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
     if (open) {
       setName(event?.name ?? "");
       setDescription(event?.description ?? "");
-      setDate(event?.date ? new Date(event.date).toISOString().slice(0, 16) : "");
+      setDate(toLocalInputValue(event?.date));
       setLocation(event?.location ?? "");
       setStatus((event?.status as "upcoming" | "ongoing" | "finished" | "cancelled") ?? "upcoming");
       setFlyerUrl(event?.flyer_url ?? "");
-      const ed = (event as { end_date?: string | null } | null)?.end_date;
-      setEndDate(ed ? new Date(ed).toISOString().slice(0, 16) : "");
+      setEndDate(toLocalInputValue((event as { end_date?: string | null } | null)?.end_date));
       setWaGroupUrl((event as { whatsapp_group_url?: string | null } | null)?.whatsapp_group_url ?? "");
       setShowRealCount(Boolean((event as { show_real_count_when_big?: boolean } | null)?.show_real_count_when_big));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, event?.id]);
+
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -198,8 +209,9 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
         user_id: user.id,
         name: name.trim(),
         description: description.trim() || null,
-        date: new Date(date).toISOString(),
-        end_date: endDate ? new Date(endDate).toISOString() : null,
+        date: fromLocalInputValue(date),
+        end_date: endDate ? fromLocalInputValue(endDate) : null,
+
         location: location.trim() || null,
         status,
         flyer_url: flyerUrl || null,

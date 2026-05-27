@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Permission } from "@/hooks/usePermissions";
 
-export type PersonaKey = "dono" | "promoter" | "garcom" | "caixa" | "portaria" | "lojinha";
+export type PersonaKey = "dono" | "evento" | "promoter" | "garcom" | "caixa" | "portaria" | "lojinha";
 
 export type PersonaMask = {
   isOwner: boolean;
@@ -15,6 +15,30 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
     label: "Dono (visão completa)",
     mask: { isOwner: true, permissions: [], flags: {} },
   },
+  evento: {
+    label: "Modo Evento (tudo aberto)",
+    mask: {
+      isOwner: true,
+      permissions: ["vendas", "portaria", "estoque", "financeiro", "funcionarios", "eventos", "promoters", "lojinha"],
+      flags: {
+        vendas_pdv_caixa: true,
+        vendas_garcom: true,
+        vendas_validar_qr: true,
+        vendas_pedidos: true,
+        vendas_historico: true,
+        vendas_fechamento: true,
+        vendas_abre_caixa: true,
+        vendas_sangria: true,
+        pode_lancar_consumacao: true,
+        aceita_dinheiro: true,
+        aceita_pix: true,
+        aceita_cartao: true,
+        lojinha_can_sell: true,
+        can_sell_cash: true,
+      },
+    },
+  },
+
   promoter: {
     label: "Promoter",
     mask: {
@@ -93,12 +117,14 @@ export const PERSONAS: Record<PersonaKey, { label: string; mask: PersonaMask }> 
 
 export const PERSONA_DESTINATIONS: Record<PersonaKey, { to: string; search?: Record<string, string> }> = {
   dono: { to: "/dashboard" },
+  evento: { to: "/portaria" },
   promoter: { to: "/meu-extrato" },
   garcom: { to: "/vendas", search: { tab: "vender" } },
   caixa: { to: "/pdv" },
   portaria: { to: "/portaria" },
   lojinha: { to: "/vendas", search: { tab: "vender" } },
 };
+
 
 export function getPersonaDestination(persona: PersonaKey) {
   return PERSONA_DESTINATIONS[persona];
