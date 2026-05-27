@@ -264,12 +264,16 @@ export function PdvView() {
 
   const removeItem = (id: string) => setCart((prev) => prev.filter((i) => i.product_id !== id));
 
-  const recordSale = async () => {
+  const recordSale = async (chaveInfo?: { notes: string; authorizedByName: string }) => {
     if (!user || !ownerId) return;
     if (!locationId || !session) return;
     setSubmitting(true);
     try {
-      const dominant = dominantMethod(payments);
+      // Se PIX foi confirmado via chave (PIN do dono), troca método para "pix_chave"
+      const effectivePayments = chaveInfo
+        ? payments.map((p) => p.method === "pix" ? { ...p, method: "pix_chave" as unknown as typeof p.method } : p)
+        : payments;
+      const dominant = dominantMethod(effectivePayments as typeof payments);
       const { data: sale, error: saleErr } = await supabase
         .from("sales")
         .insert({
@@ -285,6 +289,7 @@ export function PdvView() {
           discount_value: discountValue,
           discount_by: discountPercent > 0 ? user.id : null,
           session_id: session.id,
+          notes: chaveInfo ? `PIX chave (${chaveInfo.authorizedByName})${chaveInfo.notes ? ` — ${chaveInfo.notes}` : ""}` : null,
         })
         .select()
         .single();
@@ -304,8 +309,8 @@ export function PdvView() {
       if (itemsErr) throw itemsErr;
 
       let remaining = total;
-      const payRows: { user_id: string; sale_id: string; method: string; amount: number; promoter_id?: string }[] = [];
-      const ordered = [...payments].sort((a, b) =>
+      const payRows: { user_id: string; sale_id: string; method: string; amount: number; promoter_id?: string; terminal_id?: string | null }[] = [];
+      const ordered = [...effectivePayments].sort((a, b) =>
         a.method === "dinheiro" ? 1 : b.method === "dinheiro" ? -1 : 0
       );
       for (const p of ordered) {
@@ -317,6 +322,7 @@ export function PdvView() {
             method: p.method,
             amount: +amt.toFixed(2),
             ...(p.promoter_id ? { promoter_id: p.promoter_id } : {}),
+            ...(p.terminal_id ? { terminal_id: p.terminal_id } : {}),
           });
           remaining = +(remaining - amt).toFixed(2);
         }
@@ -468,6 +474,7 @@ export function PdvView() {
         origin="pdv"
         sector="bar"
         onApproved={async () => { await recordSale(); }}
+        onChaveApproved={async (info) => { await recordSale(info); }}
       />
 
       {session && (

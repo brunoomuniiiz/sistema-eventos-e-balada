@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Banknote, CreditCard, Smartphone, Plus, Trash2, ArrowLeft, X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 
 export type PaymentMethod = "dinheiro" | "debito" | "credito" | "pix" | "promoter_credit";
@@ -12,6 +15,8 @@ export interface PaymentLine {
   promoter_id?: string;
   promoter_name?: string;
   campaign_id?: string | null;
+  terminal_id?: string | null;
+  terminal_label?: string | null;
 }
 
 const METHODS: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
@@ -33,6 +38,17 @@ interface Props {
 }
 
 export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acceptedMethods, canPromoterCredit, onPickPromoterCredit }: Props) {
+  const { data: terminals = [] } = useQuery({
+    queryKey: ["payment-terminals-active"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("payment_terminals")
+        .select("id, label, owner_label, accepts_credito, accepts_debito")
+        .eq("is_active", true)
+        .order("label");
+      return (data ?? []) as { id: string; label: string; owner_label: string | null; accepts_credito: boolean; accepts_debito: boolean }[];
+    },
+  });
   const paid = payments.reduce((s, p) => s + p.amount, 0);
   const dinheiroPaid = payments
     .filter((p) => p.method === "dinheiro")
@@ -192,22 +208,52 @@ export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acc
         <div className="space-y-2">
           {payments.map((p, idx) => {
             const meta = METHODS.find((m) => m.key === p.method)!;
+            const isCard = p.method === "credito" || p.method === "debito";
+            const matching = terminals.filter((t) =>
+              p.method === "credito" ? t.accepts_credito : p.method === "debito" ? t.accepts_debito : false,
+            );
             return (
-              <div
-                key={idx}
-                className="flex items-center gap-2 p-3 rounded-lg border bg-card"
-              >
-                <meta.icon className="h-4 w-4 text-muted-foreground" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{meta.label}</div>
-                  {p.promoter_name && (
-                    <div className="text-[10px] text-muted-foreground truncate">{p.promoter_name}</div>
-                  )}
+              <div key={idx} className="p-3 rounded-lg border bg-card space-y-2">
+                <div className="flex items-center gap-2">
+                  <meta.icon className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{meta.label}</div>
+                    {p.promoter_name && (
+                      <div className="text-[10px] text-muted-foreground truncate">{p.promoter_name}</div>
+                    )}
+                  </div>
+                  <span className="font-semibold">{formatBRL(p.amount)}</span>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeLine(idx)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
-                <span className="font-semibold">{formatBRL(p.amount)}</span>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeLine(idx)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                {isCard && matching.length > 0 && (
+                  <Select
+                    value={p.terminal_id ?? "none"}
+                    onValueChange={(v) => {
+                      const t = matching.find((x) => x.id === v);
+                      const next = [...payments];
+                      next[idx] = {
+                        ...p,
+                        terminal_id: v === "none" ? null : v,
+                        terminal_label: t?.label ?? null,
+                      };
+                      onChange(next);
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Maquininha…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— Sem maquininha —</SelectItem>
+                      {matching.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.label}{t.owner_label ? ` · ${t.owner_label}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             );
           })}
