@@ -35,7 +35,7 @@ export function usePermissions() {
       if (!user) return null;
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role, permissions, owner_id, can_discount, max_discount_percent, can_sell_cash, can_authorize, role_preset, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao, aceita_credito_promoter, pode_lancar_consumacao, pode_pix_chave, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_pedidos, vendas_historico, vendas_fechamento, vendas_abre_caixa, vendas_sangria, vendas_ao_vivo, vendas_abrir_fechar_caixa, vendas_promoter_creditos_dinheiro, produtos_conferir_estoque, produtos_adicionar_entrada, produtos_criar_editar, produtos_criar_combo, produtos_inventario, eventos_criar, eventos_editar, eventos_abrir_encerrar, eventos_ver_financeiro, promoters_gerenciar, promoters_comissoes, promoters_ver_desempenho, financeiro_lancar_despesas, financeiro_ver_numeros, financeiro_fechar_caixa")
+        .select("role, permissions, owner_id, promoter_id, can_discount, max_discount_percent, can_sell_cash, can_authorize, role_preset, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, pode_adicionar_bebidas, aceita_dinheiro, aceita_pix, aceita_cartao, aceita_credito_promoter, pode_lancar_consumacao, pode_pix_chave, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_pedidos, vendas_historico, vendas_fechamento, vendas_abre_caixa, vendas_sangria, vendas_ao_vivo, vendas_abrir_fechar_caixa, vendas_promoter_creditos_dinheiro, produtos_conferir_estoque, produtos_adicionar_entrada, produtos_criar_editar, produtos_criar_combo, produtos_inventario, eventos_criar, eventos_editar, eventos_abrir_encerrar, eventos_ver_financeiro, promoters_gerenciar, promoters_comissoes, promoters_ver_desempenho, financeiro_lancar_despesas, financeiro_ver_numeros, financeiro_fechar_caixa")
         .eq("user_id", user.id);
       if (error) throw error;
       if (!data || data.length === 0) return null;
@@ -117,6 +117,8 @@ export function usePermissions() {
     isOwner ? ["pix", "card"] : (useMask ? [] : ((data as { lojinha_payment_methods?: string[] } | null)?.lojinha_payment_methods ?? []))
   ) as Array<"pix" | "card">;
   const lojinhaPointDeviceId = useMask ? null : ((data as { lojinha_point_device_id?: string | null } | null)?.lojinha_point_device_id ?? null);
+  const promoterId = useMask ? null : ((data as { promoter_id?: string | null } | null)?.promoter_id ?? null);
+
 
   const hasVendas = can("vendas");
   const hasLojinha = can("lojinha");
@@ -173,6 +175,7 @@ export function usePermissions() {
     lojinhaCanSell,
     lojinhaPaymentMethods,
     lojinhaPointDeviceId,
+    promoterId,
     canPdvCaixa,
     canVenderGarcom,
     canValidarQr,

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { getStorefront, createOrder, findPendingForCustomer, customerAbandonOrder, type StorefrontProduct } from "@/lojinha/api";
 import { getCart, setCart, getCartToken, getCustomer, saveCustomer, resetCart, type CartItem } from "@/lojinha/lib/cart";
@@ -40,6 +41,16 @@ function StorefrontPage() {
     queryKey: ["lojinha-storefront", slug],
     queryFn: () => getStorefront(slug),
     refetchInterval: 30_000,
+  });
+
+  const { data: opWindow } = useQuery({
+    queryKey: ["lojinha-op-window", slug],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("lojinha_operation_window", { _slug: slug });
+      if (error) throw error;
+      return data as { found: boolean; is_open?: boolean; event_name?: string; opens_at?: string } | null;
+    },
   });
 
   const productsById = useMemo(() => {

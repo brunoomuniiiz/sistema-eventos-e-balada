@@ -52,6 +52,8 @@ type SubFlags = {
   lojinha_can_sell: boolean;
   lojinha_payment_methods: string[];
   lojinha_point_device_id: string | null;
+  // Promoter vinculado (funcionário também atua como promoter)
+  promoter_id: string | null;
 };
 
 type TeamMember = SubFlags & {
@@ -104,6 +106,7 @@ const ALL_OFF: SubFlags = {
   lojinha_can_sell: false,
   lojinha_payment_methods: [],
   lojinha_point_device_id: null,
+  promoter_id: null,
 };
 
 type Preset = {
@@ -220,7 +223,7 @@ export function TeamPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_authorize, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, aceita_dinheiro, aceita_pix, aceita_cartao, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_sangria, vendas_abrir_fechar_caixa, vendas_promoter_creditos_dinheiro, produtos_conferir_estoque, produtos_adicionar_entrada, produtos_criar_editar, produtos_criar_combo, produtos_inventario, eventos_criar, eventos_editar, eventos_abrir_encerrar, eventos_ver_financeiro, promoters_gerenciar, promoters_comissoes, promoters_ver_desempenho")
+        .select("id, user_id, display_name, email, role, role_preset, permissions, promoter_id, can_discount, max_discount_percent, can_authorize, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, aceita_dinheiro, aceita_pix, aceita_cartao, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_sangria, vendas_abrir_fechar_caixa, vendas_promoter_creditos_dinheiro, produtos_conferir_estoque, produtos_adicionar_entrada, produtos_criar_editar, produtos_criar_combo, produtos_inventario, eventos_criar, eventos_editar, eventos_abrir_encerrar, eventos_ver_financeiro, promoters_gerenciar, promoters_comissoes, promoters_ver_desempenho")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
@@ -241,6 +244,20 @@ export function TeamPanel() {
       return data as Array<{ id: string; mp_device_id: string; label: string }>;
     },
   });
+
+  const { data: promotersList = [] } = useQuery({
+    queryKey: ["promoters-list", ownerId],
+    enabled: !!ownerId && isOwner,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("promoters")
+        .select("id, name")
+        .order("name");
+      if (error) throw error;
+      return data as Array<{ id: string; name: string }>;
+    },
+  });
+
 
   if (!can("funcionarios")) {
     return <div className="text-sm text-muted-foreground">Sem permissão para gerenciar funcionários.</div>;
@@ -285,6 +302,7 @@ export function TeamPanel() {
       lojinha_can_sell: !!m.lojinha_can_sell,
       lojinha_payment_methods: m.lojinha_payment_methods ?? [],
       lojinha_point_device_id: m.lojinha_point_device_id ?? null,
+      promoter_id: m.promoter_id ?? null,
     });
     setOpen(true);
   };
@@ -375,6 +393,7 @@ export function TeamPanel() {
       lojinha_can_sell: form.lojinha_can_sell,
       lojinha_payment_methods: form.lojinha_payment_methods,
       lojinha_point_device_id: form.lojinha_point_device_id,
+      promoter_id: form.promoter_id,
     };
   };
 
@@ -490,6 +509,27 @@ export function TeamPanel() {
                       </div>
                     </div>
                   )}
+                  <div className="rounded-md border p-3 space-y-2">
+                    <Toggle
+                      label="Também é promoter"
+                      hint="Fora da janela do evento, esse funcionário acessa só a área de promoter."
+                      checked={!!form.promoter_id}
+                      onChange={(v) => set("promoter_id", v ? (promotersList[0]?.id ?? null) : null)}
+                    />
+                    {form.promoter_id && (
+                      <Select
+                        value={form.promoter_id}
+                        onValueChange={(v) => set("promoter_id", v)}
+                      >
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Selecione o promoter" /></SelectTrigger>
+                        <SelectContent>
+                          {promotersList.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 </div>
 
                 {/* Presets */}
