@@ -208,6 +208,34 @@ function StorefrontPage() {
   const rawAccent = data.settings.accent_color;
   const accent = rawAccent && /^#[0-9a-fA-F]{6}$/.test(rawAccent) ? rawAccent : "#e94560";
 
+  if (opWindow && opWindow.found && opWindow.is_open === false) {
+    const opensAt = opWindow.opens_at ? new Date(opWindow.opens_at) : null;
+    const opensLabel = opensAt
+      ? opensAt.toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+      : null;
+    return (
+      <div className="min-h-screen bg-background grid place-items-center p-6 text-center">
+        <div className="max-w-sm space-y-4">
+          <div
+            className="h-16 w-16 mx-auto rounded-2xl grid place-items-center text-white"
+            style={{ background: `linear-gradient(135deg, ${accent}, #1a1a2e)` }}
+          >
+            <Store className="h-8 w-8" />
+          </div>
+          <h1 className="text-2xl font-bold">{data.settings.store_name || "Loja"} está fechada</h1>
+          <p className="text-sm text-muted-foreground">
+            {opensLabel
+              ? <>Abrimos novamente <span className="font-semibold text-foreground">{opensLabel}</span>{opWindow.event_name ? <> para <span className="font-semibold text-foreground">{opWindow.event_name}</span></> : null}.</>
+              : "Volte em breve."}
+          </p>
+          <p className="text-xs text-muted-foreground pt-4">
+            <Link to="/" className="hover:underline">NightOps</Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-32">
       <header
