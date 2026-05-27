@@ -283,8 +283,19 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="ev-date">Data e hora *</Label>
+              <Label htmlFor="ev-date">Início *</Label>
               <Input id="ev-date" type="datetime-local" required value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ev-end">Encerramento</Label>
+              <Input id="ev-end" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="ev-location">Local</Label>
+              <Input id="ev-location" value={location} onChange={(e) => setLocation(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ev-status">Status</Label>
@@ -292,6 +303,7 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
                 <SelectTrigger id="ev-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="upcoming">Próximo</SelectItem>
+                  <SelectItem value="ongoing">Ao vivo</SelectItem>
                   <SelectItem value="finished">Realizado</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
@@ -300,8 +312,17 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="ev-location">Local</Label>
-            <Input id="ev-location" value={location} onChange={(e) => setLocation(e.target.value)} />
+            <Label htmlFor="ev-wa">Link do grupo WhatsApp</Label>
+            <Input id="ev-wa" placeholder="https://chat.whatsapp.com/..." value={waGroupUrl} onChange={(e) => setWaGroupUrl(e.target.value)} />
+            <p className="text-[11px] text-muted-foreground">Quem entrar na lista verá um botão para entrar no grupo.</p>
+          </div>
+
+          <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="ev-realcount" className="cursor-pointer">Mostrar nº real de inscritos no dia</Label>
+              <p className="text-[11px] text-muted-foreground">Só ativa quando a lista passar de 400 nomes, no dia do evento.</p>
+            </div>
+            <Switch id="ev-realcount" checked={showRealCount} onCheckedChange={setShowRealCount} />
           </div>
 
           <div className="space-y-1.5">
