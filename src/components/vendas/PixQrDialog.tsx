@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, Check, Loader2, X, KeyRound, QrCode as QrIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +22,6 @@ type Props = {
   orderId?: string | null;
   salePayload?: unknown;
   onApproved: (chargeId: string) => void | Promise<void>;
-  /** Quando informado e o usuário tem pode_pix_chave, libera a aba "Chave PIX" */
   onChaveApproved?: (info: { notes: string; authorizedByName: string }) => void | Promise<void>;
 };
 
@@ -65,7 +64,6 @@ export function PixQrDialog({
   const [remaining, setRemaining] = useState<number | null>(null);
   const startedRef = useRef(false);
 
-  // Gera cobrança ao abrir (apenas aba QR)
   useEffect(() => {
     if (!open) {
       startedRef.current = false;
@@ -106,7 +104,6 @@ export function PixQrDialog({
       .finally(() => setCreating(false));
   }, [open, amount, description, origin, sector, orderId, salePayload, create, onOpenChange]);
 
-  // Polling de status
   useEffect(() => {
     if (!open || !charge || status !== "pending") return;
     const handle = setInterval(async () => {
@@ -128,7 +125,6 @@ export function PixQrDialog({
     return () => clearInterval(handle);
   }, [open, charge, status, checkStatus, onApproved, onOpenChange]);
 
-  // Countdown
   useEffect(() => {
     if (!charge?.expires_at) return;
     const exp = new Date(charge.expires_at).getTime();
@@ -145,6 +141,7 @@ export function PixQrDialog({
     if (!charge?.qr_code) return;
     await navigator.clipboard.writeText(charge.qr_code);
     setCopied(true);
+    toast.success("Código Pix copiado");
     setTimeout(() => setCopied(false), 1500);
   };
 
@@ -159,11 +156,11 @@ export function PixQrDialog({
 
   const QrPane = (
     creating || !charge ? (
-      <div className="flex items-center justify-center py-10">
+      <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     ) : status === "approved" ? (
-      <div className="flex flex-col items-center gap-3 py-8">
+      <div className="flex flex-col items-center gap-2 py-8">
         <div className="rounded-full bg-emerald-500/10 p-4">
           <Check className="h-10 w-10 text-emerald-500" />
         </div>
@@ -176,71 +173,81 @@ export function PixQrDialog({
           <X className="h-10 w-10 text-destructive" />
         </div>
         <div className="font-semibold">Pagamento {status === "rejected" ? "recusado" : "cancelado"}</div>
-        <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
+        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
       </div>
     ) : (
-      <div className="space-y-4">
+      <div className="flex flex-col items-center gap-3">
         {charge.qr_code_base64 && (
-          <div className="flex justify-center bg-white p-3 rounded-lg">
-            <img src={`data:image/png;base64,${charge.qr_code_base64}`} alt="QR Code PIX" className="w-64 h-64" />
+          <div className="bg-white p-2 rounded-lg">
+            <img
+              src={`data:image/png;base64,${charge.qr_code_base64}`}
+              alt="QR Code PIX"
+              className="w-48 h-48 sm:w-52 sm:h-52 block"
+            />
           </div>
         )}
         {charge.qr_code && (
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">Pix copia-e-cola</div>
-            <div className="flex gap-2">
-              <code className="flex-1 text-[10px] bg-muted rounded px-2 py-2 truncate font-mono">{charge.qr_code}</code>
-              <Button size="icon" variant="outline" onClick={copy}>{copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}</Button>
-            </div>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={copy}
+          >
+            {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+            {copied ? "Copiado!" : "Copiar código Pix"}
+          </Button>
         )}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Aguardando pagamento…</div>
-          {remaining != null && <div>Expira em {mmss}</div>}
+        <div className="w-full flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Aguardando…
+          </span>
+          {remaining != null && <span>Expira em {mmss}</span>}
         </div>
-        <Button variant="outline" className="w-full" onClick={handleClose}>Cancelar</Button>
-        <Button
-          variant="outline"
-          className="w-full border-dashed border-amber-500/60 text-amber-600 hover:bg-amber-500/10"
-          disabled={simulating}
-          onClick={async () => {
-            if (!charge) return;
-            setSimulating(true);
-            try {
-              await simulate({ data: { chargeId: charge.id } });
-              setStatus("approved");
-              await onApproved(charge.id);
-              setTimeout(() => onOpenChange(false), 1000);
-            } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Falha ao simular");
-            } finally {
-              setSimulating(false);
-            }
-          }}
-        >
-          {simulating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          [TESTE] Simular Pagamento Aprovado
-        </Button>
+        <div className="w-full flex items-center justify-between gap-2 pt-1">
+          <Button variant="ghost" size="sm" onClick={handleClose}>
+            Cancelar
+          </Button>
+          <button
+            type="button"
+            disabled={simulating}
+            onClick={async () => {
+              if (!charge) return;
+              setSimulating(true);
+              try {
+                await simulate({ data: { chargeId: charge.id } });
+                setStatus("approved");
+                await onApproved(charge.id);
+                setTimeout(() => onOpenChange(false), 1000);
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Falha ao simular");
+              } finally {
+                setSimulating(false);
+              }
+            }}
+            className="text-[11px] text-amber-600 hover:underline disabled:opacity-50"
+          >
+            {simulating ? "Simulando…" : "[teste] simular pago"}
+          </button>
+        </div>
       </div>
     )
   );
 
   const ChavePane = (
     <div className="space-y-3">
-      <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
-        Use quando o cliente pagou via chave PIX ou QR fora do app. O dono precisa autorizar com PIN.
+      <div className="rounded-lg border bg-muted/30 p-2 text-xs text-muted-foreground">
+        Use quando o cliente pagou via chave PIX fora do app. Dono autoriza com PIN.
       </div>
-      <div>
-        <div className="text-xs text-muted-foreground mb-1">Observação (opcional)</div>
-        <Textarea
-          value={chaveNotes}
-          onChange={(e) => setChaveNotes(e.target.value)}
-          placeholder="Ex.: PIX pago na chave do Itaú do dono"
-          rows={3}
-        />
-      </div>
+      <Textarea
+        value={chaveNotes}
+        onChange={(e) => setChaveNotes(e.target.value)}
+        placeholder="Observação (opcional)"
+        rows={2}
+      />
       <Button
         className="w-full"
+        size="sm"
         disabled={chaveLoading}
         onClick={() => setAuthOpen(true)}
       >
@@ -270,22 +277,23 @@ export function PixQrDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Pagamento PIX</DialogTitle>
-          <DialogDescription>
-            {description} · <strong>{formatBRL(amount)}</strong>
-          </DialogDescription>
+      <DialogContent className="max-w-[94vw] sm:max-w-sm max-h-[94vh] p-4 gap-3 overflow-hidden flex flex-col">
+        <DialogHeader className="space-y-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <DialogTitle className="text-base">Pagamento PIX</DialogTitle>
+            <span className="font-bold text-lg text-primary">{formatBRL(amount)}</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground truncate">{description}</p>
         </DialogHeader>
 
         {chaveEnabled ? (
-          <Tabs value={tab} onValueChange={(v) => setTab(v as "qr" | "chave")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="qr"><QrIcon className="h-3.5 w-3.5 mr-1" />QR Code</TabsTrigger>
-              <TabsTrigger value="chave"><KeyRound className="h-3.5 w-3.5 mr-1" />Chave PIX</TabsTrigger>
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "qr" | "chave")} className="flex-1 flex flex-col min-h-0">
+            <TabsList className="grid w-full grid-cols-2 h-8">
+              <TabsTrigger value="qr" className="text-xs"><QrIcon className="h-3.5 w-3.5 mr-1" />QR Code</TabsTrigger>
+              <TabsTrigger value="chave" className="text-xs"><KeyRound className="h-3.5 w-3.5 mr-1" />Chave PIX</TabsTrigger>
             </TabsList>
-            <TabsContent value="qr" className="mt-4">{QrPane}</TabsContent>
-            <TabsContent value="chave" className="mt-4">{ChavePane}</TabsContent>
+            <TabsContent value="qr" className="mt-3 flex-1">{QrPane}</TabsContent>
+            <TabsContent value="chave" className="mt-3 flex-1">{ChavePane}</TabsContent>
           </Tabs>
         ) : (
           QrPane
