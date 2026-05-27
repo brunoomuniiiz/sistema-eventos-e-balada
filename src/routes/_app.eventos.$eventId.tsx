@@ -238,6 +238,22 @@ function EventDetailPage() {
       </Card>
 
 
+      {isOwner && (
+        <Card className="glass border-border/60">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LockKeyhole className="h-4 w-4 text-primary" /> Fechamento por funcionário
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Feche um a um (vendedor, porteiro, garçom). O relatório da maquininha sobrescreve o sistema.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <EventClosingTab eventId={eventId} />
+          </CardContent>
+        </Card>
+      )}
+
       {canEventosVerFinanceiro && (<>
       {/* Resumo financeiro */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
