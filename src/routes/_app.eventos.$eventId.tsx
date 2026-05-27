@@ -19,8 +19,6 @@ import { EventCostsManager } from "@/components/EventCostsManager";
 import { EventPromotersManager } from "@/components/EventPromotersManager";
 import { EventLandingManager } from "@/components/EventLandingManager";
 import { EventClosingTab } from "@/components/eventos/EventClosingTab";
-import { LiveDrinkCostPanel } from "@/components/eventos/LiveDrinkCostPanel";
-import { DrinkMarginCard } from "@/components/eventos/DrinkMarginCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LockKeyhole } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
