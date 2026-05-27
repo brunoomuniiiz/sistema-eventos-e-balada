@@ -451,6 +451,11 @@ function PortariaPage() {
             setPayments((prev) => [...prev, { key: `pix-${Date.now()}`, method: "pix", amount: pixDialog.amount }]);
             setPixDialog({ open: false, amount: 0 });
           }}
+          onChaveApproved={async (info) => {
+            setPayments((prev) => [...prev, { key: `pixchave-${Date.now()}`, method: "pix", amount: pixDialog.amount }]);
+            setPixDialog({ open: false, amount: 0 });
+            toast.success(`PIX por chave confirmado por ${info.authorizedByName}`);
+          }}
         />
       )}
 
