@@ -1,32 +1,37 @@
 ## Problema
-Hoje o `PixQrDialog` (usado no PDV e no garçom) renderiza em `max-w-sm` com:
-- Header + descrição
-- Tabs (QR / Chave PIX) quando o usuário tem permissão
-- QR 256×256 em card branco
-- Campo "Pix copia-e-cola" com código truncado + botão copiar
-- Linha "Aguardando pagamento" + countdown
-- Botão "Cancelar"
-- Botão "[TESTE] Simular Pagamento"
 
-Em celular isso estoura a altura da viewport e o QR fica fora da dobra. O operador precisa rolar pra mostrar pro cliente.
+Você está logado como dono, mas vê a tela "Bar fechado / próximo evento em…".
 
-## Solução (apenas UI no `src/components/vendas/PixQrDialog.tsx`)
+Olhando o código, o `OperationGate` (em `src/routes/_app.tsx`) usa `isOwner` vindo de `usePermissions`. Esse `isOwner` **respeita a máscara do "Ver como"**: se em algum momento você (ou outra sessão neste navegador) escolheu uma persona diferente de "Dono" na barra de testes, o valor fica salvo em `sessionStorage` (`viewAsPersona`) e o sistema te trata como aquele perfil — sem permissão de eventos/promoters e sem ser dono. Resultado: fora da janela de operação, cai na tela "Bar fechado", e como aquela tela **não mostra a barra de Ver-como**, você não tem como voltar pra "Dono" — fica preso.
 
-Reorganizar para caber em uma tela só, com o QR sempre visível na primeira dobra:
+A regra que conversamos ("dono sempre entra") tem que valer pela conta real, não pela máscara de teste.
 
-1. **Dialog mais largo e altura fixa**: trocar `max-w-sm` por `max-w-[92vw] sm:max-w-md`, e usar `max-h-[92vh]` com layout flex coluna. Sem scroll interno na aba QR.
-2. **Header enxuto**: título "PIX" + valor em destaque grande na mesma linha; remover `DialogDescription` longa (mover descrição para um subtítulo de 1 linha truncada).
-3. **Tabs compactas** (quando aparecerem): manter, mas com altura reduzida (`h-8`).
-4. **QR como elemento principal**: reduzir de `w-64 h-64` (256px) para `w-52 h-52` (~208px) — ainda escaneia bem e libera espaço vertical. Centralizado com padding mínimo.
-5. **Copia-e-cola colapsável**: substituir o bloco fixo por um único botão "Copiar código Pix" (com ícone Copy/Check). O código longo deixa de ocupar espaço; quem precisar ver clica e cola. Isso elimina a maior fonte de altura desperdiçada.
-6. **Rodapé fixo compacto**: uma linha com "Aguardando… · expira em mm:ss" + botão "Cancelar" como link/ghost pequeno do lado. Reduz de 3 blocos pra 1.
-7. **Botão de simulação**: ocultar atrás de um `details`/link pequeno "Modo teste" no rodapé (não muda comportamento, só tira da dobra principal). Mantém para QA.
-8. **Estado aprovado/recusado**: já é compacto, só ajustar paddings pra mesma altura do estado pendente (evita "pulo" do dialog).
-9. **Aba Chave PIX**: igualmente compactada — textarea menor (`rows={2}`), botão de confirmar imediatamente abaixo.
+## O que vou mudar
 
-Resultado: numa viewport de ~640px de altura (celular típico em paisagem do garçom ou retrato do PDV), tudo cabe sem scroll e o QR fica imediatamente visível ao abrir.
+Edição cirúrgica só em frontend, sem mexer em permissões/banco.
 
-## Arquivos
-- `src/components/vendas/PixQrDialog.tsx` — única edição.
+### 1. `src/routes/_app.tsx` — `OperationGate`
+- Trocar a checagem de `isOwner` por `realIsOwner` (já exposto pelo `usePermissions`) no bloqueio fora-de-horário.
+- Assim, dono logado **sempre passa**, mesmo que o "Ver como" esteja simulando garçom/caixa/portaria.
+- Mantém o resto da regra igual: funcionário com permissão de eventos/promoters passa; promoter passa; funcionário vinculado a promoter vai pra `/meus-eventos`; demais veem "Bar fechado".
 
-Sem mudanças de lógica, server functions, schema ou permissões.
+### 2. `src/components/OperationClosedScreen.tsx` — escape do "Ver como"
+- Quando `realIsOwner === true` e a persona atual ≠ "dono", mostrar no topo da tela um aviso pequeno + botão **"Voltar para visão de Dono"** que chama `setPersona("dono")`.
+- Isso garante que mesmo se algum dia o gate bloquear o dono por engano, ele tem um caminho de saída visível.
+
+### 3. (defensivo) `src/hooks/useViewAs.tsx`
+- Nenhuma mudança de comportamento. Continua em `sessionStorage`, então fechando a aba já volta pra Dono. (Não vou mexer pra não quebrar fluxo de teste de outros perfis.)
+
+## O que NÃO muda
+
+- Lógica de quem pode entrar fora do horário (owner / eventos / promoters / promoter vinculado) — segue igual.
+- Janela de operação (`useOperationWindow`) — segue igual: abre 1h antes do próximo evento "upcoming/ongoing".
+- Nenhuma mudança de schema, RLS, server functions ou permissões.
+- PDV/Lojinha/Garçom continuam bloqueados pra funcionário comum fora do horário.
+
+## Como validar depois
+
+1. Logar como dono → entrar direto no `/dashboard`, sem ver "Bar fechado", mesmo sem evento futuro.
+2. Trocar pra "Ver como → Garçom" sem evento aberto → cai em "Bar fechado", e o topo mostra "Voltar para visão de Dono".
+3. Clicar nesse botão → volta pra dashboard normalmente.
+4. Logar como funcionário sem permissão de eventos, sem evento aberto → continua vendo "Bar fechado" (regra preservada).
