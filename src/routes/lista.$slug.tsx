@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
-import { format } from "date-fns";
+import { useEffect, useState, type FormEvent } from "react";
+import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Sparkles, Users, Check, MessageCircle } from "lucide-react";
+import { Calendar, Sparkles, Users, Check, MessageCircle, Download, Share2, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { waLink, buildConfirmationMessage } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +28,12 @@ function GuestListPage() {
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");
   const [done, setDone] = useState(false);
+  const [fakeViewing, setFakeViewing] = useState(() => 6 + Math.floor(Math.random() * 19));
+
+  useEffect(() => {
+    const id = setInterval(() => setFakeViewing(6 + Math.floor(Math.random() * 19)), 15000);
+    return () => clearInterval(id);
+  }, []);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["public-list", slug],
@@ -85,7 +90,15 @@ function GuestListPage() {
     );
   }
 
-  const closed = data.event_status !== "upcoming";
+  const closed = data.event_status !== "upcoming" && data.event_status !== "ongoing" && data.event_status !== "live";
+  const eventDate = new Date(data.event_date);
+  const isEventDay = isSameDay(eventDate, new Date());
+  const showRealCount = Boolean(data.show_real_count_when_big) && isEventDay && Number(data.total_entries) >= 400;
+  const waGroup = (data as { event_whatsapp_group_url?: string | null }).event_whatsapp_group_url ?? null;
+
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  const shareText = `Tô indo no ${data.event_name} 🔥 entra na lista com ${data.promoter_name}: ${shareUrl}`;
+  const waShareHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
   return (
     <div className="min-h-screen px-4 py-10 grid place-items-center">
@@ -96,23 +109,56 @@ function GuestListPage() {
           </div>
         </div>
 
-        <Card className="glass">
+        <Card className="glass overflow-hidden">
+          {data.event_flyer_url && (
+            <div className="relative">
+              <img src={data.event_flyer_url} alt={data.event_name} className="w-full aspect-[4/5] object-cover" />
+              <div className="absolute top-3 right-3 flex gap-2">
+                <a
+                  href={data.event_flyer_url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-9 w-9 grid place-items-center rounded-full bg-background/80 backdrop-blur border hover:bg-background"
+                  title="Baixar flyer"
+                >
+                  <Download className="h-4 w-4" />
+                </a>
+                <a
+                  href={waShareHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-9 w-9 grid place-items-center rounded-full bg-[#25D366] text-white hover:opacity-90"
+                  title="Compartilhar no WhatsApp"
+                >
+                  <Share2 className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+          )}
+
           <CardContent className="p-6 md:p-8">
-            <h1 className="text-2xl font-bold text-gradient">
-              {data.event_name}
-            </h1>
+            <h1 className="text-2xl font-bold text-gradient">{data.event_name}</h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
               <Calendar className="h-4 w-4" />
-              {format(new Date(data.event_date), "dd 'de' MMMM 'às' HH:mm", {
-                locale: ptBR,
-              })}
+              {format(eventDate, "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+              {(data as { event_end_date?: string | null }).event_end_date && (
+                <span>· até {format(new Date((data as { event_end_date: string }).event_end_date), "HH:mm")}</span>
+              )}
             </div>
+            {data.event_location && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                <MapPin className="h-4 w-4" /> {data.event_location}
+              </div>
+            )}
             <p className="text-sm mt-3">
               Lista do promoter <strong>{data.promoter_name}</strong>
             </p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-              <Users className="h-3 w-3" /> {data.total_entries} pessoas na
-              lista
+              <Users className="h-3 w-3" />
+              {showRealCount
+                ? <>{Number(data.total_entries)} confirmados</>
+                : <>{fakeViewing} pessoas vendo agora</>}
             </div>
 
             {closed ? (
@@ -128,25 +174,26 @@ function GuestListPage() {
                     Você está na lista de {data.promoter_name}.
                   </p>
                 </div>
+                {waGroup && (
+                  <a
+                    href={waGroup}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full h-11 rounded-md bg-[#25D366] text-white font-medium hover:opacity-90 transition"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Entrar no grupo do WhatsApp
+                  </a>
+                )}
                 <a
-                  href={waLink(phone, buildConfirmationMessage({
-                    guestName: name,
-                    eventName: data.event_name,
-                    eventDate: data.event_date,
-                    promoterName: data.promoter_name,
-                    location: data.event_location,
-                    flyerUrl: data.event_flyer_url,
-                  }))}
+                  href={waShareHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full h-11 rounded-md bg-[#25D366] text-white font-medium hover:opacity-90 transition"
+                  className="flex items-center justify-center gap-2 w-full h-11 rounded-md border font-medium hover:bg-muted transition"
                 >
-                  <MessageCircle className="h-4 w-4" />
-                  Receber confirmação no WhatsApp
+                  <Share2 className="h-4 w-4" />
+                  Chamar os amigos no WhatsApp
                 </a>
-                <p className="text-xs text-muted-foreground text-center">
-                  Abre o WhatsApp com sua confirmação, o flyer e a promo da caipirinha 🍹
-                </p>
               </div>
             ) : (
               <form onSubmit={onSubmit} className="mt-6 space-y-4">

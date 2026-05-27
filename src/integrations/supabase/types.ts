@@ -982,12 +982,14 @@ export type Database = {
           date: string
           description: string | null
           display_boost: number
+          end_date: string | null
           flyer_url: string | null
           id: string
           landing_published: boolean
           location: string | null
           name: string
           public_slug: string | null
+          show_real_count_when_big: boolean
           status: string
           updated_at: string
           user_id: string
@@ -1000,12 +1002,14 @@ export type Database = {
           date: string
           description?: string | null
           display_boost?: number
+          end_date?: string | null
           flyer_url?: string | null
           id?: string
           landing_published?: boolean
           location?: string | null
           name: string
           public_slug?: string | null
+          show_real_count_when_big?: boolean
           status?: string
           updated_at?: string
           user_id: string
@@ -1018,12 +1022,14 @@ export type Database = {
           date?: string
           description?: string | null
           display_boost?: number
+          end_date?: string | null
           flyer_url?: string | null
           id?: string
           landing_published?: boolean
           location?: string | null
           name?: string
           public_slug?: string | null
+          show_real_count_when_big?: boolean
           status?: string
           updated_at?: string
           user_id?: string
@@ -3115,13 +3121,16 @@ export type Database = {
         Args: { _slug: string }
         Returns: {
           event_date: string
+          event_end_date: string
           event_flyer_url: string
           event_location: string
           event_name: string
           event_promoter_id: string
           event_status: string
+          event_whatsapp_group_url: string
           promoter_name: string
           promoter_phone: string
+          show_real_count_when_big: boolean
           total_entries: number
         }[]
       }

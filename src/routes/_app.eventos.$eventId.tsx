@@ -19,8 +19,6 @@ import { EventCostsManager } from "@/components/EventCostsManager";
 import { EventPromotersManager } from "@/components/EventPromotersManager";
 import { EventLandingManager } from "@/components/EventLandingManager";
 import { EventClosingTab } from "@/components/eventos/EventClosingTab";
-import { LiveDrinkCostPanel } from "@/components/eventos/LiveDrinkCostPanel";
-import { DrinkMarginCard } from "@/components/eventos/DrinkMarginCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LockKeyhole } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -213,9 +211,15 @@ function EventDetailPage() {
           </div>
           <div className="p-4 sm:p-6 md:p-8 flex-1">
             <Badge variant={
-              event.status === "upcoming" ? "default" : event.status === "finished" ? "secondary" : "destructive"
+              event.status === "upcoming" ? "default"
+              : event.status === "ongoing" || event.status === "live" ? "default"
+              : event.status === "finished" ? "secondary"
+              : "destructive"
             }>
-              {event.status === "upcoming" ? "Próximo" : event.status === "finished" ? "Realizado" : "Cancelado"}
+              {event.status === "upcoming" ? "Próximo"
+                : event.status === "ongoing" || event.status === "live" ? "Ao vivo"
+                : event.status === "finished" ? "Realizado"
+                : "Cancelado"}
             </Badge>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-gradient mt-3">{event.name}</h1>
             <div className="mt-4 space-y-2 text-sm text-muted-foreground">
@@ -242,21 +246,11 @@ function EventDetailPage() {
 
       {isOwner && (
         <Card className="glass border-border/60">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wine className="h-4 w-4 text-primary" /> Custo de drinks (ao vivo)
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Lance cada garrafa fechada que abrir para drinks durante o evento.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <LiveDrinkCostPanel eventId={eventId} />
+          <CardContent className="p-4 text-sm text-muted-foreground">
+            O painel de drinks ao vivo agora fica na página <Link to="/ao-vivo" className="text-primary underline">Ao vivo</Link>, dentro de Consumação interna.
           </CardContent>
         </Card>
       )}
-
-      {isOwner && <DrinkMarginCard eventId={eventId} />}
 
       {isOwner && (
         <Card className="glass border-border/60">

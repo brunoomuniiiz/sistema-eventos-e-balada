@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Calendar, MapPin, ImagePlus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -99,9 +100,15 @@ function EventosPage() {
                   </div>
                 )}
                 <Badge className="absolute top-2 right-2" variant={
-                  event.status === "upcoming" ? "default" : event.status === "finished" ? "secondary" : "destructive"
+                  event.status === "upcoming" ? "default"
+                  : event.status === "ongoing" || event.status === "live" ? "default"
+                  : event.status === "finished" ? "secondary"
+                  : "destructive"
                 }>
-                  {event.status === "upcoming" ? "Próximo" : event.status === "finished" ? "Realizado" : "Cancelado"}
+                  {event.status === "upcoming" ? "Próximo"
+                    : event.status === "ongoing" || event.status === "live" ? "Ao vivo"
+                    : event.status === "finished" ? "Realizado"
+                    : "Cancelado"}
                 </Badge>
               </div>
               <CardContent className="p-4">
@@ -152,21 +159,37 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
   const [description, setDescription] = useState(event?.description ?? "");
   const [date, setDate] = useState(event?.date ? new Date(event.date).toISOString().slice(0, 16) : "");
   const [location, setLocation] = useState(event?.location ?? "");
-  const [status, setStatus] = useState<"upcoming" | "finished" | "cancelled">((event?.status as "upcoming" | "finished" | "cancelled") ?? "upcoming");
+  const [status, setStatus] = useState<"upcoming" | "ongoing" | "finished" | "cancelled">((event?.status as "upcoming" | "ongoing" | "finished" | "cancelled") ?? "upcoming");
   const [flyerUrl, setFlyerUrl] = useState(event?.flyer_url ?? "");
+  const [endDate, setEndDate] = useState(
+    (event as { end_date?: string | null } | null)?.end_date
+      ? new Date((event as { end_date: string }).end_date).toISOString().slice(0, 16)
+      : ""
+  );
+  const [waGroupUrl, setWaGroupUrl] = useState(
+    (event as { whatsapp_group_url?: string | null } | null)?.whatsapp_group_url ?? ""
+  );
+  const [showRealCount, setShowRealCount] = useState<boolean>(
+    Boolean((event as { show_real_count_when_big?: boolean } | null)?.show_real_count_when_big)
+  );
   const [uploading, setUploading] = useState(false);
 
-  // Reset form when dialog opens with new event
-  useState(() => {
+  // Reset form when dialog opens with a different event
+  useEffect(() => {
     if (open) {
       setName(event?.name ?? "");
       setDescription(event?.description ?? "");
       setDate(event?.date ? new Date(event.date).toISOString().slice(0, 16) : "");
       setLocation(event?.location ?? "");
-      setStatus((event?.status as "upcoming" | "finished" | "cancelled") ?? "upcoming");
+      setStatus((event?.status as "upcoming" | "ongoing" | "finished" | "cancelled") ?? "upcoming");
       setFlyerUrl(event?.flyer_url ?? "");
+      const ed = (event as { end_date?: string | null } | null)?.end_date;
+      setEndDate(ed ? new Date(ed).toISOString().slice(0, 16) : "");
+      setWaGroupUrl((event as { whatsapp_group_url?: string | null } | null)?.whatsapp_group_url ?? "");
+      setShowRealCount(Boolean((event as { show_real_count_when_big?: boolean } | null)?.show_real_count_when_big));
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, event?.id]);
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -176,9 +199,12 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
         name: name.trim(),
         description: description.trim() || null,
         date: new Date(date).toISOString(),
+        end_date: endDate ? new Date(endDate).toISOString() : null,
         location: location.trim() || null,
         status,
         flyer_url: flyerUrl || null,
+        whatsapp_group_url: waGroupUrl.trim() || null,
+        show_real_count_when_big: showRealCount,
       };
       if (event) {
         const { error } = await supabase.from("events").update(payload).eq("id", event.id);
@@ -257,8 +283,19 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="ev-date">Data e hora *</Label>
+              <Label htmlFor="ev-date">Início *</Label>
               <Input id="ev-date" type="datetime-local" required value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ev-end">Encerramento</Label>
+              <Input id="ev-end" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="ev-location">Local</Label>
+              <Input id="ev-location" value={location} onChange={(e) => setLocation(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ev-status">Status</Label>
@@ -266,6 +303,7 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
                 <SelectTrigger id="ev-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="upcoming">Próximo</SelectItem>
+                  <SelectItem value="ongoing">Ao vivo</SelectItem>
                   <SelectItem value="finished">Realizado</SelectItem>
                   <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
@@ -274,8 +312,17 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="ev-location">Local</Label>
-            <Input id="ev-location" value={location} onChange={(e) => setLocation(e.target.value)} />
+            <Label htmlFor="ev-wa">Link do grupo WhatsApp</Label>
+            <Input id="ev-wa" placeholder="https://chat.whatsapp.com/..." value={waGroupUrl} onChange={(e) => setWaGroupUrl(e.target.value)} />
+            <p className="text-[11px] text-muted-foreground">Quem entrar na lista verá um botão para entrar no grupo.</p>
+          </div>
+
+          <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="ev-realcount" className="cursor-pointer">Mostrar nº real de inscritos no dia</Label>
+              <p className="text-[11px] text-muted-foreground">Só ativa quando a lista passar de 400 nomes, no dia do evento.</p>
+            </div>
+            <Switch id="ev-realcount" checked={showRealCount} onCheckedChange={setShowRealCount} />
           </div>
 
           <div className="space-y-1.5">
