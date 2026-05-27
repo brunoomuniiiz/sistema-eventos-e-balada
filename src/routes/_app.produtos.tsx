@@ -685,7 +685,45 @@ function ProdutosPage() {
                 <div>
                   <Label className="cursor-pointer">Visível na lojinha pública</Label>
                   <p className="text-[11px] text-muted-foreground">Catálogo do cliente final (PIX).</p>
+            </div>
+
+            <div className="p-3 rounded-lg border bg-card/40 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Custos de drinks (eventos)</div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">Não vendável (insumo)</Label>
+                  <p className="text-[11px] text-muted-foreground">Esconde do PDV e da lojinha. Use para garrafas que só entram em drinks (ex: Fim Rocks, 51, Gin).</p>
                 </div>
+                <Switch
+                  checked={!(form.is_sellable ?? true)}
+                  onCheckedChange={(v) => setForm({ ...form, is_sellable: !v })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">Insumo de drink (atalho no Ao Vivo)</Label>
+                  <p className="text-[11px] text-muted-foreground">Fica pinado na grade rápida do painel de custo de drinks do evento.</p>
+                </div>
+                <Switch
+                  checked={form.is_drink_input}
+                  onCheckedChange={(v) => setForm({ ...form, is_drink_input: v })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="cursor-pointer">É drink (entra na margem de drinks)</Label>
+                  <p className="text-[11px] text-muted-foreground">Vendas deste produto somam no faturamento de drinks para calcular margem.</p>
+                </div>
+                <Switch
+                  checked={form.is_drink}
+                  onCheckedChange={(v) => setForm({ ...form, is_drink: v })}
+                />
+              </div>
+            </div>
+
                 <Switch
                   checked={form.visivel_lojinha_cliente}
                   disabled={!form.ativo_geral}
