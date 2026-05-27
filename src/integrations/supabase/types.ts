@@ -2588,6 +2588,7 @@ export type Database = {
           produtos_criar_combo: boolean
           produtos_criar_editar: boolean
           produtos_inventario: boolean
+          promoter_id: string | null
           promoters_comissoes: boolean
           promoters_gerenciar: boolean
           promoters_ver_desempenho: boolean
@@ -2644,6 +2645,7 @@ export type Database = {
           produtos_criar_combo?: boolean
           produtos_criar_editar?: boolean
           produtos_inventario?: boolean
+          promoter_id?: string | null
           promoters_comissoes?: boolean
           promoters_gerenciar?: boolean
           promoters_ver_desempenho?: boolean
@@ -2700,6 +2702,7 @@ export type Database = {
           produtos_criar_combo?: boolean
           produtos_criar_editar?: boolean
           produtos_inventario?: boolean
+          promoter_id?: string | null
           promoters_comissoes?: boolean
           promoters_gerenciar?: boolean
           promoters_ver_desempenho?: boolean
@@ -2720,7 +2723,15 @@ export type Database = {
           vendas_validar_qr?: boolean
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_promoter_id_fkey"
+            columns: ["promoter_id"]
+            isOneToOne: false
+            referencedRelation: "promoters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -2830,6 +2841,7 @@ export type Database = {
         }
         Returns: string
       }
+      close_expired_events: { Args: never; Returns: number }
       close_inventory: {
         Args: { _adjust_stock?: boolean; _inventory_id: string }
         Returns: undefined
