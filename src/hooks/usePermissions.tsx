@@ -117,6 +117,8 @@ export function usePermissions() {
     isOwner ? ["pix", "card"] : (useMask ? [] : ((data as { lojinha_payment_methods?: string[] } | null)?.lojinha_payment_methods ?? []))
   ) as Array<"pix" | "card">;
   const lojinhaPointDeviceId = useMask ? null : ((data as { lojinha_point_device_id?: string | null } | null)?.lojinha_point_device_id ?? null);
+  const promoterId = useMask ? null : ((data as { promoter_id?: string | null } | null)?.promoter_id ?? null);
+
 
   const hasVendas = can("vendas");
   const hasLojinha = can("lojinha");
