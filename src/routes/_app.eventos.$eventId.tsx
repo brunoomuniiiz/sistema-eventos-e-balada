@@ -213,9 +213,15 @@ function EventDetailPage() {
           </div>
           <div className="p-4 sm:p-6 md:p-8 flex-1">
             <Badge variant={
-              event.status === "upcoming" ? "default" : event.status === "finished" ? "secondary" : "destructive"
+              event.status === "upcoming" ? "default"
+              : event.status === "ongoing" || event.status === "live" ? "default"
+              : event.status === "finished" ? "secondary"
+              : "destructive"
             }>
-              {event.status === "upcoming" ? "Próximo" : event.status === "finished" ? "Realizado" : "Cancelado"}
+              {event.status === "upcoming" ? "Próximo"
+                : event.status === "ongoing" || event.status === "live" ? "Ao vivo"
+                : event.status === "finished" ? "Realizado"
+                : "Cancelado"}
             </Badge>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display text-gradient mt-3">{event.name}</h1>
             <div className="mt-4 space-y-2 text-sm text-muted-foreground">
