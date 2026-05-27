@@ -9,7 +9,7 @@ import { LojinhaDevicesPanel } from "@/lojinha/components/LojinhaDevicesPanel";
 import { PaymentTerminalsPanel } from "@/components/config/PaymentTerminalsPanel";
 import { PrintersPanel } from "@/components/config/PrintersPanel";
 import { usePermissions } from "@/hooks/usePermissions";
-import { Settings, UserCog, Users, Smartphone, CreditCard, Printer } from "lucide-react";
+import { Settings, UserCog, Users, Smartphone, CreditCard, Printer, User } from "lucide-react";
 import { MinhaContaPage } from "@/routes/_app.minha-conta";
 
 export const Route = createFileRoute("/_app/configuracao")({

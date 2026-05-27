@@ -1,38 +1,13 @@
 ## Problema
-Funcionária Marília tem permissão **Eventos**, mas não enxerga nada na página de eventos.
+A página `/minha-conta` (onde fica o cadastro do **PIN de operação**) existe, mas não há link visível em nenhum menu do app. Só dá pra chegar digitando a URL. Por isso você não acha o PIN.
 
-Causa: as policies RLS de `events` (e tabelas relacionadas) só liberam para o dono (`auth.uid() = user_id`) ou para promoters linkados. Não existe regra que considere staff com permissão `eventos`, então a query volta vazia.
+## Correção
+Adicionar uma aba **"Minha conta"** dentro da tela **Configuração**, visível para o owner, renderizando o componente `MinhaContaPage` já existente (que tem a seção PIN, foto de perfil, trocar email/senha).
 
-## Regra de permissão (confirmada com você)
-- Quem tem permissão **Eventos** → **vê** tudo do módulo (lista, detalhes, custos, financeiro, promoters, lista de convidados).
-- Para **editar/criar/encerrar/lançar custos** continua valendo as sub-flags já existentes em `user_roles` (`eventos_criar`, `eventos_editar`, `eventos_abrir_encerrar`, `eventos_ver_financeiro`) — sem elas, a tela mostra os dados mas os botões/ações ficam bloqueados (o frontend já checa isso via `usePermissions`).
+### Mudança única
+- `src/routes/_app.configuracao.tsx`: adicionar `CompactTabsTrigger value="minha-conta"` com ícone de perfil + `TabsContent` renderizando `<MinhaContaPage />` (import já existe no arquivo).
 
-## Correção (1 migration de RLS, sem mudar frontend)
-
-### `events`
-- **SELECT**: dono OU staff com permissão `eventos` no owner. *(libera Marília a enxergar a página)*
-- **INSERT**: dono OU staff com `eventos_criar`.
-- **UPDATE**: dono OU staff com `eventos_editar` ou `eventos_abrir_encerrar`.
-- **DELETE**: só dono.
-
-### `event_costs`
-- **SELECT**: dono OU staff com `eventos` (qualquer um do módulo já vê os custos listados).
-- **INSERT/UPDATE/DELETE**: dono OU staff com `eventos_editar`.
-
-### `event_financials`
-- **SELECT**: dono OU staff com `eventos_ver_financeiro` (financeiro do evento é dado sensível).
-- **INSERT/UPDATE/DELETE**: dono OU staff com `eventos_ver_financeiro` + `eventos_editar`.
-
-### `event_promoters` e `event_promoter_commissions`
-- Adicionar **SELECT** para staff com `eventos` (mantendo as policies de promoter já existentes).
-- **INSERT/UPDATE/DELETE**: dono OU staff com `eventos_editar`.
-
-### `guest_list_entries`
-- Adicionar **SELECT** para staff com `eventos` (mantendo as policies de promoter e portaria já existentes).
-- Sem INSERT/UPDATE extra — checkin continua sendo da portaria, criação continua sendo do promoter/dono.
-
-## Onde fica o PIN de operação (pergunta lateral)
-O PIN de operação se cadastra em **Minha Conta** (toque no avatar no topo da tela → "Minha conta" → seção **PIN de operação**), não na tela de Configurações. Quem precisa do PIN é o dono — funcionários não usam.
+Resultado: Configuração → aba **Minha conta** → seção **PIN de operação** → cadastrar/trocar.
 
 ## Fora de escopo
-Nenhuma mudança em código frontend. Marília só precisa recarregar a página depois da migration.
+Não vou mexer no fluxo, layout ou conteúdo da `MinhaContaPage` em si — só expor ela como aba.
