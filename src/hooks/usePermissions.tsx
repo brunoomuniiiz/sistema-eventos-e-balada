@@ -175,6 +175,7 @@ export function usePermissions() {
     lojinhaCanSell,
     lojinhaPaymentMethods,
     lojinhaPointDeviceId,
+    promoterId,
     canPdvCaixa,
     canVenderGarcom,
     canValidarQr,
