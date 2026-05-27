@@ -304,7 +304,7 @@ export function PdvView() {
       if (itemsErr) throw itemsErr;
 
       let remaining = total;
-      const payRows: { user_id: string; sale_id: string; method: string; amount: number; promoter_id?: string }[] = [];
+      const payRows: { user_id: string; sale_id: string; method: string; amount: number; promoter_id?: string; terminal_id?: string | null }[] = [];
       const ordered = [...payments].sort((a, b) =>
         a.method === "dinheiro" ? 1 : b.method === "dinheiro" ? -1 : 0
       );
@@ -317,6 +317,7 @@ export function PdvView() {
             method: p.method,
             amount: +amt.toFixed(2),
             ...(p.promoter_id ? { promoter_id: p.promoter_id } : {}),
+            ...(p.terminal_id ? { terminal_id: p.terminal_id } : {}),
           });
           remaining = +(remaining - amt).toFixed(2);
         }
