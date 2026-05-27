@@ -26,33 +26,40 @@ export const Route = createFileRoute("/api/public/mp-webhook")({
         if (!dataId) return new Response("ok", { status: 200 }); // pings sem id
 
         const secret = process.env.MP_WEBHOOK_SECRET;
+        if (!secret) {
+          console.error("[mp-webhook] MP_WEBHOOK_SECRET não configurado");
+          return new Response("webhook secret not configured", { status: 500 });
+        }
         const xSig = request.headers.get("x-signature");
         const xReq = request.headers.get("x-request-id") || "";
-
-        if (secret && xSig) {
-          const parts = Object.fromEntries(
-            xSig.split(",").map((kv) => {
-              const [k, ...rest] = kv.trim().split("=");
-              return [k, rest.join("=")];
-            }),
-          ) as Record<string, string>;
-          const ts = parts.ts;
-          const v1 = parts.v1;
-          if (ts && v1) {
-            const manifest = `id:${dataId};request-id:${xReq};ts:${ts};`;
-            const expected = createHmac("sha256", secret).update(manifest).digest("hex");
-            try {
-              const a = Buffer.from(v1, "hex");
-              const b = Buffer.from(expected, "hex");
-              if (a.length !== b.length || !timingSafeEqual(a, b)) {
-                console.warn("[mp-webhook] assinatura inválida", { dataId });
-                return new Response("invalid signature", { status: 401 });
-              }
-            } catch {
-              return new Response("invalid signature", { status: 401 });
-            }
-          }
+        if (!xSig) {
+          return new Response("missing signature", { status: 401 });
         }
+
+        const parts = Object.fromEntries(
+          xSig.split(",").map((kv) => {
+            const [k, ...rest] = kv.trim().split("=");
+            return [k, rest.join("=")];
+          }),
+        ) as Record<string, string>;
+        const ts = parts.ts;
+        const v1 = parts.v1;
+        if (!ts || !v1) {
+          return new Response("invalid signature", { status: 401 });
+        }
+        const manifest = `id:${dataId};request-id:${xReq};ts:${ts};`;
+        const expected = createHmac("sha256", secret).update(manifest).digest("hex");
+        try {
+          const a = Buffer.from(v1, "hex");
+          const b = Buffer.from(expected, "hex");
+          if (a.length !== b.length || !timingSafeEqual(a, b)) {
+            console.warn("[mp-webhook] assinatura inválida", { dataId });
+            return new Response("invalid signature", { status: 401 });
+          }
+        } catch {
+          return new Response("invalid signature", { status: 401 });
+        }
+
 
         let mp;
         try {
