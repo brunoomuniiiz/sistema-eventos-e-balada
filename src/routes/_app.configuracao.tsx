@@ -29,6 +29,7 @@ function ConfiguracaoPage() {
       <Tabs defaultValue={isOwner ? "identidade" : "promoters"}>
         <CompactTabsList>
           {isOwner && <CompactTabsTrigger value="identidade" icon={Settings} short="Ident.">Identidade</CompactTabsTrigger>}
+          {isOwner && <CompactTabsTrigger value="minha-conta" icon={User} short="Conta">Minha conta</CompactTabsTrigger>}
           {isOwner && <CompactTabsTrigger value="funcionarios" icon={UserCog} short="Func.">Funcionários</CompactTabsTrigger>}
           <CompactTabsTrigger value="promoters" icon={Users} short="Promo.">Promoters</CompactTabsTrigger>
           {isOwner && <CompactTabsTrigger value="cartoes" icon={CreditCard} short="Cart.">Maquininhas</CompactTabsTrigger>}
@@ -36,6 +37,7 @@ function ConfiguracaoPage() {
           {isOwner && <CompactTabsTrigger value="mp_point" icon={Smartphone} short="MP">MP Point Lojinha</CompactTabsTrigger>}
         </CompactTabsList>
         {isOwner && <TabsContent value="identidade" className="mt-4"><BarIdentityPanel /></TabsContent>}
+        {isOwner && <TabsContent value="minha-conta" className="mt-4"><MinhaContaPage /></TabsContent>}
         {isOwner && <TabsContent value="funcionarios" className="mt-4"><TeamPanel /></TabsContent>}
         <TabsContent value="promoters" className="mt-4"><PromotersPanel /></TabsContent>
         {isOwner && <TabsContent value="cartoes" className="mt-4"><PaymentTerminalsPanel /></TabsContent>}
