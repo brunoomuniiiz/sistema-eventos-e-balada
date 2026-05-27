@@ -11,6 +11,10 @@ import { ptBR } from "date-fns/locale";
 import { QuickEventCostCard } from "@/components/vendas/QuickEventCostCard";
 import { ConsumacaoLivePanel } from "@/components/vendas/ConsumacaoLivePanel";
 import { QuickConsumacaoCard } from "@/components/vendas/QuickConsumacaoCard";
+import { LiveDrinkCostPanel } from "@/components/eventos/LiveDrinkCostPanel";
+import { DrinkMarginCard } from "@/components/eventos/DrinkMarginCard";
+import { usePermissions } from "@/hooks/usePermissions";
+import { Wine } from "lucide-react";
 
 type Period = "today" | "yesterday" | "event" | "7d" | "30d";
 
