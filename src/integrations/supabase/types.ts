@@ -2134,7 +2134,9 @@ export type Database = {
           commission_percent: number
           created_at: string
           email: string | null
+          guest_message: string | null
           id: string
+          instagram_handle: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -2154,7 +2156,9 @@ export type Database = {
           commission_percent?: number
           created_at?: string
           email?: string | null
+          guest_message?: string | null
           id?: string
+          instagram_handle?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -2174,7 +2178,9 @@ export type Database = {
           commission_percent?: number
           created_at?: string
           email?: string | null
+          guest_message?: string | null
           id?: string
+          instagram_handle?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
@@ -3128,6 +3134,9 @@ export type Database = {
           event_promoter_id: string
           event_status: string
           event_whatsapp_group_url: string
+          promoter_avatar_url: string
+          promoter_guest_message: string
+          promoter_instagram: string
           promoter_name: string
           promoter_phone: string
           show_real_count_when_big: boolean
