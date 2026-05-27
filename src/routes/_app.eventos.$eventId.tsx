@@ -200,15 +200,16 @@ function EventDetailPage() {
       {/* Hero */}
       <Card className="glass border-border/60 overflow-hidden">
         <div className="md:flex">
-          <div className="md:w-2/5 aspect-[4/3] sm:aspect-video md:aspect-auto bg-secondary relative">
+          <div className="md:w-2/5 bg-secondary relative grid place-items-center min-h-[200px]">
             {event.flyer_url ? (
-              <img src={event.flyer_url} alt={event.name} className="w-full h-full object-cover" />
+              <img src={event.flyer_url} alt={event.name} className="w-full h-auto max-h-[70vh] object-contain" />
             ) : (
-              <div className="w-full h-full bg-gradient-primary grid place-items-center min-h-[160px]">
+              <div className="w-full h-full bg-gradient-primary grid place-items-center min-h-[200px]">
                 <Calendar className="h-16 w-16 text-primary-foreground/60" />
               </div>
             )}
           </div>
+
           <div className="p-4 sm:p-6 md:p-8 flex-1">
             <Badge variant={
               event.status === "upcoming" ? "default"
