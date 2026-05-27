@@ -223,7 +223,7 @@ export function TeamPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, role_preset, permissions, can_discount, max_discount_percent, can_authorize, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, aceita_dinheiro, aceita_pix, aceita_cartao, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_sangria, vendas_abrir_fechar_caixa, vendas_promoter_creditos_dinheiro, produtos_conferir_estoque, produtos_adicionar_entrada, produtos_criar_editar, produtos_criar_combo, produtos_inventario, eventos_criar, eventos_editar, eventos_abrir_encerrar, eventos_ver_financeiro, promoters_gerenciar, promoters_comissoes, promoters_ver_desempenho")
+        .select("id, user_id, display_name, email, role, role_preset, permissions, promoter_id, can_discount, max_discount_percent, can_authorize, lojinha_can_sell, lojinha_payment_methods, lojinha_point_device_id, aceita_dinheiro, aceita_pix, aceita_cartao, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_sangria, vendas_abrir_fechar_caixa, vendas_promoter_creditos_dinheiro, produtos_conferir_estoque, produtos_adicionar_entrada, produtos_criar_editar, produtos_criar_combo, produtos_inventario, eventos_criar, eventos_editar, eventos_abrir_encerrar, eventos_ver_financeiro, promoters_gerenciar, promoters_comissoes, promoters_ver_desempenho")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
@@ -244,6 +244,20 @@ export function TeamPanel() {
       return data as Array<{ id: string; mp_device_id: string; label: string }>;
     },
   });
+
+  const { data: promotersList = [] } = useQuery({
+    queryKey: ["promoters-list", ownerId],
+    enabled: !!ownerId && isOwner,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("promoters")
+        .select("id, name")
+        .order("name");
+      if (error) throw error;
+      return data as Array<{ id: string; name: string }>;
+    },
+  });
+
 
   if (!can("funcionarios")) {
     return <div className="text-sm text-muted-foreground">Sem permissão para gerenciar funcionários.</div>;
