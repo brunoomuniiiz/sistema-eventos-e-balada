@@ -52,6 +52,8 @@ type SubFlags = {
   lojinha_can_sell: boolean;
   lojinha_payment_methods: string[];
   lojinha_point_device_id: string | null;
+  // Promoter vinculado (funcionário também atua como promoter)
+  promoter_id: string | null;
 };
 
 type TeamMember = SubFlags & {
