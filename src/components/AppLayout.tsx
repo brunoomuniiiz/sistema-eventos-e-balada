@@ -5,6 +5,7 @@ import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { ViewAsBar } from "@/components/ViewAsBar";
 import { OperationPinLockButton } from "@/components/OperationPinLockButton";
+import { useBranding } from "@/hooks/useBranding";
 
 type NavItem = {
   to: string;
@@ -40,6 +41,8 @@ export function AppLayout() {
 function AppLayoutInner() {
   const { user, signOut } = useAuth();
   const { can, isOwner, canAoVivo, rolePreset } = usePermissions();
+  const branding = useBranding();
+  const displayName = (branding.bar_name && branding.bar_name.trim()) || "NightOps";
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -65,11 +68,15 @@ function AppLayoutInner() {
       {/* Sidebar desktop — recolhida por padrão, expande no hover */}
       <aside className="group hidden md:flex flex-col bg-sidebar border-r border-sidebar-border fixed h-screen z-40 transition-[width] duration-200 ease-out w-16 hover:w-64">
         <div className="flex items-center gap-2 px-3 py-4 mb-2 overflow-hidden">
-          <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center glow-primary shrink-0">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
+          <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center glow-primary shrink-0 overflow-hidden">
+            {branding.logo_url ? (
+              <img src={branding.logo_url} alt={displayName} className="h-full w-full object-cover" />
+            ) : (
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            )}
           </div>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            <div className="font-display font-bold text-lg leading-none">NightOps</div>
+            <div className="font-display font-bold text-lg leading-none">{displayName}</div>
             <div className="text-xs text-muted-foreground">Gestão de eventos</div>
           </div>
         </div>
@@ -116,10 +123,14 @@ function AppLayoutInner() {
       <main className="flex-1 min-w-0 overflow-x-hidden md:ml-16 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-8">
         <header className="md:hidden sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85 border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-primary grid place-items-center">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
+            <div className="h-8 w-8 rounded-lg bg-gradient-primary grid place-items-center overflow-hidden">
+              {branding.logo_url ? (
+                <img src={branding.logo_url} alt={displayName} className="h-full w-full object-cover" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-primary-foreground" />
+              )}
             </div>
-            <span className="font-display font-bold">NightOps</span>
+            <span className="font-display font-bold">{displayName}</span>
           </div>
           <div className="flex items-center gap-1">
             <OperationPinLockButton />
