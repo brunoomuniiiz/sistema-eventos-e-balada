@@ -124,7 +124,7 @@ export function StaffClosingSheet({ open, onOpenChange, eventId, staffUserId, st
           reported_total,
         })),
         _pix_chave_refunded: refunded,
-        _notes: notes || null,
+        _notes: notes || undefined,
       });
       if (error) throw error;
       return data;
