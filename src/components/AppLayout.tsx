@@ -20,7 +20,6 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", short: "Dash.", icon: LayoutDashboard, anyPerm: ["financeiro"] },
-  { to: "/pdv", label: "Vender agora", short: "Vend.", icon: Zap, ownerOnly: true },
   { to: "/eventos", label: "Eventos", short: "Eve.", icon: Calendar, perm: "eventos" },
   { to: "/ao-vivo", label: "Ao vivo", short: "Live", icon: Activity, customGate: "ao_vivo" },
   { to: "/vendas", label: "Vendas", short: "Vend.", icon: ShoppingCart, anyPerm: ["vendas", "lojinha"] },
