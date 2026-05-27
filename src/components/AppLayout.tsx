@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, Settings, Boxes, DoorOpen, Activity, Wallet, CalendarHeart } from "lucide-react";
+import { LayoutDashboard, Calendar, DollarSign, LogOut, Sparkles, ShoppingCart, Settings, Boxes, DoorOpen, Activity, Wallet, CalendarHeart, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions, type Permission } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", short: "Dash.", icon: LayoutDashboard, anyPerm: ["financeiro"] },
+  { to: "/pdv", label: "Vender agora", short: "Vend.", icon: Zap, ownerOnly: true },
   { to: "/eventos", label: "Eventos", short: "Eve.", icon: Calendar, perm: "eventos" },
   { to: "/ao-vivo", label: "Ao vivo", short: "Live", icon: Activity, customGate: "ao_vivo" },
   { to: "/vendas", label: "Vendas", short: "Vend.", icon: ShoppingCart, anyPerm: ["vendas", "lojinha"] },

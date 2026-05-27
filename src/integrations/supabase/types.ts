@@ -1309,10 +1309,12 @@ export type Database = {
         Row: {
           accepts_credito: boolean
           accepts_debito: boolean
+          accepts_pix: boolean
           created_at: string
           id: string
           is_active: boolean
           label: string
+          mode: string
           mp_device_id: string | null
           owner_label: string | null
           provider: string
@@ -1322,10 +1324,12 @@ export type Database = {
         Insert: {
           accepts_credito?: boolean
           accepts_debito?: boolean
+          accepts_pix?: boolean
           created_at?: string
           id?: string
           is_active?: boolean
           label: string
+          mode?: string
           mp_device_id?: string | null
           owner_label?: string | null
           provider: string
@@ -1335,10 +1339,12 @@ export type Database = {
         Update: {
           accepts_credito?: boolean
           accepts_debito?: boolean
+          accepts_pix?: boolean
           created_at?: string
           id?: string
           is_active?: boolean
           label?: string
+          mode?: string
           mp_device_id?: string | null
           owner_label?: string | null
           provider?: string
@@ -2505,6 +2511,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      terminal_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          seller_user_id: string
+          terminal_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          seller_user_id: string
+          terminal_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          seller_user_id?: string
+          terminal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terminal_assignments_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "payment_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ticket_types: {
         Row: {

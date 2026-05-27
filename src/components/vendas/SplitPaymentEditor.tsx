@@ -39,14 +39,29 @@ interface Props {
 
 export function SplitPaymentEditor({ total, payments, onChange, canSellCash, acceptedMethods, canPromoterCredit, onPickPromoterCredit }: Props) {
   const { data: terminals = [] } = useQuery({
-    queryKey: ["payment-terminals-active"],
+    queryKey: ["payment-terminals-for-seller"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("payment_terminals")
-        .select("id, label, owner_label, accepts_credito, accepts_debito")
-        .eq("is_active", true)
-        .order("label");
-      return (data ?? []) as { id: string; label: string; owner_label: string | null; accepts_credito: boolean; accepts_debito: boolean }[];
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+
+      const [termsRes, mineRes, anyRes] = await Promise.all([
+        supabase
+          .from("payment_terminals")
+          .select("id, label, owner_label, accepts_credito, accepts_debito")
+          .eq("is_active", true)
+          .order("label"),
+        uid
+          ? supabase.from("terminal_assignments").select("terminal_id").eq("seller_user_id", uid)
+          : Promise.resolve({ data: [] as { terminal_id: string }[] }),
+        supabase.from("terminal_assignments").select("terminal_id"),
+      ]);
+
+      const allTerminals = (termsRes.data ?? []) as { id: string; label: string; owner_label: string | null; accepts_credito: boolean; accepts_debito: boolean }[];
+      const myAssigned = new Set(((mineRes.data ?? []) as { terminal_id: string }[]).map((a) => a.terminal_id));
+      const restrictedIds = new Set(((anyRes.data ?? []) as { terminal_id: string }[]).map((a) => a.terminal_id));
+
+      // Sem atribuição = livre pra todos. Com atribuição = só quem está na lista.
+      return allTerminals.filter((t) => !restrictedIds.has(t.id) || myAssigned.has(t.id));
     },
   });
   const paid = payments.reduce((s, p) => s + p.amount, 0);
