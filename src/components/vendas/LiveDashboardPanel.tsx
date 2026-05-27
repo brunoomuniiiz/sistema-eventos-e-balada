@@ -127,6 +127,21 @@ export function LiveDashboardPanel() {
         <>
           <QuickEventCostCard eventId={openEvent.id} eventName={openEvent.name} />
           <QuickConsumacaoCard eventId={openEvent.id} eventName={openEvent.name} />
+          {isOwner && (
+            <Card className="border-primary/30">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Wine className="h-4 w-4 text-primary" />
+                  <span className="font-display font-bold">Drinks abertos (consumação interna)</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Clique +1 a cada garrafa fechada aberta para drinks. Baixa do estoque e entra no CMV do evento.
+                </p>
+                <LiveDrinkCostPanel eventId={openEvent.id} />
+              </CardContent>
+            </Card>
+          )}
+          {isOwner && <DrinkMarginCard eventId={openEvent.id} />}
           <ConsumacaoLivePanel eventId={openEvent.id} eventName={openEvent.name} />
         </>
       )}
