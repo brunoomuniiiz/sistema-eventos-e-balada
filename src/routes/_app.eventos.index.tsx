@@ -159,21 +159,37 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
   const [description, setDescription] = useState(event?.description ?? "");
   const [date, setDate] = useState(event?.date ? new Date(event.date).toISOString().slice(0, 16) : "");
   const [location, setLocation] = useState(event?.location ?? "");
-  const [status, setStatus] = useState<"upcoming" | "finished" | "cancelled">((event?.status as "upcoming" | "finished" | "cancelled") ?? "upcoming");
+  const [status, setStatus] = useState<"upcoming" | "ongoing" | "finished" | "cancelled">((event?.status as "upcoming" | "ongoing" | "finished" | "cancelled") ?? "upcoming");
   const [flyerUrl, setFlyerUrl] = useState(event?.flyer_url ?? "");
+  const [endDate, setEndDate] = useState(
+    (event as { end_date?: string | null } | null)?.end_date
+      ? new Date((event as { end_date: string }).end_date).toISOString().slice(0, 16)
+      : ""
+  );
+  const [waGroupUrl, setWaGroupUrl] = useState(
+    (event as { whatsapp_group_url?: string | null } | null)?.whatsapp_group_url ?? ""
+  );
+  const [showRealCount, setShowRealCount] = useState<boolean>(
+    Boolean((event as { show_real_count_when_big?: boolean } | null)?.show_real_count_when_big)
+  );
   const [uploading, setUploading] = useState(false);
 
-  // Reset form when dialog opens with new event
-  useState(() => {
+  // Reset form when dialog opens with a different event
+  useEffect(() => {
     if (open) {
       setName(event?.name ?? "");
       setDescription(event?.description ?? "");
       setDate(event?.date ? new Date(event.date).toISOString().slice(0, 16) : "");
       setLocation(event?.location ?? "");
-      setStatus((event?.status as "upcoming" | "finished" | "cancelled") ?? "upcoming");
+      setStatus((event?.status as "upcoming" | "ongoing" | "finished" | "cancelled") ?? "upcoming");
       setFlyerUrl(event?.flyer_url ?? "");
+      const ed = (event as { end_date?: string | null } | null)?.end_date;
+      setEndDate(ed ? new Date(ed).toISOString().slice(0, 16) : "");
+      setWaGroupUrl((event as { whatsapp_group_url?: string | null } | null)?.whatsapp_group_url ?? "");
+      setShowRealCount(Boolean((event as { show_real_count_when_big?: boolean } | null)?.show_real_count_when_big));
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, event?.id]);
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -183,9 +199,12 @@ function EventDialog({ open, onOpenChange, event }: { open: boolean; onOpenChang
         name: name.trim(),
         description: description.trim() || null,
         date: new Date(date).toISOString(),
+        end_date: endDate ? new Date(endDate).toISOString() : null,
         location: location.trim() || null,
         status,
         flyer_url: flyerUrl || null,
+        whatsapp_group_url: waGroupUrl.trim() || null,
+        show_real_count_when_big: showRealCount,
       };
       if (event) {
         const { error } = await supabase.from("events").update(payload).eq("id", event.id);
