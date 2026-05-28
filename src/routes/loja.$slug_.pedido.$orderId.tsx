@@ -152,8 +152,8 @@ type Charge = {
 function PixCheckoutPanel({ orderId, onPaid }: { orderId: string; onPaid: () => void }) {
   const create = useServerFn(createPublicPixCharge);
   const check = useServerFn(getPublicPixChargeStatus);
-  const simulate = useServerFn(simulatePixApproval);
-  const [simulating, setSimulating] = useState(false);
+  const [charge, _setSimulating] = [null, null]; // removed simulate (dev-only, auth-gated)
+
   const [charge, setCharge] = useState<Charge | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
