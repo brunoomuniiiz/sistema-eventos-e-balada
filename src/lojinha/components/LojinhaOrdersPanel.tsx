@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { formatBRL } from "@/lib/format";
 import { markOrderDelivered, abandonLojinhaOrder } from "@/lojinha/api";
 import { deleteLojinhaOrder, deleteAllLojinhaOrders } from "@/lib/pix.functions";
-import { printReceipt, qrSvgString } from "@/lib/order-print";
+import { printReceipt, printUnitTickets, qrSvgString } from "@/lib/order-print";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   pending: { label: "Aguardando pagamento", color: "bg-warning text-warning-foreground" },
@@ -124,6 +124,37 @@ export function LojinhaOrdersPanel() {
       toast.error("Pedido sem token de retirada");
       return;
     }
+
+    // Se tiver mais de um item, ou se preferir imprimir fichas individuais,
+    // usamos o printUnitTickets para garantir que saia a descrição do produto e o QR
+    try {
+      const { data: units } = await supabase
+        .from("lojinha_order_units")
+        .select("qr_token, product_name_snapshot, product_id")
+        .eq("order_id", o.id);
+
+      if (units && units.length > 0) {
+        const tickets = await Promise.all(units.map(async (u) => ({
+          product_name: u.product_name_snapshot,
+          qr_token: u.qr_token,
+          qr_svg_string: await qrSvgString(u.qr_token),
+        })));
+
+        printUnitTickets({
+          bar_name: barNameRef.current,
+          daily_number: o.daily_number,
+          waiter: null,
+          tickets,
+        });
+        
+        await supabase.rpc("mark_units_printed", { _qr_tokens: units.map(u => u.qr_token) });
+        return;
+      }
+    } catch (e) {
+      console.error("Erro ao imprimir fichas detalhadas:", e);
+    }
+
+    // Fallback para o cupom simples se não encontrar unidades
     const qr = await qrSvgString(o.pickup_token);
     printReceipt({
       daily_number: o.daily_number,

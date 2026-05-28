@@ -1,0 +1,1 @@
+ALTER TABLE public.bar_settings ADD COLUMN IF NOT EXISTS print_method TEXT DEFAULT 'system';
