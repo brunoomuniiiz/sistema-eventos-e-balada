@@ -394,7 +394,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
                         products={products.filter(p => p.category_id === c.id)}
                         prodRules={prodRules}
                         onProdChange={(pid, v) => setProdRule(pid, "print_on_sale", v)}
-                        trigger="sale"
+                        trigger="print_on_sale"
                       />
                     ))}
                   </TabsContent>
@@ -412,7 +412,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
                         products={products.filter(p => p.category_id === c.id)}
                         prodRules={prodRules}
                         onProdChange={(pid, v) => setProdRule(pid, "print_on_scan", v)}
-                        trigger="scan"
+                        trigger="print_on_scan"
                       />
                     ))}
                   </TabsContent>
@@ -456,7 +456,7 @@ function CategoryWithProducts({
   products: any[];
   prodRules: Record<string, RuleState>;
   onProdChange: (pid: string, v: boolean) => void;
-  trigger: keyof RuleState;
+  trigger: "print_on_sale" | "print_on_scan";
 }) {
   return (
     <div className="space-y-0.5">
