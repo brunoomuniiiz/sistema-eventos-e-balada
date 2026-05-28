@@ -969,7 +969,7 @@ export type Database = {
           display_name: string | null
           event_id: string
           id: string
-          promoter_id: string
+          promoter_id: string | null
           slug: string
           user_id: string
         }
@@ -979,7 +979,7 @@ export type Database = {
           display_name?: string | null
           event_id: string
           id?: string
-          promoter_id: string
+          promoter_id?: string | null
           slug: string
           user_id: string
         }
@@ -989,7 +989,7 @@ export type Database = {
           display_name?: string | null
           event_id?: string
           id?: string
-          promoter_id?: string
+          promoter_id?: string | null
           slug?: string
           user_id?: string
         }
