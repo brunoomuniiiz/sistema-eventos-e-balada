@@ -1,0 +1,1 @@
+ALTER TABLE public.lojinha_settings ADD COLUMN IF NOT EXISTS closed_message TEXT;

@@ -1412,6 +1412,7 @@ export type Database = {
       lojinha_settings: {
         Row: {
           accent_color: string | null
+          closed_message: string | null
           created_at: string
           enabled: boolean
           id: string
@@ -1424,6 +1425,7 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          closed_message?: string | null
           created_at?: string
           enabled?: boolean
           id?: string
@@ -1436,6 +1438,7 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          closed_message?: string | null
           created_at?: string
           enabled?: boolean
           id?: string
