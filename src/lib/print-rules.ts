@@ -33,7 +33,7 @@ export async function getAllowedCategoryIds(
   // No rules at all → don't restrict (legacy default).
   if (!data || data.length === 0) {
     cache = { roleId, allowed: new Map(), ts: Date.now() };
-    return null;
+    return null; // Retorna null para permitir impressão de TUDO por padrão
   }
   const onSale = new Set<string>();
   const onScan = new Set<string>();

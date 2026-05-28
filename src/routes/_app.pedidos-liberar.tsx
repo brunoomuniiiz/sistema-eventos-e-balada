@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Loader2, Printer, ArrowLeft, Package, Layers, User, Clock } from "lucide-react";
+import { CheckCircle2, Loader2, Printer, ArrowLeft, Package, Layers, User, Clock, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { orderLookupByToken, orderRelease } from "@/lojinha/api";
 import { formatBRL } from "@/lib/format";
 import { formatOrderNo } from "@/lib/print-receipt";
-import { printPrepSlips } from "@/lib/order-print";
+import { qrSvgString, printPrepSlips, printUnitTickets } from "@/lib/order-print";
 import { getAllowedCategoryIds } from "@/lib/print-rules";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -75,19 +75,65 @@ function ReleasePage() {
     setReleasing(true);
     try {
       const res = await orderRelease(data.source, data.id);
+      const { data: u } = await supabase.auth.getUser();
+      const allowed = u.user ? await getAllowedCategoryIds(u.user.id, "scan") : null;
+
+      // 1. Fichas de preparo (Combos)
       if (res.prep_slips.length > 0) {
-        const { data: u } = await supabase.auth.getUser();
-        const allowed = u.user ? await getAllowedCategoryIds(u.user.id, "scan") : null;
-        const filtered = allowed
+        const filteredPrep = allowed
           ? res.prep_slips.filter((s) => s.category_id && allowed.has(s.category_id))
           : res.prep_slips;
-        if (filtered.length > 0) {
-          const ok = printPrepSlips(filtered);
-          if (!ok) {
-            toast.warning("Habilite popups para imprimir as fichas de preparo");
-          }
+        if (filteredPrep.length > 0) {
+          printPrepSlips(filteredPrep);
         }
       }
+
+      // 2. Tickets de Unidade (Itens simples que devem ser impressos)
+      // Buscamos os tokens de unidade do banco para esse pedido
+      const { data: units } = await supabase
+        .from("lojinha_order_units")
+        .select("qr_token, product_name_snapshot, product_id")
+        .eq("order_id", data.id);
+
+      if (units && units.length > 0) {
+        // Filtra para não imprimir o que já foi impresso como ficha de preparo (opcional, mas seguro)
+        // No fluxo atual, se for combo ele gera prep_slips, se for simples gera unit_ticket.
+        const simpleProductIds = data.items
+          .filter(i => i.product_type === "simple")
+          .map(i => i.product_id);
+        
+        let filteredUnits = units.filter(u => simpleProductIds.includes(u.product_id));
+
+        if (allowed) {
+          const { data: prods } = await supabase
+            .from("products")
+            .select("id, category_id")
+            .in("id", filteredUnits.map(u => u.product_id));
+          const catById = new Map((prods ?? []).map(p => [p.id, p.category_id]));
+          
+          filteredUnits = filteredUnits.filter(u => {
+            const cat = catById.get(u.product_id);
+            return cat && allowed.has(cat);
+          });
+        }
+
+        if (filteredUnits.length > 0) {
+          const { data: barRes } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
+          const tickets = await Promise.all(filteredUnits.map(async u => ({
+            product_name: u.product_name_snapshot,
+            qr_token: u.qr_token,
+            qr_svg_string: await qrSvgString(u.qr_token),
+          })));
+          
+          printUnitTickets({
+            bar_name: barRes?.bar_name ?? null,
+            daily_number: res.daily_number,
+            waiter: data.delivered_by_name ?? "Garçom",
+            tickets
+          });
+        }
+      }
+
       setReleased(true);
       toast.success(`Pedido ${formatOrderNo(res.daily_number)} entregue!`);
     } catch (e) {

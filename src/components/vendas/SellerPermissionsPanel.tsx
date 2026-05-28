@@ -35,7 +35,7 @@ export function SellerPermissionsPanel() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h3 className="font-display font-bold flex items-center gap-2"><UserCog className="h-4 w-4 text-primary" /> Permissões por funcionário</h3>
-            <p className="text-xs text-muted-foreground">Toque em um funcionário para editar tudo que ele pode fazer no módulo Vendas.</p>
+            <p className="text-xs text-muted-foreground">Toque em um funcionário para editar acessos e quais categorias ele imprime.</p>
           </div>
           <Button asChild variant="outline" size="sm"><Link to="/configuracao">Funcionários (cadastro)</Link></Button>
         </div>
