@@ -40,7 +40,7 @@ export function openPrintWindow(title: string, bodyHtml: string) {
   if (!w) {
     return false;
   }
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${RECEIPT_PRINT_STYLES}</style></head><body>${bodyHtml}<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});window.addEventListener('afterprint',function(){window.close();});</script></body></html>`);
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>${RECEIPT_PRINT_STYLES}</style></head><body>${bodyHtml}<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},100);});window.addEventListener('afterprint',function(){window.close();});</script></body></html>`);
   w.document.close();
   return true;
 }
