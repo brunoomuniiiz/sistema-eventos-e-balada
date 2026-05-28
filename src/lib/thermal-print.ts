@@ -7,10 +7,11 @@ export type PrintConfig = {
 
 export const DEFAULT_PRINT_CONFIG: PrintConfig = {
   method: 'system',
-  paperWidth: '80mm',
+  paperWidth: '58mm', // Padrão para mini impressoras Bluetooth
 };
 
 export function getPrintConfig(): PrintConfig {
+  if (typeof window === 'undefined') return DEFAULT_PRINT_CONFIG;
   const saved = localStorage.getItem('lojinha_print_config');
   if (saved) {
     try {
@@ -34,9 +35,13 @@ function timeBR(d?: string | Date) {
 export function printWithRawBT(text: string) {
   // Protocolo RawBT para Android
   // Ver: https://rawbt.ru/help/protocol.html
-  const base64 = btoa(unescape(encodeURIComponent(text)));
-  const url = `rawbt:base64:${base64}`;
-  window.location.href = url;
+  try {
+    const base64 = btoa(unescape(encodeURIComponent(text)));
+    const url = `rawbt:base64:${base64}`;
+    window.location.href = url;
+  } catch (err) {
+    console.error("Erro ao enviar para RawBT:", err);
+  }
 }
 
 export function generateThermalTicket(opts: {
@@ -46,6 +51,7 @@ export function generateThermalTicket(opts: {
   unit_index?: number;
   unit_total?: number;
   waiter: string | null;
+  is_test?: boolean;
 }): string {
   const config = getPrintConfig();
   const is58 = config.paperWidth === '58mm';
@@ -59,6 +65,9 @@ export function generateThermalTicket(opts: {
   const hr = "-".repeat(width);
 
   let out = "";
+  if (opts.is_test) {
+    out += center("*** TESTE DE IMPRESSAO ***") + "\n";
+  }
   out += center(opts.bar_name?.toUpperCase() ?? "SISTEMA") + "\n";
   out += center(timeBR()) + "\n";
   out += hr + "\n\n";
@@ -69,9 +78,9 @@ export function generateThermalTicket(opts: {
     out += center(`Unidade ${opts.unit_index} de ${opts.unit_total}`) + "\n";
   }
   out += hr + "\n";
-  out += center("VALIDADO COM SUCESSO") + "\n";
+  out += center(opts.is_test ? "CONEXAO OK" : "VALIDADO COM SUCESSO") + "\n";
   out += hr + "\n";
-  out += (opts.waiter ?? "---") + " ".repeat(Math.max(1, width - (opts.waiter?.length ?? 0) - 10)) + timeBR().split(' ')[1] + "\n";
+  out += (opts.waiter ?? "---").slice(0, width - 11) + " ".repeat(Math.max(1, width - (opts.waiter?.slice(0, width - 11).length ?? 0) - 10)) + timeBR().split(' ')[1].slice(0, 8) + "\n";
   out += "\n\n\n\n"; // Espaço para corte
 
   return out;

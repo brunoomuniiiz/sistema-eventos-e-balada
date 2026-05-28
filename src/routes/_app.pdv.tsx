@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
 import {
-  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search, Image as ImageIcon,
+  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search, Image as ImageIcon, Printer, Settings2
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatBRL } from "@/lib/format";
@@ -27,6 +27,28 @@ import { ConsumacaoTargetDialog, type ConsumacaoTarget } from "@/components/vend
 import { useQuery as useQueryRQ } from "@tanstack/react-query";
 import { ProductCard } from "@/components/sales/ProductCard";
 import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
+import { 
+  getPrintConfig, 
+  savePrintConfig, 
+  printWithRawBT, 
+  generateThermalTicket, 
+  type PrintConfig 
+} from "@/lib/thermal-print";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_app/pdv")({
   component: PdvView,
@@ -78,6 +100,9 @@ export function PdvView() {
   const [promoterPickerOpen, setPromoterPickerOpen] = useState(false);
   const [promoterPickerMax, setPromoterPickerMax] = useState(0);
   const [consumacaoOpen, setConsumacaoOpen] = useState(false);
+  const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
+  const [autoPrintEnabled, setAutoPrintEnabled] = useState(true);
+
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
@@ -365,9 +390,36 @@ export function PdvView() {
       toast.success(
         `Venda ${dailyNo != null ? "#" + String(dailyNo).padStart(3, "0") : ""} de ${formatBRL(total)} registrada!`,
       );
-      // Abre cupom imprimível em nova aba
+      // Abre cupom imprimível
       try {
-        window.open(`/pdv/cupom/${sale.id}`, "_blank");
+        if (printConfig.method === 'rawbt' && autoPrintEnabled) {
+          const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
+          
+          let fullText = "";
+          // Gera recibo principal
+          // (Poderia ter um template de recibo completo, mas para o teste/Android usaremos os tickets de unidade)
+          
+          // Gera tickets individuais para cada item
+          let currentTicketIdx = 1;
+          const totalUnits = cart.reduce((acc, item) => acc + item.quantity, 0);
+          
+          for (const item of cart) {
+            for (let i = 0; i < item.quantity; i++) {
+              fullText += generateThermalTicket({
+                bar_name: bar?.bar_name ?? null,
+                daily_number: dailyNo,
+                product_name: item.product_name,
+                unit_index: currentTicketIdx++,
+                unit_total: totalUnits,
+                waiter: user.email?.split('@')[0] ?? 'Vendedor',
+                is_test: item.product_name.includes("TESTE IMPRESSORA")
+              });
+            }
+          }
+          printWithRawBT(fullText);
+        } else {
+          window.open(`/pdv/cupom/${sale.id}`, "_blank");
+        }
       } catch { /* ignore popup block */ }
 
       setCart([]);
@@ -514,6 +566,73 @@ export function PdvView() {
         </Card>
       ) : (
         <>
+          {/* Configurações de Impressão (Flutuante no Mobile) */}
+          <div className="fixed bottom-24 right-4 z-50 md:static md:mb-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="icon" variant="secondary" className="h-12 w-12 rounded-full shadow-lg border-2 border-primary/20 bg-background/80 backdrop-blur-sm">
+                  <Printer className="h-6 w-6" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[350px] rounded-xl">
+                <DialogHeader>
+                  <DialogTitle>Configurações de Impressora</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="pdv-auto-print">Auto-Imprimir Vendas</Label>
+                    <Switch 
+                      id="pdv-auto-print" 
+                      checked={autoPrintEnabled} 
+                      onCheckedChange={setAutoPrintEnabled} 
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Método de Impressão</Label>
+                    <Select 
+                      value={printConfig.method} 
+                      onValueChange={(val: 'system' | 'rawbt') => {
+                        const next = { ...printConfig, method: val };
+                        setPrintConfig(next);
+                        savePrintConfig(next);
+                        toast.success("Configuração salva");
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o método" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="system">Sistema (PDF/Navegador)</SelectItem>
+                        <SelectItem value="rawbt">RawBT (Android Térmica)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Largura do Papel</Label>
+                    <Select 
+                      value={printConfig.paperWidth} 
+                      onValueChange={(val: '58mm' | '80mm') => {
+                        const next = { ...printConfig, paperWidth: val };
+                        setPrintConfig(next);
+                        savePrintConfig(next);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a largura" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="58mm">58mm (Mini Impressora)</SelectItem>
+                        <SelectItem value="80mm">80mm (Mesa/POS)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           {/* Chips de categorias */}
           <div className="mb-3 w-full max-w-full min-w-0 overflow-x-hidden">
             <CategoryChipBar
