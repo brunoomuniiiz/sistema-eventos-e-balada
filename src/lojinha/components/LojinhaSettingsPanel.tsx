@@ -168,9 +168,11 @@ export function LojinhaSettingsPanel() {
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-2" /> Salvar</>}
         </Button>
 
-        <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 p-3 text-xs">
-          <strong>Mercado Pago:</strong> a integração de pagamento está pronta no back-end mas o token ainda não foi configurado. Quando estiver pronto, é só pedir para conectar.
-        </div>
+        {!form.enabled && (
+          <div className="rounded-lg border border-dashed border-warning/40 bg-warning/5 p-3 text-xs">
+            <strong>Mercado Pago:</strong> a integração de pagamento está pronta no back-end mas o token ainda não foi configurado. Quando estiver pronto, é só pedir para conectar.
+          </div>
+        )}
       </CardContent>
     </Card>
   );
