@@ -14,7 +14,7 @@ import { orderLookupByToken, orderRelease } from "@/lojinha/api";
 import { formatBRL } from "@/lib/format";
 import { formatOrderNo } from "@/lib/print-receipt";
 import { qrSvgString, printPrepSlips, printUnitTickets } from "@/lib/order-print";
-import { getAllowedCategoryIds } from "@/lib/print-rules";
+import { shouldPrintItem } from "@/lib/print-rules";
 import { supabase } from "@/integrations/supabase/client";
 
 type Search = { token?: string };
@@ -76,48 +76,46 @@ function ReleasePage() {
     try {
       const res = await orderRelease(data.source, data.id);
       const { data: u } = await supabase.auth.getUser();
-      const allowed = u.user ? await getAllowedCategoryIds(u.user.id, "scan") : null;
+      const targetUserId = u.user?.id;
 
       // 1. Fichas de preparo (Combos)
-      if (res.prep_slips.length > 0) {
-        const filteredPrep = allowed
-          ? res.prep_slips.filter((s) => s.category_id && allowed.has(s.category_id))
-          : res.prep_slips;
+      if (res.prep_slips.length > 0 && targetUserId) {
+        const filteredPrep = [];
+        for (const s of res.prep_slips) {
+          const ok = await shouldPrintItem(targetUserId, "scan", s.category_id ?? null, "");
+          if (ok) filteredPrep.push(s);
+        }
         if (filteredPrep.length > 0) {
           printPrepSlips(filteredPrep);
         }
       }
 
       // 2. Tickets de Unidade (Itens simples que devem ser impressos)
-      // Buscamos os tokens de unidade do banco para esse pedido
       const { data: units } = await supabase
         .from("lojinha_order_units")
-        .select("qr_token, product_name_snapshot, product_id")
+        .select("qr_token, product_name_snapshot, product_id, printed_at")
         .eq("order_id", data.id);
 
-      if (units && units.length > 0) {
-        // Filtra para não imprimir o que já foi impresso como ficha de preparo (opcional, mas seguro)
-        // No fluxo atual, se for combo ele gera prep_slips, se for simples gera unit_ticket.
-        const simpleProductIds = data.items
-          .filter(i => i.product_type === "simple")
-          .map(i => i.product_id);
-        
-        let filteredUnits = units.filter(u => simpleProductIds.includes(u.product_id));
+      if (units && units.length > 0 && targetUserId) {
+        // Filtra para não imprimir o que já foi impresso fisicamente (PDV ou prévia)
+        let pendingUnits = units.filter(u => !u.printed_at);
 
-        if (allowed) {
+        if (pendingUnits.length > 0) {
           const { data: prods } = await supabase
             .from("products")
             .select("id, category_id")
-            .in("id", filteredUnits.map(u => u.product_id));
+            .in("id", pendingUnits.map(u => u.product_id));
           const catById = new Map((prods ?? []).map(p => [p.id, p.category_id]));
           
-          filteredUnits = filteredUnits.filter(u => {
-            const cat = catById.get(u.product_id);
-            return cat && allowed.has(cat);
-          });
-        }
+          const filteredUnits = [];
+          for (const unit of pendingUnits) {
+            const catId = catById.get(unit.product_id) ?? null;
+            const ok = await shouldPrintItem(targetUserId, "scan", catId, unit.product_id);
+            if (ok) filteredUnits.push(unit);
+          }
 
-        if (filteredUnits.length > 0) {
+          if (filteredUnits.length > 0) {
+
           const { data: barRes } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
           const tickets = await Promise.all(filteredUnits.map(async u => ({
             product_name: u.product_name_snapshot,
@@ -131,8 +129,12 @@ function ReleasePage() {
             waiter: data.delivered_by_name ?? "Garçom",
             tickets
           });
+          // Marca como impresso
+          const tokens = tickets.map(t => t.qr_token);
+          await supabase.rpc("mark_units_printed", { _qr_tokens: tokens });
         }
       }
+    }
 
       setReleased(true);
       toast.success(`Pedido ${formatOrderNo(res.daily_number)} entregue!`);

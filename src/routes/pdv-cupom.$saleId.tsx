@@ -29,8 +29,23 @@ function CupomPage() {
   useEffect(() => {
     if (!data?.sale || printed.current) return;
     printed.current = true;
+    
+    // Marca as unidades como impressas no banco para evitar duplicidade no scanner
+    const markAsPrinted = async () => {
+      const { data: units } = await supabase
+        .from("lojinha_order_units")
+        .select("qr_token")
+        .eq("order_id", saleId);
+      
+      if (units && units.length > 0) {
+        const tokens = units.map(u => u.qr_token);
+        await supabase.rpc("mark_units_printed", { _qr_tokens: tokens });
+      }
+    };
+    
+    void markAsPrinted();
     setTimeout(() => window.print(), 350);
-  }, [data]);
+  }, [data, saleId]);
 
   if (isLoading || !data?.sale) {
     return <div style={{ padding: 20, fontFamily: "monospace" }}>Carregando cupom…</div>;

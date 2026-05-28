@@ -1199,6 +1199,7 @@ export type Database = {
           id: string
           order_id: string
           order_item_id: string
+          printed_at: string | null
           product_id: string
           product_name_snapshot: string
           qr_token: string
@@ -1213,6 +1214,7 @@ export type Database = {
           id?: string
           order_id: string
           order_item_id: string
+          printed_at?: string | null
           product_id: string
           product_name_snapshot: string
           qr_token: string
@@ -1227,6 +1229,7 @@ export type Database = {
           id?: string
           order_id?: string
           order_item_id?: string
+          printed_at?: string | null
           product_id?: string
           product_name_snapshot?: string
           qr_token?: string
@@ -1668,6 +1671,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      print_rules_products: {
+        Row: {
+          created_at: string
+          id: string
+          print_on_sale: boolean
+          print_on_scan: boolean
+          product_id: string
+          updated_at: string
+          user_id: string
+          user_role_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          print_on_sale?: boolean
+          print_on_scan?: boolean
+          product_id: string
+          updated_at?: string
+          user_id: string
+          user_role_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          print_on_sale?: boolean
+          print_on_scan?: boolean
+          product_id?: string
+          updated_at?: string
+          user_id?: string
+          user_role_id?: string
+        }
+        Relationships: []
       }
       printers: {
         Row: {
@@ -3356,6 +3392,7 @@ export type Database = {
         Returns: boolean
       }
       lojinha_validate_qr: { Args: { _token: string }; Returns: Json }
+      mark_units_printed: { Args: { _qr_tokens: string[] }; Returns: undefined }
       next_daily_order_number: { Args: { _owner: string }; Returns: number }
       open_cash_session:
         | {
