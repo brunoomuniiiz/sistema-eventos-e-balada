@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { formatBRL } from "@/lib/format";
-import { Activity, ArrowDownToLine, Banknote, CreditCard, QrCode, Trophy, Package, Layers } from "lucide-react";
+import { Activity, ArrowDownToLine, Banknote, CreditCard, QrCode, Trophy, Package, Layers, Link as LinkIcon, Check, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { QuickEventCostCard } from "@/components/vendas/QuickEventCostCard";
