@@ -176,7 +176,9 @@ function GuestListPage() {
                 <Avatar className="h-14 w-14 ring-2 ring-primary/40">
                   <AvatarImage src={promoterAvatar ?? undefined} alt={data.promoter_name} />
                   <AvatarFallback className="bg-gradient-primary text-primary-foreground font-bold">
-                    {initials}
+                    {data.category === 'casa' ? <Home className="h-6 w-6" /> : 
+                     data.category === 'atracao' ? <Music className="h-6 w-6" /> : 
+                     initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
