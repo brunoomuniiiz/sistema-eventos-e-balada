@@ -964,26 +964,32 @@ export type Database = {
       }
       event_promoters: {
         Row: {
+          category: string
           created_at: string
+          display_name: string | null
           event_id: string
           id: string
-          promoter_id: string
+          promoter_id: string | null
           slug: string
           user_id: string
         }
         Insert: {
+          category?: string
           created_at?: string
+          display_name?: string | null
           event_id: string
           id?: string
-          promoter_id: string
+          promoter_id?: string | null
           slug: string
           user_id: string
         }
         Update: {
+          category?: string
           created_at?: string
+          display_name?: string | null
           event_id?: string
           id?: string
-          promoter_id?: string
+          promoter_id?: string | null
           slug?: string
           user_id?: string
         }
@@ -3177,13 +3183,15 @@ export type Database = {
       get_guest_list_info: {
         Args: { _slug: string }
         Returns: {
+          category: string
+          display_name: string
           event_date: string
           event_description: string
           event_end_date: string
           event_flyer_url: string
+          event_id: string
           event_location: string
           event_name: string
-          event_promoter_id: string
           event_status: string
           event_whatsapp_group_url: string
           promoter_avatar_url: string

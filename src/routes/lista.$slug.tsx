@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Sparkles, Users, Check, MessageCircle, Download, Share2, MapPin, Instagram, Plus, Minus } from "lucide-react";
+import { Calendar, Sparkles, Users, Check, MessageCircle, Download, Share2, MapPin, Instagram, Plus, Minus, Home, Music, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -176,11 +176,17 @@ function GuestListPage() {
                 <Avatar className="h-14 w-14 ring-2 ring-primary/40">
                   <AvatarImage src={promoterAvatar ?? undefined} alt={data.promoter_name} />
                   <AvatarFallback className="bg-gradient-primary text-primary-foreground font-bold">
-                    {initials}
+                    {data.category === 'casa' ? <Home className="h-6 w-6" /> : 
+                     data.category === 'atracao' ? <Music className="h-6 w-6" /> : 
+                     initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">Seu promoter</div>
+                  <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">
+                    {data.category === 'casa' ? 'Link Oficial' : 
+                     data.category === 'atracao' ? 'Atração' : 
+                     'Seu promoter'}
+                  </div>
                   <div className="font-bold truncate">{data.promoter_name}</div>
                   {promoterInsta && (
                     <a
