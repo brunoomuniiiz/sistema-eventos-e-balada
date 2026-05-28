@@ -12,8 +12,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { usePermissions } from "@/hooks/usePermissions";
 import { orderLookupByToken, orderRelease } from "@/lojinha/api";
 import { formatBRL } from "@/lib/format";
-import { formatOrderNo, qrSvgString } from "@/lib/order-print";
-import { printPrepSlips, printUnitTickets } from "@/lib/order-print";
+import { formatOrderNo } from "@/lib/print-receipt";
+import { qrSvgString, printPrepSlips, printUnitTickets } from "@/lib/order-print";
 import { getAllowedCategoryIds } from "@/lib/print-rules";
 import { supabase } from "@/integrations/supabase/client";
 
