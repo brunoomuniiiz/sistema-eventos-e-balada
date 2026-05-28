@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
 import {
-  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search, Image as ImageIcon,
+  Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search, Image as ImageIcon, Printer, Settings2
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatBRL } from "@/lib/format";
@@ -27,6 +27,28 @@ import { ConsumacaoTargetDialog, type ConsumacaoTarget } from "@/components/vend
 import { useQuery as useQueryRQ } from "@tanstack/react-query";
 import { ProductCard } from "@/components/sales/ProductCard";
 import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
+import { 
+  getPrintConfig, 
+  savePrintConfig, 
+  printWithRawBT, 
+  generateThermalTicket, 
+  type PrintConfig 
+} from "@/lib/thermal-print";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/_app/pdv")({
   component: PdvView,
@@ -77,7 +99,9 @@ export function PdvView() {
   const [pixOpen, setPixOpen] = useState(false);
   const [promoterPickerOpen, setPromoterPickerOpen] = useState(false);
   const [promoterPickerMax, setPromoterPickerMax] = useState(0);
-  const [consumacaoOpen, setConsumacaoOpen] = useState(false);
+  const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
+  const [autoPrintEnabled, setAutoPrintEnabled] = useState(true);
+
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
     queryKey: ["my-cash-session", user?.id],
@@ -365,9 +389,36 @@ export function PdvView() {
       toast.success(
         `Venda ${dailyNo != null ? "#" + String(dailyNo).padStart(3, "0") : ""} de ${formatBRL(total)} registrada!`,
       );
-      // Abre cupom imprimível em nova aba
+      // Abre cupom imprimível
       try {
-        window.open(`/pdv/cupom/${sale.id}`, "_blank");
+        if (printConfig.method === 'rawbt' && autoPrintEnabled) {
+          const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
+          
+          let fullText = "";
+          // Gera recibo principal
+          // (Poderia ter um template de recibo completo, mas para o teste/Android usaremos os tickets de unidade)
+          
+          // Gera tickets individuais para cada item
+          let currentTicketIdx = 1;
+          const totalUnits = cart.reduce((acc, item) => acc + item.quantity, 0);
+          
+          for (const item of cart) {
+            for (let i = 0; i < item.quantity; i++) {
+              fullText += generateThermalTicket({
+                bar_name: bar?.bar_name ?? null,
+                daily_number: dailyNo,
+                product_name: item.product_name,
+                unit_index: currentTicketIdx++,
+                unit_total: totalUnits,
+                waiter: user.email?.split('@')[0] ?? 'Vendedor',
+                is_test: item.product_name.includes("TESTE IMPRESSORA")
+              });
+            }
+          }
+          printWithRawBT(fullText);
+        } else {
+          window.open(`/pdv/cupom/${sale.id}`, "_blank");
+        }
       } catch { /* ignore popup block */ }
 
       setCart([]);
