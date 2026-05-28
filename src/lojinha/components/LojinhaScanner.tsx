@@ -41,12 +41,12 @@ export function LojinhaScanner() {
             const { data: units } = await supabase
               .from("lojinha_order_units")
               .select("qr_token, product_name_snapshot, product_id, order_id")
-              .eq("order_id", lookup.order_id!);
+              .eq("order_id", lookup.id);
             
             const { data: order } = await supabase
               .from("lojinha_orders")
               .select("daily_number, seller_name")
-              .eq("id", lookup.order_id!)
+              .eq("id", lookup.id)
               .maybeSingle();
 
             const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
