@@ -71,6 +71,7 @@ function PortariaPage() {
   // Histórico
   const [openSale, setOpenSale] = useState<PortariaSale | null>(null);
   const [tab, setTab] = useState("lista");
+  const [forceOpen, setForceOpen] = useState(false);
 
   const { data: session, refetch: refetchSession } = useQuery({
     queryKey: ["portaria-cash-session"],
@@ -185,14 +186,21 @@ function PortariaPage() {
   if (loading) return null;
   if (!allowed) return <PageHeader title="Portaria" subtitle="Você não tem permissão para acessar esta página" />;
 
-  if (activeEvent.kind === "none") {
+  if (activeEvent.kind === "none" && !forceOpen) {
     return (
       <div>
         <PageHeader title="Portaria" subtitle="Nenhum evento aberto no momento" />
-        <Card><CardContent className="py-12 text-center text-muted-foreground">
-          <CalendarDays className="h-10 w-10 mx-auto mb-3 opacity-50" />
-          Crie um evento na aba Eventos para começar.
-        </CardContent></Card>
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground space-y-4">
+            <CalendarDays className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p>Crie um evento na aba Eventos para começar.</p>
+            {isOwner && (
+              <Button variant="outline" onClick={() => setForceOpen(true)}>
+                Forçar visualização da Portaria
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
   }

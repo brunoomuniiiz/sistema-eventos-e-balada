@@ -79,7 +79,7 @@ function CupomPage() {
         .consumacao-note { text-align: center; font-size: 10px; margin-top: 6px; font-style: italic; }
       `}</style>
       <div className="sheet">
-        <div className="center big">{bar?.bar_name ?? "NightOps"}</div>
+        <div className="center big">{bar?.bar_name ?? "Cupom de Venda"}</div>
         <div className="center small muted">{new Date(sale.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</div>
         {isConsumacao && (
           <>

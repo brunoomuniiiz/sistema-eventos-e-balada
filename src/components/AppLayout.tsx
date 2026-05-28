@@ -11,7 +11,8 @@ type NavItem = {
   to: string;
   label: string;
   short?: string;
-  icon: typeof LayoutDashboard;
+  icon?: any;
+  logo?: boolean;
   perm?: Permission;
   ownerOnly?: boolean;
   anyPerm?: Permission[];
@@ -20,7 +21,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", short: "Dash.", icon: LayoutDashboard, anyPerm: ["financeiro"] },
+  { to: "/dashboard", label: "Dashboard", short: "Dash.", logo: true, anyPerm: ["financeiro"] },
   { to: "/eventos", label: "Eventos", short: "Eve.", icon: Calendar, perm: "eventos" },
   { to: "/ao-vivo", label: "Ao vivo", short: "Live", icon: Activity, customGate: "ao_vivo" },
   { to: "/vendas", label: "Vendas", short: "Vend.", icon: ShoppingCart, anyPerm: ["vendas", "lojinha"] },
@@ -42,7 +43,7 @@ function AppLayoutInner() {
   const { user, signOut } = useAuth();
   const { can, isOwner, canAoVivo, rolePreset } = usePermissions();
   const branding = useBranding();
-  const displayName = (branding.bar_name && branding.bar_name.trim()) || "NightOps";
+  const displayName = branding.bar_name?.trim() || "Dashboard";
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -76,7 +77,7 @@ function AppLayoutInner() {
             )}
           </div>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            <div className="font-display font-bold text-lg leading-none">{displayName}</div>
+            <div className="font-display font-bold text-lg leading-none">{displayName === "Dashboard" ? "" : displayName}</div>
             <div className="text-xs text-muted-foreground">Gestão de eventos</div>
           </div>
         </div>
@@ -95,7 +96,17 @@ function AppLayoutInner() {
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                 }`}
               >
-                <item.icon className="h-4 w-4 shrink-0" />
+                {item.logo ? (
+                  <div className="h-5 w-5 shrink-0 rounded bg-gradient-primary grid place-items-center overflow-hidden">
+                    {branding.logo_url ? (
+                      <img src={branding.logo_url} alt="Logo" className="h-full w-full object-cover" />
+                    ) : (
+                      <Sparkles className="h-3 w-3 text-primary-foreground" />
+                    )}
+                  </div>
+                ) : (
+                  <item.icon className="h-4 w-4 shrink-0" />
+                )}
                 <span className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{item.label}</span>
               </Link>
             );
@@ -130,7 +141,7 @@ function AppLayoutInner() {
                 <Sparkles className="h-4 w-4 text-primary-foreground" />
               )}
             </div>
-            <span className="font-display font-bold">{displayName}</span>
+            <span className="font-display font-bold">{displayName === "Dashboard" ? "" : displayName}</span>
           </div>
           <div className="flex items-center gap-1">
             <OperationPinLockButton />
@@ -157,7 +168,17 @@ function AppLayoutInner() {
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
-                <item.icon className={`h-5 w-5 ${active ? "drop-shadow-[0_0_8px_var(--color-primary)]" : ""}`} />
+                {item.logo ? (
+                  <div className={`h-5 w-5 rounded-sm bg-gradient-primary grid place-items-center overflow-hidden ${active ? "drop-shadow-[0_0_8px_var(--color-primary)] shadow-primary" : ""}`}>
+                    {branding.logo_url ? (
+                      <img src={branding.logo_url} alt="Logo" className="h-full w-full object-cover" />
+                    ) : (
+                      <Sparkles className="h-3 w-3 text-primary-foreground" />
+                    )}
+                  </div>
+                ) : (
+                  <item.icon className={`h-5 w-5 ${active ? "drop-shadow-[0_0_8px_var(--color-primary)]" : ""}`} />
+                )}
                 <span className="truncate max-w-full leading-tight">{item.short ?? item.label}</span>
               </Link>
             );

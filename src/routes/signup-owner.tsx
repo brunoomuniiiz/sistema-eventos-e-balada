@@ -71,7 +71,7 @@ function SignupOwnerPage() {
           </h1>
           <p className="text-sm text-muted-foreground text-center mt-1.5">
             {done
-              ? "Você já pode começar a usar o NightOps."
+              ? "Você já pode começar a usar o sistema."
               : "Somente para o dono do estabelecimento."}
           </p>
 

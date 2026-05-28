@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Minus, Plus, ShoppingBag, Store, Loader2, Search } from "lucide-react";
+import { Minus, Plus, ShoppingBag, Store, Loader2, Search, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,8 @@ import { getStorefront, createOrder, findPendingForCustomer, customerAbandonOrde
 import { getCart, setCart, getCartToken, getCustomer, saveCustomer, resetCart, type CartItem } from "@/lojinha/lib/cart";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ProductCard } from "@/components/sales/ProductCard";
+import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export const Route = createFileRoute("/loja/$slug")({
   component: StorefrontPage,
@@ -29,6 +31,9 @@ function StorefrontPage() {
   const [token, setToken] = useState("");
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("__all__");
+  const { user } = useAuth();
+  const { isOwner } = usePermissions();
+  const [forceOpen, setForceOpen] = useState(false);
 
   useEffect(() => {
     setCartState(getCart(slug));
@@ -208,7 +213,7 @@ function StorefrontPage() {
   const rawAccent = data.settings.accent_color;
   const accent = rawAccent && /^#[0-9a-fA-F]{6}$/.test(rawAccent) ? rawAccent : "oklch(0.72 0.18 155)";
 
-  if (opWindow && opWindow.found && opWindow.is_open === false) {
+  if (opWindow && opWindow.found && opWindow.is_open === false && !forceOpen) {
     const opensAt = opWindow.opens_at ? new Date(opWindow.opens_at) : null;
     const opensLabel = opensAt
       ? opensAt.toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
@@ -218,7 +223,7 @@ function StorefrontPage() {
         <div className="max-w-sm space-y-4">
           <div
             className="h-16 w-16 mx-auto rounded-2xl grid place-items-center text-white"
-            style={{ background: `linear-gradient(135deg, ${accent}, #1a1a2e)` }}
+            style={{ background: `linear-gradient(135deg, ${accent}, #064e3b)` }}
           >
             <Store className="h-8 w-8" />
           </div>
@@ -228,8 +233,15 @@ function StorefrontPage() {
               ? <>Abrimos novamente <span className="font-semibold text-foreground">{opensLabel}</span>{opWindow.event_name ? <> para <span className="font-semibold text-foreground">{opWindow.event_name}</span></> : null}.</>
               : "Volte em breve."}
           </p>
+          
+          {isOwner && (
+            <Button variant="outline" onClick={() => setForceOpen(true)} className="mt-4">
+              <Unlock className="h-4 w-4 mr-2" /> Forçar abertura (Dono)
+            </Button>
+          )}
+
           <p className="text-xs text-muted-foreground pt-4">
-            <Link to="/" className="hover:underline">NightOps</Link>
+            <Link to="/" className="hover:underline">Dashboard</Link>
           </p>
         </div>
       </div>
@@ -240,7 +252,7 @@ function StorefrontPage() {
     <div className="min-h-screen bg-background pb-32">
       <header
         className="px-4 py-6 sm:py-8 text-white"
-        style={{ background: `linear-gradient(135deg, ${accent}, #1a1a2e)` }}
+        style={{ background: `linear-gradient(135deg, ${accent}, #064e3b)` }}
       >
         <div className="flex items-center gap-3 max-w-4xl mx-auto">
           <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-white/15 grid place-items-center backdrop-blur shrink-0 overflow-hidden">
@@ -405,7 +417,7 @@ function StorefrontPage() {
       )}
 
       <p className="text-center text-xs text-muted-foreground py-4">
-        <Link to="/" className="hover:underline">NightOps Lojinha</Link>
+        <Link to="/" className="hover:underline">Dashboard</Link>
       </p>
 
       <AlertDialog open={!!pendingPrompt} onOpenChange={(o) => !o && setPendingPrompt(null)}>
