@@ -38,6 +38,7 @@ export type SellerRow = {
   vendas_abre_caixa: boolean;
   vendas_sangria: boolean;
   vendas_ao_vivo: boolean;
+  pode_pix_chave: boolean;
 };
 
 interface Props {
@@ -236,15 +237,20 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
         basePerms.add("vendas");
       }
 
-      const { error } = await supabase
-        .from("user_roles")
-        .update({
-          ...d,
-          permissions: Array.from(basePerms),
-          lojinha_can_sell: d.vendas_garcom,
-        } as never)
-        .eq("id", row.id);
-      if (error) throw error;
+      if (!isOwnerRow) {
+        const { error } = await supabase
+          .from("user_roles")
+          .update({
+            ...d,
+            permissions: Array.from(basePerms),
+            lojinha_can_sell: d.vendas_garcom,
+          } as any)
+          .eq("id", row.id);
+        if (error) {
+          console.error("Erro ao atualizar user_roles:", error);
+          throw error;
+        }
+      }
 
       // Salva regras de impressão de CATEGORIAS
       const ruleRows = Object.entries(rules).map(([category_id, r]) => ({
@@ -306,17 +312,25 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
         </DialogHeader>
 
         {isOwnerRow ? (
-          <div className="p-4 rounded-lg border bg-muted/30 text-sm">
-            Owner tem acesso total a todas as funções. Não pode ser limitado.
+          <div className="p-3 mb-4 rounded-lg border bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-200 text-xs">
+            Como <strong>Dono</strong>, você sempre tem acesso total às ferramentas.
+            Abaixo, você pode configurar o que <strong>você</strong> deseja imprimir no seu dispositivo.
           </div>
-        ) : (
-          <Tabs defaultValue="perms">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="perms">Permissões</TabsTrigger>
-              <TabsTrigger value="print"><Printer className="h-3.5 w-3.5 mr-1" />Impressão</TabsTrigger>
-            </TabsList>
+        ) : null}
 
+        <Tabs defaultValue={isOwnerRow ? "print" : "perms"}>
+          <TabsList className="grid w-full grid-cols-2">
+            {!isOwnerRow && <TabsTrigger value="perms">Permissões</TabsTrigger>}
+            <TabsTrigger value="print" className={isOwnerRow ? "col-span-2" : ""}>
+              <Printer className="h-3.5 w-3.5 mr-1" />Impressão
+            </TabsTrigger>
+          </TabsList>
+
+          {!isOwnerRow && (
             <TabsContent value="perms" className="space-y-5 mt-4">
+              {/* ... keep existing perms content ... */}
+            </TabsContent>
+          )}
               <Section title="Acesso às abas de Vendas">
                 <Toggle icon={<ShoppingCart className="h-4 w-4" />} label="PDV Caixa" sub="Vender no caixa presencial" checked={d.vendas_pdv_caixa} onChange={(v) => set("vendas_pdv_caixa", v)} />
                 <Toggle icon={<Store className="h-4 w-4" />} label="Vender (garçom)" sub="PDV mobile / maquininha" checked={d.vendas_garcom} onChange={(v) => set("vendas_garcom", v)} />
@@ -424,11 +438,9 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
 
         <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          {!isOwnerRow && (
-            <Button onClick={save} disabled={saving}>
-              <ShieldCheck className="h-4 w-4" /> {saving ? "Salvando..." : "Salvar"}
-            </Button>
-          )}
+          <Button onClick={save} disabled={saving}>
+            <ShieldCheck className="h-4 w-4 mr-2" /> {saving ? "Salvando..." : "Salvar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

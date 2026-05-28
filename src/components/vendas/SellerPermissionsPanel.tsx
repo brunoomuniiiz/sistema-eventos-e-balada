@@ -19,7 +19,7 @@ export function SellerPermissionsPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("id, user_id, display_name, email, role, permissions, owner_id, aceita_dinheiro, aceita_pix, aceita_cartao, aceita_credito_promoter, pode_lancar_consumacao, lojinha_can_sell, can_discount, max_discount_percent, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_pedidos, vendas_historico, vendas_fechamento, vendas_abre_caixa, vendas_sangria, vendas_ao_vivo")
+        .select("id, user_id, display_name, email, role, permissions, owner_id, aceita_dinheiro, aceita_pix, aceita_cartao, aceita_credito_promoter, pode_lancar_consumacao, lojinha_can_sell, can_discount, max_discount_percent, vendas_pdv_caixa, vendas_garcom, vendas_validar_qr, vendas_pedidos, vendas_historico, vendas_fechamento, vendas_abre_caixa, vendas_sangria, vendas_ao_vivo, pode_pix_chave")
         .eq("owner_id", ownerId!)
         .order("role", { ascending: true });
       if (error) throw error;
