@@ -139,7 +139,7 @@ export function LojinhaScanner() {
                   qr_svg_string: await qrSvgString(u.qr_token),
                 })));
 
-                printUnitTickets({
+                await executePrint({
                   bar_name: bar?.bar_name ?? null,
                   daily_number: lookup.daily_number,
                   waiter: lookup.customer_name || 'Cliente',
