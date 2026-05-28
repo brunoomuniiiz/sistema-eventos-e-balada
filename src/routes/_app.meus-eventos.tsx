@@ -182,48 +182,77 @@ function MeusEventosPage() {
 
 function EventCard({ row, closed, onCopy }: { row: Row; closed: boolean; onCopy: (s: string) => void }) {
   return (
-    <Card className={`overflow-hidden transition ${closed ? "opacity-60" : ""}`}>
+    <Card className={`overflow-hidden transition h-full flex flex-col ${closed ? "opacity-60" : ""}`}>
       {row.event.flyer_url && (
-        <div className={`h-32 bg-cover bg-center ${closed ? "grayscale" : ""}`} style={{ backgroundImage: `url(${row.event.flyer_url})` }} />
+        <div className={`h-32 bg-cover bg-center shrink-0 ${closed ? "grayscale" : ""}`} style={{ backgroundImage: `url(${row.event.flyer_url})` }} />
       )}
-      <CardContent className="p-4 space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="font-semibold truncate flex-1">{row.event.name}</div>
-          {closed && <Badge variant="secondary" className="shrink-0 text-[10px]">Encerrado</Badge>}
-        </div>
-        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" /> {format(new Date(row.event.date), "EEE dd 'de' MMM, HH:mm", { locale: ptBR })}
-        </div>
-        {row.event.location && (
-          <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <MapPin className="h-3 w-3" /> {row.event.location}
+      <CardContent className="p-4 space-y-4 flex-1 flex flex-col">
+        <div className="space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="font-semibold truncate flex-1">{row.event.name}</div>
+            {closed && <Badge variant="secondary" className="shrink-0 text-[10px]">Encerrado</Badge>}
           </div>
-        )}
+          <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" /> {format(new Date(row.event.date), "EEE dd 'de' MMM, HH:mm", { locale: ptBR })}
+          </div>
+          {row.event.location && (
+            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <MapPin className="h-3 w-3" /> {row.event.location}
+            </div>
+          )}
+        </div>
 
-        <div className="grid grid-cols-2 gap-2 pt-2">
-          <div className="rounded-lg bg-muted/40 p-2">
-            <div className="text-[10px] text-muted-foreground uppercase">Nomes na lista</div>
-            <div className="text-lg font-bold flex items-center gap-1"><Users className="h-3.5 w-3.5 text-primary" /> {row.counts.total}</div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg bg-primary/5 border border-primary/10 p-2 text-center">
+            <div className="text-[10px] text-muted-foreground uppercase mb-1">Nomes</div>
+            <div className="text-lg font-bold text-primary">{row.counts.total}</div>
             <div className="text-[10px] text-muted-foreground">{row.counts.women}F · {row.counts.men}M</div>
           </div>
-          <div className="rounded-lg bg-muted/40 p-2">
-            <div className="text-[10px] text-muted-foreground uppercase">{closed ? "Foram" : "Check-in"}</div>
-            <div className="text-lg font-bold flex items-center gap-1 text-success"><CheckCircle2 className="h-3.5 w-3.5" /> {row.counts.checkin}</div>
+          <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/10 p-2 text-center">
+            <div className="text-[10px] text-muted-foreground uppercase mb-1">Presentes</div>
+            <div className="text-lg font-bold text-emerald-600">{row.counts.checkin}</div>
             <div className="text-[10px] text-muted-foreground">
-              {row.counts.total > 0 ? Math.round((row.counts.checkin / row.counts.total) * 100) : 0}% de presença
+              {row.counts.total > 0 ? Math.round((row.counts.checkin / row.counts.total) * 100) : 0}% conv.
             </div>
           </div>
         </div>
 
+        {row.all_promoters && row.all_promoters.length > 0 && (
+          <div className="flex-1">
+            <div className="text-[10px] font-bold text-muted-foreground uppercase mb-2 flex items-center gap-1">
+              <Trophy className="h-3 w-3" /> Ranking Geral
+            </div>
+            <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+              {row.all_promoters.map((p, i) => (
+                <div 
+                  key={p.id} 
+                  className={`flex items-center justify-between text-[11px] p-1.5 rounded ${p.is_me ? "bg-primary/10 font-bold border border-primary/20" : "bg-muted/30"}`}
+                >
+                  <span className="truncate flex-1">
+                    {i+1}. {p.display_name || p.promoter_name} {p.is_me && "(Você)"}
+                  </span>
+                  <div className="flex gap-2 text-muted-foreground">
+                    {p.is_me ? (
+                      <span className="text-primary">{p.total}L | {p.present}C</span>
+                    ) : (
+                      <span>— | —</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {!closed && (
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <Button asChild size="sm" className="bg-gradient-primary text-primary-foreground">
+          <div className="grid grid-cols-2 gap-2 pt-2 mt-auto">
+            <Button asChild size="sm" className="bg-gradient-primary text-primary-foreground text-xs">
               <Link to="/lista/$slug" params={{ slug: row.slug }}>
-                <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Minha lista
+                <ExternalLink className="h-3.5 w-3.5 mr-1" /> Minha lista
               </Link>
             </Button>
-            <Button size="sm" variant="outline" onClick={() => onCopy(row.slug)}>
-              <Copy className="h-3.5 w-3.5 mr-1.5" /> Copiar link
+            <Button size="sm" variant="outline" onClick={() => onCopy(row.slug)} className="text-xs">
+              <Copy className="h-3.5 w-3.5 mr-1" /> Copiar link
             </Button>
           </div>
         )}
