@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Plus, Trash2, Copy, Check, X, Users, Trophy, Link as LinkIcon, MessageCircle, Bell } from "lucide-react";
+import { Plus, Trash2, Copy, Check, X, Users, Trophy, Link as LinkIcon, MessageCircle, Bell, Home, Music, User, Edit2, TrendingUp, BarChart } from "lucide-react";
 import { waLink, buildConfirmationMessage, buildReminderMessage } from "@/lib/whatsapp";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
