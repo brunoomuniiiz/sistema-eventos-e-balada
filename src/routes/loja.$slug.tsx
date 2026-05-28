@@ -206,7 +206,7 @@ function StorefrontPage() {
   }
 
   const rawAccent = data.settings.accent_color;
-  const accent = rawAccent && /^#[0-9a-fA-F]{6}$/.test(rawAccent) ? rawAccent : "#e94560";
+  const accent = rawAccent && /^#[0-9a-fA-F]{6}$/.test(rawAccent) ? rawAccent : "oklch(0.72 0.18 155)";
 
   if (opWindow && opWindow.found && opWindow.is_open === false) {
     const opensAt = opWindow.opens_at ? new Date(opWindow.opens_at) : null;
@@ -243,8 +243,12 @@ function StorefrontPage() {
         style={{ background: `linear-gradient(135deg, ${accent}, #1a1a2e)` }}
       >
         <div className="flex items-center gap-3 max-w-4xl mx-auto">
-          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-white/15 grid place-items-center backdrop-blur shrink-0">
-            <Store className="h-5 w-5 sm:h-6 sm:w-6" />
+          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-white/15 grid place-items-center backdrop-blur shrink-0 overflow-hidden">
+            {data.settings.logo_url ? (
+              <img src={data.settings.logo_url ?? undefined} alt={data.settings.store_name ?? ""} className="w-full h-full object-cover" />
+            ) : (
+              <Store className="h-5 w-5 sm:h-6 sm:w-6" />
+            )}
           </div>
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold truncate">{data.settings.store_name || "Loja"}</h1>

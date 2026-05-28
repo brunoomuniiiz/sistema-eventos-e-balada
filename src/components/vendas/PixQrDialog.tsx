@@ -208,27 +208,6 @@ export function PixQrDialog({
           <Button variant="ghost" size="sm" onClick={handleClose}>
             Cancelar
           </Button>
-          <button
-            type="button"
-            disabled={simulating}
-            onClick={async () => {
-              if (!charge) return;
-              setSimulating(true);
-              try {
-                await simulate({ data: { chargeId: charge.id } });
-                setStatus("approved");
-                await onApproved(charge.id);
-                setTimeout(() => onOpenChange(false), 1000);
-              } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Falha ao simular");
-              } finally {
-                setSimulating(false);
-              }
-            }}
-            className="text-[11px] text-amber-600 hover:underline disabled:opacity-50"
-          >
-            {simulating ? "Simulando…" : "[teste] simular pago"}
-          </button>
         </div>
       </div>
     )

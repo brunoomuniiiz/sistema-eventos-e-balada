@@ -27,6 +27,7 @@ export type StorefrontSettings = {
   pickup_message: string | null;
   accent_color: string | null;
   stock_location_id: string | null;
+  logo_url?: string | null;
 };
 
 export type Storefront = {

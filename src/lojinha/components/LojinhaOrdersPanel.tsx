@@ -250,25 +250,6 @@ export function LojinhaOrdersPanel() {
             </AlertDialogContent>
           </AlertDialog>
         )}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button size="sm" variant="outline" className="text-destructive border-destructive/40" disabled={busy === "__all__"}>
-              <Trash2 className="h-3 w-3 mr-1" /> Limpar TODOS (testes)
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Apagar TODOS os pedidos?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Isso apaga TODOS os pedidos da lojinha (inclusive pagos e entregues). Use só para limpar dados de teste — não dá pra desfazer.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction className="bg-destructive" onClick={() => handleDeleteAll("all_test")}>Apagar tudo</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
 
       {isLoading && (

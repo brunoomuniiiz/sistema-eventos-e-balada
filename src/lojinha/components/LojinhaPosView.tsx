@@ -203,19 +203,6 @@ export function LojinhaPosView() {
   };
 
 
-  // Simulação enquanto MP não está conectado: botão manual de "confirmar pagamento"
-  const confirmPaymentManual = async () => {
-    if (!orderId) return;
-    setBusy(true);
-    try {
-      await markPosPaid(orderId, "manual-" + Date.now());
-      toast.success("Pagamento confirmado");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const onDelivered = async () => {
     if (!orderId) return;
@@ -365,9 +352,6 @@ export function LojinhaPosView() {
                   </p>
                 </>
               )}
-              <Button variant="outline" className="w-full" onClick={confirmPaymentManual} disabled={busy}>
-                {busy ? "..." : "Confirmar pagamento manualmente (teste)"}
-              </Button>
             </CardContent>
           </Card>
         ) : (

@@ -30,6 +30,7 @@ function GuestListPage() {
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");
   const [done, setDone] = useState(false);
+  const [showCountRequested, setShowCountRequested] = useState(false);
   const [fakeViewing, setFakeViewing] = useState(() => 6 + Math.floor(Math.random() * 19));
 
   useEffect(() => {
@@ -95,7 +96,7 @@ function GuestListPage() {
   const closed = data.event_status !== "upcoming" && data.event_status !== "ongoing" && data.event_status !== "live";
   const eventDate = new Date(data.event_date);
   const isEventDay = isSameDay(eventDate, new Date());
-  const showRealCount = Boolean(data.show_real_count_when_big) && isEventDay && Number(data.total_entries) >= 400;
+  const showRealCount = Boolean(data.show_real_count_when_big) && isEventDay && Number(data.total_entries) >= 400 && showCountRequested;
   const waGroup = (data as { event_whatsapp_group_url?: string | null }).event_whatsapp_group_url ?? null;
 
   const d = data as {
@@ -163,6 +164,9 @@ function GuestListPage() {
                 <MapPin className="h-4 w-4" /> {data.event_location}
               </div>
             )}
+            {data.event_description && (
+              <p className="mt-4 text-sm text-muted-foreground whitespace-pre-wrap">{data.event_description}</p>
+            )}
 
             {/* Card destacado do promoter */}
             <div className="mt-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
@@ -191,11 +195,22 @@ function GuestListPage() {
               <p className="mt-3 text-sm leading-relaxed whitespace-pre-wrap">{guestMessage}</p>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
-              <Users className="h-3 w-3" />
-              {showRealCount
-                ? <>{Number(data.total_entries)} confirmados</>
-                : <>{fakeViewing} pessoas vendo agora</>}
+            <div className="flex items-center justify-between mt-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Users className="h-3 w-3" />
+                {showRealCount
+                  ? <>{Number(data.total_entries)} confirmados</>
+                  : <>{fakeViewing} pessoas vendo agora</>}
+              </div>
+
+              {!showCountRequested && Number(data.total_entries) >= 400 && data.show_real_count_when_big && (
+                <button
+                  onClick={() => setShowCountRequested(true)}
+                  className="text-[10px] text-primary hover:underline font-medium"
+                >
+                  Ver quantidade de nomes
+                </button>
+              )}
             </div>
 
 
