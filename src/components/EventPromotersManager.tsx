@@ -229,12 +229,57 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
         </Button>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-primary/5 border-primary/20 glow-primary">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-4 w-4 text-primary" />
+              <h4 className="font-bold text-xs uppercase text-primary">Total Geral Captado</h4>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-gradient">{globalTotal}</span>
+              <span className="text-xs text-muted-foreground">nomes na lista</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-emerald-500/5 border-emerald-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Check className="h-4 w-4 text-emerald-500" />
+              <h4 className="font-bold text-xs uppercase text-emerald-600">Presença Total</h4>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-emerald-600">{globalPresent}</span>
+              <span className="text-xs text-muted-foreground">check-ins ({globalRate.toFixed(1)}%)</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-secondary/20 border-border/40 sm:col-span-1">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Trophy className="h-4 w-4 text-amber-500" />
+              <h4 className="font-bold text-xs uppercase text-muted-foreground">Líder de Captação</h4>
+            </div>
+            <div className="truncate font-medium text-sm">
+              {stats.length > 0 ? (
+                <span>
+                  {stats[0].ep.display_name || promoters.find(p => p.id === stats[0].ep.promoter_id)?.name || "Link"} 
+                  <span className="text-primary ml-1">({stats[0].total})</span>
+                </span>
+              ) : "—"}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="bg-primary/5 border-primary/20">
+        <Card className="bg-muted/30 border-border/40">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="h-4 w-4 text-primary" />
-              <h4 className="font-bold text-sm uppercase">Top Captação</h4>
+              <h4 className="font-bold text-sm uppercase">Ranking Captação</h4>
             </div>
             <div className="space-y-1.5">
               {[...stats].sort((a, b) => b.total - a.total).slice(0, 3).map((s, i) => (
@@ -243,14 +288,15 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
                   <span className="font-bold">{s.total} nomes</span>
                 </div>
               ))}
+              {stats.length === 0 && <div className="text-xs text-muted-foreground">Nenhum dado</div>}
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-emerald-500/5 border-emerald-500/20">
+        <Card className="bg-muted/30 border-border/40">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <BarChart className="h-4 w-4 text-emerald-500" />
-              <h4 className="font-bold text-sm uppercase text-emerald-600">Top Conversão</h4>
+              <h4 className="font-bold text-sm uppercase text-emerald-600">Ranking Conversão</h4>
             </div>
             <div className="space-y-1.5">
               {[...stats].sort((a, b) => b.present - a.present).slice(0, 3).map((s, i) => (
@@ -259,6 +305,7 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
                   <span className="font-bold text-emerald-600">{s.present} check-ins</span>
                 </div>
               ))}
+              {stats.length === 0 && <div className="text-xs text-muted-foreground">Nenhum dado</div>}
             </div>
           </CardContent>
         </Card>
