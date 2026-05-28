@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck, Sparkles, Beer, Activity, KeyRound, Printer } from "lucide-react";
+import { ShoppingCart, Store, ScanLine, Package, Receipt, LockKeyhole, Wallet, ArrowDownToLine, Banknote, QrCode, CreditCard, Percent, ShieldCheck, Sparkles, Beer, Activity, KeyRound, Printer, ChevronDown, ChevronRight } from "lucide-react";
 import { clearPrintRulesCache } from "@/lib/print-rules";
 
 export type SellerRow = {
@@ -103,7 +103,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
   useEffect(() => { setD(initialDraft(row)); }, [row]);
 
   // Carrega categorias do dono
-  const { data: categories } = useQuery({
+  const { data: categories = [] } = useQuery({
     queryKey: ["product_categories", ownerId],
     enabled: !!ownerId && open,
     queryFn: async () => {
@@ -118,7 +118,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
   });
 
   // Carrega todos os produtos do dono para exibir dentro das categorias
-  const { data: products } = useQuery({
+  const { data: products = [] } = useQuery({
     queryKey: ["products_for_print", ownerId],
     enabled: !!ownerId && open,
     queryFn: async () => {
@@ -132,7 +132,6 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
       return data ?? [];
     },
   });
-
 
   // Carrega regras de categorias existentes
   const { data: existingRules } = useQuery({
@@ -185,7 +184,6 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
     setProdRules(nextProd);
   }, [categories, existingRules, existingProdRules]);
 
-
   if (!row) return null;
   const isOwnerRow = row.role === "owner";
 
@@ -195,11 +193,36 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
     return next;
   });
 
-  const setRule = (catId: string, key: keyof RuleState, v: boolean) =>
+  const setRule = (catId: string, key: keyof RuleState, v: boolean) => {
     setRules((s) => ({ ...s, [catId]: { ...s[catId], [key]: v } }));
+    // Se marcou categoria, todos os produtos dela seguem por padrão (remove exceções específicas se houver, 
+    // ou simplesmente aplicamos a mesma regra aos filhos para ficar visualmente consistente)
+    const catProds = products.filter(p => p.category_id === catId);
+    setProdRules(prev => {
+      const next = { ...prev };
+      catProds.forEach(p => {
+        next[p.id] = { ...next[p.id], [key]: v };
+      });
+      return next;
+    });
+  };
 
-  const setAllRules = (key: keyof RuleState, v: boolean) =>
+  const setProdRule = (prodId: string, key: keyof RuleState, v: boolean) =>
+    setProdRules((s) => ({ ...s, [prodId]: { ...s[prodId], [key]: v } }));
+
+  const setAllRules = (key: keyof RuleState, v: boolean) => {
     setRules((s) => Object.fromEntries(Object.entries(s).map(([k, r]) => [k, { ...r, [key]: v }])));
+    setProdRules((s) => Object.fromEntries(Object.entries(s).map(([k, r]) => [k, { ...r, [key]: v }])));
+  };
+
+  const toggleExpand = (catId: string) => {
+    setExpandedCats(prev => {
+      const next = new Set(prev);
+      if (next.has(catId)) next.delete(catId);
+      else next.add(catId);
+      return next;
+    });
+  };
 
   const save = async () => {
     setSaving(true);
@@ -223,9 +246,9 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
         .eq("id", row.id);
       if (error) throw error;
 
-      // Salva regras de impressão (substitui tudo)
+      // Salva regras de impressão de CATEGORIAS
       const ruleRows = Object.entries(rules).map(([category_id, r]) => ({
-        user_id: row.user_id,
+        user_id: ownerId,
         user_role_id: row.id,
         category_id,
         print_on_sale: r.print_on_sale,
@@ -236,12 +259,31 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
         const { error: rErr } = await supabase.from("print_rules").insert(ruleRows as never);
         if (rErr) throw rErr;
       }
+
+      // Salva regras de impressão de PRODUTOS
+      // Aqui só salvamos os produtos que DIFEREM da regra da categoria, ou salvamos tudo?
+      // Por simplicidade na lógica de filtro, vamos salvar as exceções explícitas.
+      const prodRuleRows = Object.entries(prodRules).map(([product_id, r]) => ({
+        user_id: ownerId,
+        user_role_id: row.id,
+        product_id,
+        print_on_sale: r.print_on_sale,
+        print_on_scan: r.print_on_scan,
+      }));
+      
+      await supabase.from("print_rules_products").delete().eq("user_role_id", row.id);
+      if (prodRuleRows.length > 0) {
+        const { error: prErr } = await supabase.from("print_rules_products").insert(prodRuleRows as never);
+        if (prErr) throw prErr;
+      }
+
       clearPrintRulesCache();
 
       toast.success("Permissões atualizadas");
       qc.invalidateQueries({ queryKey: ["seller-perms"] });
       qc.invalidateQueries({ queryKey: ["my-role"] });
       qc.invalidateQueries({ queryKey: ["print_rules"] });
+      qc.invalidateQueries({ queryKey: ["print_rules_products"] });
       onOpenChange(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
@@ -326,7 +368,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
 
             <TabsContent value="print" className="space-y-4 mt-4">
               <p className="text-xs text-muted-foreground">
-                Selecione quais categorias devem imprimir na impressora desse funcionário em cada momento. Categorias desmarcadas não saem na impressora dele.
+                Selecione quais categorias ou produtos específicos devem imprimir para esse funcionário. Toque na seta para ver os produtos.
               </p>
               {cats.length === 0 ? (
                 <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
@@ -342,14 +384,36 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
                   <TabsContent value="sale" className="mt-3 space-y-1">
                     <BulkRow onAll={() => setAllRules("print_on_sale", true)} onNone={() => setAllRules("print_on_sale", false)} />
                     {cats.map((c) => (
-                      <CategoryRow key={c.id} name={c.name} checked={rules[c.id]?.print_on_sale ?? true} onChange={(v) => setRule(c.id, "print_on_sale", v)} />
+                      <CategoryWithProducts
+                        key={c.id}
+                        cat={c}
+                        expanded={expandedCats.has(c.id)}
+                        onToggleExpand={() => toggleExpand(c.id)}
+                        catChecked={rules[c.id]?.print_on_sale ?? true}
+                        onCatChange={(v) => setRule(c.id, "print_on_sale", v)}
+                        products={products.filter(p => p.category_id === c.id)}
+                        prodRules={prodRules}
+                        onProdChange={(pid, v) => setProdRule(pid, "print_on_sale", v)}
+                        trigger="sale"
+                      />
                     ))}
                   </TabsContent>
 
                   <TabsContent value="scan" className="mt-3 space-y-1">
                     <BulkRow onAll={() => setAllRules("print_on_scan", true)} onNone={() => setAllRules("print_on_scan", false)} />
                     {cats.map((c) => (
-                      <CategoryRow key={c.id} name={c.name} checked={rules[c.id]?.print_on_scan ?? true} onChange={(v) => setRule(c.id, "print_on_scan", v)} />
+                      <CategoryWithProducts
+                        key={c.id}
+                        cat={c}
+                        expanded={expandedCats.has(c.id)}
+                        onToggleExpand={() => toggleExpand(c.id)}
+                        catChecked={rules[c.id]?.print_on_scan ?? true}
+                        onCatChange={(v) => setRule(c.id, "print_on_scan", v)}
+                        products={products.filter(p => p.category_id === c.id)}
+                        prodRules={prodRules}
+                        onProdChange={(pid, v) => setProdRule(pid, "print_on_scan", v)}
+                        trigger="scan"
+                      />
                     ))}
                   </TabsContent>
                 </Tabs>
@@ -381,12 +445,51 @@ function BulkRow({ onAll, onNone }: { onAll: () => void; onNone: () => void }) {
   );
 }
 
-function CategoryRow({ name, checked, onChange }: { name: string; checked: boolean; onChange: (v: boolean) => void }) {
+function CategoryWithProducts({ 
+  cat, expanded, onToggleExpand, catChecked, onCatChange, products, prodRules, onProdChange, trigger 
+}: { 
+  cat: { id: string; name: string };
+  expanded: boolean;
+  onToggleExpand: () => void;
+  catChecked: boolean;
+  onCatChange: (v: boolean) => void;
+  products: any[];
+  prodRules: Record<string, RuleState>;
+  onProdChange: (pid: string, v: boolean) => void;
+  trigger: keyof RuleState;
+}) {
   return (
-    <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40 cursor-pointer">
-      <Checkbox checked={checked} onCheckedChange={(v) => onChange(v === true)} />
-      <span className="text-sm flex-1">{name}</span>
-    </label>
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-1 p-1 rounded-lg hover:bg-muted/40 group">
+        <button onClick={onToggleExpand} className="p-1 rounded hover:bg-muted text-muted-foreground">
+          {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </button>
+        <Checkbox checked={catChecked} onCheckedChange={(v) => onCatChange(v === true)} />
+        <span className="text-sm font-medium flex-1 cursor-pointer" onClick={onToggleExpand}>{cat.name}</span>
+        <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity pr-2">
+          {products.length} produtos
+        </span>
+      </div>
+      
+      {expanded && (
+        <div className="pl-9 space-y-0.5 border-l ml-3 mb-2 pt-1">
+          {products.length === 0 ? (
+            <div className="text-[11px] text-muted-foreground py-1">Nenhum produto</div>
+          ) : (
+            products.map(p => (
+              <label key={p.id} className="flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/30 cursor-pointer">
+                <Checkbox 
+                  checked={prodRules[p.id]?.[trigger] ?? catChecked} 
+                  onCheckedChange={(v) => onProdChange(p.id, v === true)} 
+                  className="h-3.5 w-3.5"
+                />
+                <span className="text-xs flex-1 truncate">{p.name}</span>
+              </label>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
