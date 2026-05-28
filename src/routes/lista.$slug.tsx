@@ -119,9 +119,15 @@ function GuestListPage() {
     <div className="min-h-screen px-4 py-10 grid place-items-center">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-2 justify-center mb-6">
-          <div className="h-10 w-10 rounded-2xl bg-gradient-primary grid place-items-center glow-primary">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
-          </div>
+          {data.event_flyer_url ? (
+            <div className="h-12 w-12 rounded-2xl overflow-hidden border-2 border-primary/20">
+              <img src={data.event_flyer_url} alt="Logo" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="h-12 w-12 rounded-2xl bg-gradient-primary grid place-items-center glow-primary">
+              <Sparkles className="h-6 w-6 text-primary-foreground" />
+            </div>
+          )}
         </div>
 
         <Card className="glass overflow-hidden">

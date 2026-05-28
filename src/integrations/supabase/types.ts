@@ -2186,6 +2186,7 @@ export type Database = {
       promoters: {
         Row: {
           accumulated_balance: number
+          avatar_url: string | null
           comm_man_free_type: string
           comm_man_free_value: number
           comm_man_paid_type: string
@@ -2208,6 +2209,7 @@ export type Database = {
         }
         Insert: {
           accumulated_balance?: number
+          avatar_url?: string | null
           comm_man_free_type?: string
           comm_man_free_value?: number
           comm_man_paid_type?: string
@@ -2230,6 +2232,7 @@ export type Database = {
         }
         Update: {
           accumulated_balance?: number
+          avatar_url?: string | null
           comm_man_free_type?: string
           comm_man_free_value?: number
           comm_man_paid_type?: string

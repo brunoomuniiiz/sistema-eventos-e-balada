@@ -148,10 +148,17 @@ export function EventLandingManager({ eventId, ownerId }: { eventId: string; own
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+          <div className={`flex items-center justify-between p-3 rounded-lg border ${published ? 'bg-success/5 border-success/30' : 'bg-destructive/5 border-destructive/30'}`}>
             <div>
-              <div className="font-medium">Landing publicada</div>
-              <div className="text-xs text-muted-foreground">Quando ligado, qualquer pessoa com o link pode ver e entrar na lista</div>
+              <div className={`font-medium flex items-center gap-2 ${published ? 'text-success' : 'text-destructive'}`}>
+                {published ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {published ? 'Página Publicada' : 'Página Privada'}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {published 
+                  ? 'Qualquer pessoa com o link pode ver e entrar na lista.' 
+                  : 'Apenas você consegue visualizar. Ative para liberar o link.'}
+              </div>
             </div>
             <Switch checked={published} onCheckedChange={setPublished} />
           </div>
