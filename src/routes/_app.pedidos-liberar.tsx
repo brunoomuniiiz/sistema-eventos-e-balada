@@ -14,7 +14,7 @@ import { orderLookupByToken, orderRelease } from "@/lojinha/api";
 import { formatBRL } from "@/lib/format";
 import { formatOrderNo } from "@/lib/print-receipt";
 import { qrSvgString, printPrepSlips, printUnitTickets } from "@/lib/order-print";
-import { getAllowedCategoryIds } from "@/lib/print-rules";
+import { shouldPrintItem } from "@/lib/print-rules";
 import { supabase } from "@/integrations/supabase/client";
 
 type Search = { token?: string };

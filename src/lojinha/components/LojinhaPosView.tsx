@@ -14,7 +14,7 @@ import { createPixCharge } from "@/lib/pix.functions";
 import { ProductCard } from "@/components/sales/ProductCard";
 import { CategoryChipBar } from "@/components/sales/CategoryChipBar";
 import { printUnitTickets, qrSvgString } from "@/lib/order-print";
-import { getAllowedCategoryIds } from "@/lib/print-rules";
+import { shouldPrintItem } from "@/lib/print-rules";
 
 type Product = {
   id: string;
@@ -237,23 +237,26 @@ export function LojinhaPosView() {
         ]);
         const units = unitsRes.data ?? [];
         const targetUserId = userRes.data.user?.id;
-        const allowed = targetUserId
-          ? await getAllowedCategoryIds(targetUserId, "sale")
-          : null;
-
-        let filteredUnits = units;
-        if (allowed && units.length > 0) {
+        
+        let filteredUnits: typeof units = [];
+        
+        if (targetUserId && units.length > 0) {
           const productIds = Array.from(new Set(units.map((u) => u.product_id)));
           const { data: prods } = await supabase
             .from("products")
             .select("id, category_id")
             .in("id", productIds);
           const catById = new Map((prods ?? []).map((p) => [p.id, p.category_id as string | null]));
-          filteredUnits = units.filter((u) => {
-            const cat = catById.get(u.product_id);
-            return cat && allowed.has(cat);
-          });
+          
+          for (const u of units) {
+            const catId = catById.get(u.product_id) ?? null;
+            const ok = await shouldPrintItem(targetUserId, "sale", catId, u.product_id);
+            if (ok) filteredUnits.push(u);
+          }
+        } else {
+          filteredUnits = units;
         }
+
         if (filteredUnits.length > 0) {
           const tickets = await Promise.all(filteredUnits.map(async (u) => ({
             product_name: u.product_name_snapshot,
