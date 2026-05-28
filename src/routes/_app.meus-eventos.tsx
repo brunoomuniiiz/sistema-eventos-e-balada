@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Copy, MapPin, Users, ExternalLink, Lock, CheckCircle2 } from "lucide-react";
+import { Calendar, Copy, MapPin, Users, ExternalLink, Lock, CheckCircle2, Trophy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
