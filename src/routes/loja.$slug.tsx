@@ -223,7 +223,7 @@ function StorefrontPage() {
         <div className="max-w-sm space-y-4">
           <div
             className="h-16 w-16 mx-auto rounded-2xl grid place-items-center text-white"
-            style={{ background: `linear-gradient(135deg, ${accent}, #1a1a2e)` }}
+            style={{ background: `linear-gradient(135deg, ${accent}, #064e3b)` }}
           >
             <Store className="h-8 w-8" />
           </div>
@@ -252,7 +252,7 @@ function StorefrontPage() {
     <div className="min-h-screen bg-background pb-32">
       <header
         className="px-4 py-6 sm:py-8 text-white"
-        style={{ background: `linear-gradient(135deg, ${accent}, #1a1a2e)` }}
+        style={{ background: `linear-gradient(135deg, ${accent}, #064e3b)` }}
       >
         <div className="flex items-center gap-3 max-w-4xl mx-auto">
           <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-white/15 grid place-items-center backdrop-blur shrink-0 overflow-hidden">
