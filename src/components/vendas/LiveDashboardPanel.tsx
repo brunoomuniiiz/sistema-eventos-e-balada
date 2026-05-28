@@ -340,6 +340,99 @@ export function LiveDashboardPanel() {
   );
 }
 
+function LiveLinksConversionPanel({ eventId }: { eventId: string }) {
+  const { data: eventPromoters = [] } = useQuery({
+    queryKey: ["event-links-live", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_promoters")
+        .select(`
+          id, 
+          display_name, 
+          category,
+          promoters (name)
+        `)
+        .eq("event_id", eventId);
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 15000,
+  });
+
+  const { data: entries = [] } = useQuery({
+    queryKey: ["event-entries-live", eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("guest_list_entries")
+        .select("event_promoter_id, checked_in")
+        .eq("event_id", eventId);
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 15000,
+  });
+
+  const stats = eventPromoters.map(ep => {
+    const list = entries.filter(e => e.event_promoter_id === ep.id);
+    const present = list.filter(e => e.checked_in).length;
+    return {
+      name: ep.display_name || (ep.promoters as any)?.name || "Link",
+      category: ep.category,
+      total: list.length,
+      present,
+      rate: list.length > 0 ? (present / list.length) * 100 : 0
+    };
+  }).sort((a, b) => b.present - a.present);
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <LinkIcon className="h-4 w-4 text-primary" />
+          <span className="font-display font-bold">Conversão de Links (Ranking)</span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+              <Trophy className="h-3 w-3 text-amber-500" /> Top Conversão
+            </div>
+            <div className="space-y-1">
+              {stats.slice(0, 5).map((s, i) => (
+                <div key={i} className="flex items-center justify-between text-xs p-2 rounded bg-muted/30">
+                  <span className="truncate flex-1">{i+1}. {s.name}</span>
+                  <div className="flex gap-3">
+                    <span className="text-muted-foreground">{s.total}L</span>
+                    <span className="font-bold text-emerald-600">{s.present}C</span>
+                    <span className="text-primary font-medium w-8 text-right">{s.rate.toFixed(0)}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+              <LinkIcon className="h-3 w-3" /> Todos os links
+            </div>
+            <div className="max-h-[200px] overflow-y-auto space-y-1 pr-1">
+              {stats.map((s, i) => (
+                <div key={i} className="flex items-center justify-between text-[11px] p-1.5 border-b last:border-0">
+                  <span className="truncate flex-1">{s.name}</span>
+                  <div className="flex gap-3 text-muted-foreground">
+                    <span>{s.total} nomes</span>
+                    <span className="text-emerald-600">{s.present} check-ins</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function MethodCard({ icon, label, shortLabel, value, total }: { icon: React.ReactNode; label: string; shortLabel?: string; value: number; total: number }) {
   const pct = total > 0 ? (Number(value) / Number(total)) * 100 : 0;
   return (
