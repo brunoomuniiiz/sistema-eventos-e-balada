@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Camera, KeyboardIcon, Printer, CheckCircle2, XCircle } from "lucide-react";
+import { Camera, KeyboardIcon, Printer, CheckCircle2, XCircle, Settings2 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,27 @@ import { orderLookupByToken, validateQr } from "@/lojinha/api";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { printUnitTickets, qrSvgString } from "@/lib/order-print";
+import { 
+  getPrintConfig, 
+  savePrintConfig, 
+  generateThermalTicket, 
+  printWithRawBT,
+  PrintConfig 
+} from "@/lib/thermal-print";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function LojinhaScanner() {
   const navigate = useNavigate();
@@ -18,8 +39,33 @@ export function LojinhaScanner() {
   const [manual, setManual] = useState("");
   const [autoPrint, setAutoPrint] = useState(true);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string }>({ type: 'idle', message: '' });
+  const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const ref = useRef<Html5Qrcode | null>(null);
   const lastTokenRef = useRef<string>("");
+
+  const executePrint = async (opts: {
+    bar_name: string | null;
+    daily_number: number | null;
+    waiter: string | null;
+    tickets: any[];
+  }) => {
+    if (printConfig.method === 'rawbt') {
+      let fullText = "";
+      opts.tickets.forEach((t, idx) => {
+        fullText += generateThermalTicket({
+          bar_name: opts.bar_name,
+          daily_number: opts.daily_number,
+          product_name: t.product_name,
+          unit_index: idx + 1,
+          unit_total: opts.tickets.length,
+          waiter: opts.waiter,
+        });
+      });
+      printWithRawBT(fullText);
+    } else {
+      printUnitTickets(opts);
+    }
+  };
 
   async function handleToken(raw: string) {
     let token = raw.trim();
@@ -68,7 +114,7 @@ export function LojinhaScanner() {
                 }
               }
 
-              printUnitTickets({
+              await executePrint({
                 bar_name: bar?.bar_name ?? null,
                 daily_number: lookup.daily_number,
                 waiter: lookup.customer_name || 'Balcão',
@@ -93,7 +139,7 @@ export function LojinhaScanner() {
                   qr_svg_string: await qrSvgString(u.qr_token),
                 })));
 
-                printUnitTickets({
+                await executePrint({
                   bar_name: bar?.bar_name ?? null,
                   daily_number: lookup.daily_number,
                   waiter: lookup.customer_name || 'Cliente',
@@ -120,7 +166,7 @@ export function LojinhaScanner() {
           setStatus({ type: 'success', message: 'Sucesso! Validado' });
           if (autoPrint) {
             const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
-            printUnitTickets({
+            await executePrint({
               bar_name: bar?.bar_name ?? null,
               daily_number: null,
               waiter: null,
@@ -170,7 +216,7 @@ export function LojinhaScanner() {
           fps: 20, 
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const size = Math.floor(minEdge * 0.8);
+            const size = Math.floor(minEdge * 0.9); // Aumentado para 90%
             return { width: size, height: size };
           },
           aspectRatio: 1.0 
@@ -207,23 +253,82 @@ export function LojinhaScanner() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg border">
+      <div className="flex items-center justify-between bg-muted/50 p-2 rounded-lg border gap-2">
         <div className="flex items-center gap-2">
           <Printer className="h-4 w-4 text-muted-foreground" />
-          <Label htmlFor="auto-print" className="text-sm font-medium">Impressão Automática</Label>
+          <Label htmlFor="auto-print" className="text-xs font-medium">Auto-Imprimir</Label>
+          <Switch 
+            id="auto-print" 
+            checked={autoPrint} 
+            onCheckedChange={setAutoPrint} 
+            className="scale-75"
+          />
         </div>
-        <Switch 
-          id="auto-print" 
-          checked={autoPrint} 
-          onCheckedChange={setAutoPrint} 
-        />
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[350px] rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Configurações de Impressora</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Método de Impressão</Label>
+                <Select 
+                  value={printConfig.method} 
+                  onValueChange={(val: 'system' | 'rawbt') => {
+                    const next = { ...printConfig, method: val };
+                    setPrintConfig(next);
+                    savePrintConfig(next);
+                    toast.success("Configuração salva");
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o método" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="system">Sistema (PDF/Navegador)</SelectItem>
+                    <SelectItem value="rawbt">RawBT (Android Térmica)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  Use RawBT se tiver o app instalado no Android para impressão instantânea.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Largura do Papel</Label>
+                <Select 
+                  value={printConfig.paperWidth} 
+                  onValueChange={(val: '58mm' | '80mm') => {
+                    const next = { ...printConfig, paperWidth: val };
+                    setPrintConfig(next);
+                    savePrintConfig(next);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a largura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="58mm">58mm (Pequena)</SelectItem>
+                    <SelectItem value="80mm">80mm (Grande)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative">
         <div className="space-y-3">
           <div 
             id="lojinha-qr-reader" 
-            className={`rounded-lg overflow-hidden transition-all duration-300 ${scanning ? 'bg-black aspect-square' : 'h-0 opacity-0'}`} 
+            className={`rounded-lg overflow-hidden transition-all duration-300 border-2 border-primary/20 ${scanning ? 'bg-black aspect-square' : 'hidden'}`} 
           />
           {!scanning && (
             <Button onClick={start} className="w-full h-14 text-base">
