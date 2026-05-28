@@ -216,7 +216,7 @@ export function LojinhaScanner() {
           fps: 20, 
           qrbox: (viewfinderWidth, viewfinderHeight) => {
             const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-            const size = Math.floor(minEdge * 0.8);
+            const size = Math.floor(minEdge * 0.9); // Aumentado para 90%
             return { width: size, height: size };
           },
           aspectRatio: 1.0 
