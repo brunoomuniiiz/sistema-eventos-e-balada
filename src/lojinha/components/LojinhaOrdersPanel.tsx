@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { formatBRL } from "@/lib/format";
 import { markOrderDelivered, abandonLojinhaOrder } from "@/lojinha/api";
 import { deleteLojinhaOrder, deleteAllLojinhaOrders } from "@/lib/pix.functions";
-import { printReceipt, qrSvgString } from "@/lib/order-print";
+import { printReceipt, printUnitTickets, qrSvgString } from "@/lib/order-print";
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   pending: { label: "Aguardando pagamento", color: "bg-warning text-warning-foreground" },
