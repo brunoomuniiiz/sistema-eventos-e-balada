@@ -166,6 +166,10 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
     })
     .sort((a, b) => b.present - a.present);
 
+  const statsCasa = stats.filter(s => s.ep.category === 'casa');
+  const statsAtracao = stats.filter(s => s.ep.category === 'atracao');
+  const statsPromoters = stats.filter(s => s.ep.category === 'promoter');
+
   const availablePromoters = promoters.filter(
     (p) => !eventPromoters.some((ep) => ep.promoter_id === p.id),
   );
