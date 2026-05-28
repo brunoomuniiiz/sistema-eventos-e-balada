@@ -48,7 +48,7 @@ function MeusEventosPage() {
 
       const { data: eps, error } = await supabase
         .from("event_promoters")
-        .select("id, slug, event_id, promoter_id")
+        .select("id, slug, event_id, promoter_id, category, display_name")
         .in("promoter_id", promoterIds);
       if (error) throw error;
 
