@@ -23,64 +23,96 @@ export function LojinhaScanner() {
 
   async function handleToken(raw: string) {
     let token = raw.trim();
-    if (!token || token === lastTokenRef.current) return;
+    if (!token) return;
+    
+    // Evita duplicidade se for o mesmo token processado recentemente
+    if (token === lastTokenRef.current) return;
     lastTokenRef.current = token;
     
     if (token.includes("/")) token = token.split("/").pop() || token;
     if (token.includes("?")) token = token.split("?")[0];
 
     try {
-      // Tenta pedido novo (sale ou order via pickup_token)
       const lookup = await orderLookupByToken(token);
       
       if (lookup.ok) {
+        // Se já foi entregue
+        if (lookup.status === 'delivered') {
+          setStatus({ type: 'error', message: 'Ticket já validado!' });
+          return;
+        }
+
         if (autoPrint) {
-          setStatus({ type: 'success', message: 'Pedido Validado!' });
-          // Lógica de auto-impressão
+          setStatus({ type: 'success', message: 'Sucesso! Validado' });
+          
           try {
-            const { data: units } = await supabase
-              .from("lojinha_order_units")
-              .select("qr_token, product_name_snapshot, product_id, order_id")
-              .eq("order_id", lookup.id);
-            
-            const { data: order } = await supabase
-              .from("lojinha_orders")
-              .select("daily_number, seller_name")
-              .eq("id", lookup.id)
-              .maybeSingle();
-
-            const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
-
-            if (units && units.length > 0) {
-              const tickets = await Promise.all(units.map(async (u) => ({
-                product_name: u.product_name_snapshot,
-                qr_token: u.qr_token,
-                qr_svg_string: await qrSvgString(u.qr_token),
-              })));
+            // Se for do tipo 'sale', precisamos imprimir e marcar como entregue
+            if (lookup.source === 'sale') {
+              const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
+              
+              // Gera os tickets baseados nos itens da venda
+              const tickets: any[] = [];
+              for (const item of lookup.items) {
+                // Se for combo, deveria expandir? Por enquanto 1 ticket por item
+                for (let i = 0; i < item.quantity; i++) {
+                  tickets.push({
+                    product_name: item.product_name,
+                    qr_token: token, // Usa o token principal para o QR da ficha
+                    qr_svg_string: await qrSvgString(token),
+                  });
+                }
+              }
 
               printUnitTickets({
                 bar_name: bar?.bar_name ?? null,
-                daily_number: order?.daily_number ?? null,
-                waiter: order?.seller_name ?? null,
+                daily_number: lookup.daily_number,
+                waiter: lookup.customer_name || 'Balcão',
                 tickets,
               });
+
+              // Efetiva a liberação no banco
+              await supabase.rpc("order_release", { _source: 'sale', _id: lookup.id });
+            } else {
+              // Pedido Online (order)
+              const { data: units } = await supabase
+                .from("lojinha_order_units")
+                .select("qr_token, product_name_snapshot, product_id, order_id")
+                .eq("order_id", lookup.id);
               
-              await supabase.rpc("mark_units_printed", { _qr_tokens: units.map(u => u.qr_token) });
+              const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
+
+              if (units && units.length > 0) {
+                const tickets = await Promise.all(units.map(async (u) => ({
+                  product_name: u.product_name_snapshot,
+                  qr_token: u.qr_token,
+                  qr_svg_string: await qrSvgString(u.qr_token),
+                })));
+
+                printUnitTickets({
+                  bar_name: bar?.bar_name ?? null,
+                  daily_number: lookup.daily_number,
+                  waiter: lookup.customer_name || 'Cliente',
+                  tickets,
+                });
+                
+                await supabase.rpc("order_release", { _source: 'order', _id: lookup.id });
+              }
             }
           } catch (printErr) {
-            console.error("Erro na auto-impressão:", printErr);
-            toast.error("Erro ao imprimir automaticamente");
+            console.error("Erro no processamento:", printErr);
+            toast.error("Erro ao imprimir ou validar");
           }
         } else {
+          // Se autoPrint estiver desligado, abre a página de conferência
           await stop();
           navigate({ to: "/pedidos-liberar", search: { token } });
           return;
         }
       } else {
-        // Fallback: token de unidade da lojinha (fluxo antigo)
+        // Fallback para unidades individuais (fluxo antigo)
         const res = await validateQr(token);
         if (res.ok) {
-          setStatus({ type: 'success', message: res.product_name || 'Validado!' });
+          setStatus({ type: 'success', message: 'Sucesso! Validado' });
           if (autoPrint) {
             const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
             printUnitTickets({
@@ -96,7 +128,7 @@ export function LojinhaScanner() {
             await supabase.rpc("mark_units_printed", { _qr_tokens: [token] });
           }
         } else {
-          setStatus({ type: 'error', message: res.reason === "already_delivered" ? "QR já utilizado" : "QR inválido" });
+          setStatus({ type: 'error', message: res.reason === "already_delivered" ? "Ticket já validado!" : "QR inválido" });
         }
       }
     } catch (e) {
@@ -114,6 +146,9 @@ export function LojinhaScanner() {
     if (scanning) return;
     setScanning(true);
     try {
+      // Pequeno delay para garantir que o elemento DOM está pronto
+      await new Promise(r => setTimeout(r, 100));
+      
       const inst = new Html5Qrcode("lojinha-qr-reader", {
         formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
         verbose: false,
@@ -121,29 +156,36 @@ export function LojinhaScanner() {
       ref.current = inst;
       await inst.start(
         { facingMode: "environment" },
-        { fps: 15, qrbox: { width: 280, height: 280 }, aspectRatio: 1.0 },
+        { fps: 20, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
         (text) => handleToken(text),
         () => {}
       );
     } catch (e: any) {
-      console.error(e);
-      toast.error("Não foi possível abrir a câmera");
+      console.error("Erro ao abrir câmera:", e);
+      toast.error("Não foi possível abrir a câmera. Verifique as permissões.");
       setScanning(false);
     }
   }
 
   async function stop() {
     try {
-      if (ref.current) {
+      if (ref.current && ref.current.isScanning) {
         await ref.current.stop();
         await ref.current.clear();
-        ref.current = null;
       }
-    } catch {}
-    setScanning(false);
+    } catch (err) {
+      console.warn("Erro ao parar câmera:", err);
+    } finally {
+      ref.current = null;
+      setScanning(false);
+    }
   }
 
-  useEffect(() => () => { void stop(); }, []);
+  // Inicia a câmera automaticamente ao montar o componente
+  useEffect(() => {
+    start();
+    return () => { void stop(); };
+  }, []);
 
   return (
     <div className="space-y-4">
