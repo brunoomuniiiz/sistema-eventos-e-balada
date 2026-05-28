@@ -3178,6 +3178,7 @@ export type Database = {
         Args: { _slug: string }
         Returns: {
           event_date: string
+          event_description: string
           event_end_date: string
           event_flyer_url: string
           event_location: string
