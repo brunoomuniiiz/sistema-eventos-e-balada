@@ -148,12 +148,8 @@ export const simulatePixApproval = createServerFn({ method: "POST" })
       .maybeSingle();
     if (chargeErr) throw new Error(chargeErr.message);
     if (!charge) throw new Error("Cobrança não encontrada");
+    if (charge.user_id !== userId) throw new Error("Não autorizado");
 
-    const { data: isOwner, error: ownerErr } = await supabase.rpc("is_owner_of", {
-      _user_id: userId,
-      _owner_id: charge.user_id,
-    });
-    if (ownerErr || !isOwner) throw new Error("Não autorizado");
 
 
     const nowIso = new Date().toISOString();
