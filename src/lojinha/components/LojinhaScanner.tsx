@@ -38,7 +38,12 @@ export function LojinhaScanner() {
       if (lookup.ok) {
         // Se já foi entregue
         if (lookup.status === 'delivered') {
-          setStatus({ type: 'error', message: 'Ticket já validado!' });
+          const date = lookup.delivered_at ? new Date(lookup.delivered_at).toLocaleString('pt-BR') : '';
+          const by = lookup.delivered_by_name || '';
+          setStatus({ 
+            type: 'error', 
+            message: `Ticket já validado!\n${by ? `Por: ${by}` : ''}\n${date}` 
+          });
           return;
         }
 
@@ -128,7 +133,12 @@ export function LojinhaScanner() {
             await supabase.rpc("mark_units_printed", { _qr_tokens: [token] });
           }
         } else {
-          setStatus({ type: 'error', message: res.reason === "already_delivered" ? "Ticket já validado!" : "QR inválido" });
+          let msg = "QR inválido";
+          if (res.reason === "already_delivered") {
+            const date = res.delivered_at ? new Date(res.delivered_at).toLocaleString('pt-BR') : '';
+            msg = `Ticket já validado!\n${date}`;
+          }
+          setStatus({ type: 'error', message: msg });
         }
       }
     } catch (e) {
@@ -156,7 +166,15 @@ export function LojinhaScanner() {
       ref.current = inst;
       await inst.start(
         { facingMode: "environment" },
-        { fps: 20, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+        { 
+          fps: 20, 
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const size = Math.floor(minEdge * 0.8);
+            return { width: size, height: size };
+          },
+          aspectRatio: 1.0 
+        },
         (text) => handleToken(text),
         () => {}
       );
@@ -203,7 +221,10 @@ export function LojinhaScanner() {
 
       <div className="relative">
         <div className="space-y-3">
-          <div id="lojinha-qr-reader" className="rounded-lg overflow-hidden bg-black aspect-square" />
+          <div 
+            id="lojinha-qr-reader" 
+            className={`rounded-lg overflow-hidden transition-all duration-300 ${scanning ? 'bg-black aspect-square' : 'h-0 opacity-0'}`} 
+          />
           {!scanning && (
             <Button onClick={start} className="w-full h-14 text-base">
               <Camera className="h-5 w-5 mr-2" /> Tentar abrir câmera novamente
@@ -219,7 +240,7 @@ export function LojinhaScanner() {
             status.type === 'success' ? 'bg-success/90 text-success-foreground' : 'bg-destructive/90 text-destructive-foreground'
           }`}>
             {status.type === 'success' ? <CheckCircle2 className="h-20 w-20 mb-2" /> : <XCircle className="h-20 w-20 mb-2" />}
-            <div className="text-xl font-bold px-4 text-center">{status.message}</div>
+            <div className="text-xl font-bold px-4 text-center whitespace-pre-line leading-tight">{status.message}</div>
           </div>
         )}
       </div>
