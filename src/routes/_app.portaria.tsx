@@ -266,6 +266,11 @@ function PortariaPage() {
           <CompactTabsTrigger value="caixa" icon={Wallet} short="Cx.">Caixa</CompactTabsTrigger>
           <CompactTabsTrigger value="historico" icon={History} short="Hist.">Histórico</CompactTabsTrigger>
           <CompactTabsTrigger value="relatorio" icon={BarChart3} short="Rel.">Relatório</CompactTabsTrigger>
+          {pinToken && (
+            <div className="ml-auto pl-2 flex items-center">
+              <OperationPinLockButton />
+            </div>
+          )}
         </CompactTabsList>
 
         {/* LISTA */}
