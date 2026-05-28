@@ -3392,6 +3392,7 @@ export type Database = {
         Returns: boolean
       }
       lojinha_validate_qr: { Args: { _token: string }; Returns: Json }
+      mark_units_printed: { Args: { _qr_tokens: string[] }; Returns: undefined }
       next_daily_order_number: { Args: { _owner: string }; Returns: number }
       open_cash_session:
         | {
