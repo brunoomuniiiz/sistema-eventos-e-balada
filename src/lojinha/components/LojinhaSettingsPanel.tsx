@@ -149,6 +149,16 @@ export function LojinhaSettingsPanel() {
         </div>
 
         <div>
+          <Label>Mensagem quando fechada (ex: Lojinha do Happy está fechada)</Label>
+          <Input 
+            value={form.closed_message ?? ""} 
+            onChange={(e) => setForm({ ...form, closed_message: e.target.value })} 
+            placeholder="Ex: Lojinha do Happy está fechada" 
+          />
+        </div>
+
+
+        <div>
           <Label>Cor de destaque</Label>
           <div className="flex items-center gap-2">
             <Input type="color" value={form.accent_color} onChange={(e) => setForm({ ...form, accent_color: e.target.value })} className="h-10 w-16 p-1" />
