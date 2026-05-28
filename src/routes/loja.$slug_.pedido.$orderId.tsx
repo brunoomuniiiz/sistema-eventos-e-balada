@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getOrder } from "@/lojinha/api";
 import { formatBRL } from "@/lib/format";
-import { createPublicPixCharge, getPublicPixChargeStatus, simulatePixApproval } from "@/lib/pix-public.functions";
+import { createPublicPixCharge, getPublicPixChargeStatus } from "@/lib/pix-public.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/loja/$slug_/pedido/$orderId")({
