@@ -60,7 +60,7 @@ export function printReceipt(opts: {
 
   const body = `
     <div class="sheet">
-      <div class="center big">${escapeHtml(opts.bar_name ?? "NightOps")}</div>
+      <div class="center big">${escapeHtml(opts.bar_name ?? "Cupom")}</div>
       <div class="center small muted">${escapeHtml(timeBR())}</div>
       <hr />
       <div class="center huge">${escapeHtml(formatOrderNo(opts.daily_number))}</div>
@@ -123,7 +123,7 @@ export function printUnitTickets(opts: {
   const pages = opts.tickets
     .map((t, idx) => `
       <div class="sheet pagebreak">
-        <div class="center small muted">${escapeHtml(opts.bar_name ?? "NightOps")}</div>
+        <div class="center small muted">${escapeHtml(opts.bar_name ?? "Sistema de Gestão")}</div>
         <div class="center huge">${escapeHtml(formatOrderNo(opts.daily_number))}</div>
         <hr />
         <div class="center big">${escapeHtml(t.product_name)}</div>

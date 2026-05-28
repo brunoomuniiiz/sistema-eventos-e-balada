@@ -38,7 +38,7 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "sistema de gestao de eventos e casa noturna" },
       { name: "description", content: "Plataforma para gerenciar vendas, equipes de promoter, funcionarios, lista e ingressos. facilidade durante a operação!" },
-      { name: "author", content: "NightOps" },
+      { name: "author", content: "Gestão de Eventos" },
       { property: "og:title", content: "sistema de gestao de eventos e casa noturna" },
       { property: "og:description", content: "Plataforma para gerenciar vendas, equipes de promoter, funcionarios, lista e ingressos. facilidade durante a operação!" },
       { property: "og:type", content: "website" },
