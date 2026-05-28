@@ -200,6 +200,7 @@ export type Database = {
           instagram_handle: string | null
           logo_url: string | null
           owner_pin_hash: string | null
+          print_method: string | null
           text_color: string | null
           theme_mode: string | null
           updated_at: string
@@ -216,6 +217,7 @@ export type Database = {
           instagram_handle?: string | null
           logo_url?: string | null
           owner_pin_hash?: string | null
+          print_method?: string | null
           text_color?: string | null
           theme_mode?: string | null
           updated_at?: string
@@ -232,6 +234,7 @@ export type Database = {
           instagram_handle?: string | null
           logo_url?: string | null
           owner_pin_hash?: string | null
+          print_method?: string | null
           text_color?: string | null
           theme_mode?: string | null
           updated_at?: string
