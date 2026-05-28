@@ -71,12 +71,31 @@ function MeusEventosPage() {
       })).filter((r): r is { ep_id: string; slug: string; category: string; display_name: string | null; event: Row["event"] } => !!r.event);
 
       const epIds = out.map((r) => r.ep_id);
+      const allEventIds = Array.from(new Set(out.map(r => r.event.id)));
+
+      // Pegar TODOS os links de promoters apenas para esses eventos
+      const { data: allEps } = await supabase
+        .from("event_promoters")
+        .select(`
+          id, 
+          event_id, 
+          display_name, 
+          category,
+          promoters (name)
+        `)
+        .in("event_id", allEventIds)
+        .eq('category', 'promoter');
+
       const counts: Record<string, Row["counts"]> = {};
-      if (epIds.length) {
+      
+      // Pegar convidados para TODOS os promoters desses eventos
+      const allRelevantEpIds = (allEps ?? []).map(ep => ep.id);
+      if (allRelevantEpIds.length) {
         const { data: guests } = await supabase
           .from("guest_list_entries")
           .select("event_promoter_id, checked_in, gender")
-          .in("event_promoter_id", epIds);
+          .in("event_promoter_id", allRelevantEpIds);
+          
         for (const g of guests ?? []) {
           const k = g.event_promoter_id;
           counts[k] = counts[k] ?? { total: 0, checkin: 0, women: 0, men: 0 };
@@ -88,7 +107,26 @@ function MeusEventosPage() {
       }
 
       return out
-        .map((r) => ({ ...r, counts: counts[r.ep_id] ?? { total: 0, checkin: 0, women: 0, men: 0 } }))
+        .map((r) => {
+          // Ranking
+          const eventLinks = (allEps ?? [])
+            .filter(ep => ep.event_id === r.event.id)
+            .map(ep => ({
+              id: ep.id,
+              display_name: ep.display_name,
+              promoter_name: (ep.promoters as any)?.name || "Promoter",
+              total: counts[ep.id]?.total ?? 0,
+              present: counts[ep.id]?.checkin ?? 0,
+              is_me: ep.id === r.ep_id
+            }))
+            .sort((a, b) => b.present - a.present);
+
+          return { 
+            ...r, 
+            counts: counts[r.ep_id] ?? { total: 0, checkin: 0, women: 0, men: 0 },
+            all_promoters: eventLinks
+          };
+        })
         .sort((a, b) => (a.event.date < b.event.date ? 1 : -1));
     },
   });
