@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useEffect, useState, type FormEvent } from "react";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Sparkles, Users, Check, MessageCircle, Download, Share2, MapPin, Instagram, Plus, Minus } from "lucide-react";
+import { Calendar, Sparkles, Users, Check, MessageCircle, Download, Share2, MapPin, Instagram, Plus, Minus, Home, Music, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
