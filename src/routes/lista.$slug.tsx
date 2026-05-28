@@ -52,11 +52,12 @@ function GuestListPage() {
 
   const addMut = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc("add_guest_to_list", {
+      const { error } = await supabase.rpc("add_guest_to_list_v2", {
         _slug: slug,
         _name: name,
         _phone: phone,
         _gender: gender,
+        _companions: companions,
       });
       if (error) throw error;
     },
