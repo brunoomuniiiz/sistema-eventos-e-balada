@@ -221,7 +221,8 @@ export function LojinhaPosView() {
     if (!orderId) return;
     setBusy(true);
     try {
-      await confirmDeliveryPos(orderId);
+      const res = await confirmDeliveryPos(orderId);
+      console.log("Delivery confirmed:", res);
 
       // Imprime 1 ticket com QR por unidade entregue (combo expande nos componentes)
       try {
@@ -230,14 +231,16 @@ export function LojinhaPosView() {
             .from("lojinha_order_units")
             .select("qr_token, product_name_snapshot, product_id")
             .eq("order_id", orderId),
-          supabase.from("lojinha_orders").select("daily_number, seller_name").eq("id", orderId).maybeSingle(),
-          supabase.from("bar_settings").select("bar_name").eq("user_id", ownerId!).maybeSingle(),
+          supabase.from("lojinha_orders").select("daily_number, seller_name, user_id").eq("id", orderId).maybeSingle(),
+          supabase.from("bar_settings").select("bar_name").maybeSingle(),
           supabase.auth.getUser(),
         ]);
         const units = unitsRes.data ?? [];
-        const allowed = userRes.data.user
-          ? await getAllowedCategoryIds(userRes.data.user.id, "sale")
+        const targetUserId = userRes.data.user?.id;
+        const allowed = targetUserId
+          ? await getAllowedCategoryIds(targetUserId, "sale")
           : null;
+
         let filteredUnits = units;
         if (allowed && units.length > 0) {
           const productIds = Array.from(new Set(units.map((u) => u.product_id)));
