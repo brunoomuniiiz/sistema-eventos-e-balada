@@ -253,12 +253,13 @@ function GuestListPage() {
             ) : (
               <form onSubmit={onSubmit} className="mt-6 space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="g-name">Nome completo *</Label>
+                  <Label htmlFor="g-name">Seu nome completo *</Label>
                   <Input
                     id="g-name"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    placeholder="Como na identidade"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -284,6 +285,60 @@ function GuestListPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {companions.map((comp, idx) => (
+                  <div key={idx} className="p-4 rounded-xl border border-dashed bg-secondary/20 space-y-3 relative">
+                    <button
+                      type="button"
+                      onClick={() => setCompanions(companions.filter((_, i) => i !== idx))}
+                      className="absolute top-2 right-2 text-muted-foreground hover:text-destructive p-1"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <div className="space-y-1.5">
+                      <Label>Nome do Amigo(a) {idx + 1}</Label>
+                      <Input
+                        value={comp.name}
+                        onChange={(e) => {
+                          const next = [...companions];
+                          next[idx].name = e.target.value;
+                          setCompanions(next);
+                        }}
+                        placeholder="Nome completo"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Gênero</Label>
+                      <Select
+                        value={comp.gender}
+                        onValueChange={(v) => {
+                          const next = [...companions];
+                          next[idx].gender = v;
+                          setCompanions(next);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Feminino">Feminino</SelectItem>
+                          <SelectItem value="Masculino">Masculino</SelectItem>
+                          <SelectItem value="Outro">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-dashed"
+                  onClick={() => setCompanions([...companions, { name: "", gender: "" }])}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add amigo(a)
+                </Button>
+
                 <Button
                   type="submit"
                   disabled={addMut.isPending}
