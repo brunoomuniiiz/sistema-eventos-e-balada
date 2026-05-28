@@ -203,6 +203,10 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
     ? entries.filter((e) => e.event_promoter_id === viewingId)
     : [];
 
+  const globalTotal = entries.length;
+  const globalPresent = entries.filter(e => e.checked_in).length;
+  const globalRate = globalTotal > 0 ? (globalPresent / globalTotal) * 100 : 0;
+
   const copyLink = (slug: string) => {
     const url = `${window.location.origin}/lista/${slug}`;
     navigator.clipboard.writeText(url);
