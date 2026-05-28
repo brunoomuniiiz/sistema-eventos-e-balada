@@ -35,6 +35,7 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
   const [open, setOpen] = useState(false);
   const [selectedPromoter, setSelectedPromoter] = useState<string>("");
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [editingDisplayName, setEditingDisplayName] = useState<{ id: string; name: string } | null>(null);
 
   const { data: eventPromoters = [] } = useQuery({
     queryKey: ["event-promoters", eventId],
