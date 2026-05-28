@@ -253,16 +253,75 @@ export function LojinhaScanner() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg border">
+      <div className="flex items-center justify-between bg-muted/50 p-2 rounded-lg border gap-2">
         <div className="flex items-center gap-2">
           <Printer className="h-4 w-4 text-muted-foreground" />
-          <Label htmlFor="auto-print" className="text-sm font-medium">Impressão Automática</Label>
+          <Label htmlFor="auto-print" className="text-xs font-medium">Auto-Imprimir</Label>
+          <Switch 
+            id="auto-print" 
+            checked={autoPrint} 
+            onCheckedChange={setAutoPrint} 
+            className="scale-75"
+          />
         </div>
-        <Switch 
-          id="auto-print" 
-          checked={autoPrint} 
-          onCheckedChange={setAutoPrint} 
-        />
+
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[350px] rounded-xl">
+            <DialogHeader>
+              <DialogTitle>Configurações de Impressora</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Método de Impressão</Label>
+                <Select 
+                  value={printConfig.method} 
+                  onValueChange={(val: 'system' | 'rawbt') => {
+                    const next = { ...printConfig, method: val };
+                    setPrintConfig(next);
+                    savePrintConfig(next);
+                    toast.success("Configuração salva");
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o método" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="system">Sistema (PDF/Navegador)</SelectItem>
+                    <SelectItem value="rawbt">RawBT (Android Térmica)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  Use RawBT se tiver o app instalado no Android para impressão instantânea.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Largura do Papel</Label>
+                <Select 
+                  value={printConfig.paperWidth} 
+                  onValueChange={(val: '58mm' | '80mm') => {
+                    const next = { ...printConfig, paperWidth: val };
+                    setPrintConfig(next);
+                    savePrintConfig(next);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a largura" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="58mm">58mm (Pequena)</SelectItem>
+                    <SelectItem value="80mm">80mm (Grande)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative">
