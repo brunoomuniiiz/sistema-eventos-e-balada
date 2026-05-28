@@ -328,7 +328,7 @@ export function LojinhaScanner() {
         <div className="space-y-3">
           <div 
             id="lojinha-qr-reader" 
-            className={`rounded-lg overflow-hidden transition-all duration-300 ${scanning ? 'bg-black aspect-square' : 'h-0 opacity-0'}`} 
+            className={`rounded-lg overflow-hidden transition-all duration-300 border-2 border-primary/20 ${scanning ? 'bg-black aspect-square' : 'hidden'}`} 
           />
           {!scanning && (
             <Button onClick={start} className="w-full h-14 text-base">
