@@ -182,7 +182,11 @@ function GuestListPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">Seu promoter</div>
+                  <div className="text-[11px] uppercase tracking-wide text-primary font-semibold">
+                    {data.category === 'casa' ? 'Link Oficial' : 
+                     data.category === 'atracao' ? 'Atração' : 
+                     'Seu promoter'}
+                  </div>
                   <div className="font-bold truncate">{data.promoter_name}</div>
                   {promoterInsta && (
                     <a
