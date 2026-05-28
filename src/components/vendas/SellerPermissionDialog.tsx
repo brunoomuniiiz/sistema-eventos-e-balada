@@ -85,7 +85,7 @@ function initialDraft(r: SellerRow | null): Draft {
     aceita_cartao: r?.aceita_cartao ?? true,
     aceita_credito_promoter: r?.aceita_credito_promoter ?? false,
     pode_lancar_consumacao: r?.pode_lancar_consumacao ?? false,
-    pode_pix_chave: (rr?.["pode_pix_chave"] as boolean | undefined) ?? false,
+    pode_pix_chave: r?.pode_pix_chave ?? false,
     can_discount: r?.can_discount ?? false,
     max_discount_percent: Number(r?.max_discount_percent ?? 0),
   };
@@ -272,7 +272,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
       const prodRuleRows = Object.entries(prodRules).map(([product_id, r]) => ({
         user_id: ownerId,
         user_role_id: row.id,
-        product_id,
+        product_id: r.product_id,
         print_on_sale: r.print_on_sale,
         print_on_scan: r.print_on_scan,
       }));
