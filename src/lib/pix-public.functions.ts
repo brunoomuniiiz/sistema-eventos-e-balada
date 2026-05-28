@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { applyMpPaymentToCharge, createMpPixPayment, getMpPayment } from "./mp.server";
 
 /**
@@ -129,13 +130,27 @@ export const getPublicPixChargeStatus = createServerFn({ method: "POST" })
  * pagos por um banco real.
  */
 export const simulatePixApproval = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ chargeId: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     // Gate: only available outside production. In production this is a no-op
     // to prevent free order fulfillment via simulated PIX approvals.
     if (process.env.NODE_ENV === "production") {
       throw new Error("Simulação de PIX desabilitada em produção");
     }
+
+    // Only the owner of the charge's tenant may simulate approval.
+    const { userId, supabase } = context;
+    const { data: charge, error: chargeErr } = await supabase
+      .from("pix_charges")
+      .select("id, user_id")
+      .eq("id", data.chargeId)
+      .maybeSingle();
+    if (chargeErr) throw new Error(chargeErr.message);
+    if (!charge) throw new Error("Cobrança não encontrada");
+    if (charge.user_id !== userId) throw new Error("Não autorizado");
+
+
 
     const nowIso = new Date().toISOString();
 

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getOrder } from "@/lojinha/api";
 import { formatBRL } from "@/lib/format";
-import { createPublicPixCharge, getPublicPixChargeStatus, simulatePixApproval } from "@/lib/pix-public.functions";
+import { createPublicPixCharge, getPublicPixChargeStatus } from "@/lib/pix-public.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/loja/$slug_/pedido/$orderId")({
@@ -152,8 +152,8 @@ type Charge = {
 function PixCheckoutPanel({ orderId, onPaid }: { orderId: string; onPaid: () => void }) {
   const create = useServerFn(createPublicPixCharge);
   const check = useServerFn(getPublicPixChargeStatus);
-  const simulate = useServerFn(simulatePixApproval);
-  const [simulating, setSimulating] = useState(false);
+  // simulate removed (dev-only, auth-gated server function)
+
   const [charge, setCharge] = useState<Charge | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
