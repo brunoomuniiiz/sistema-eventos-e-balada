@@ -17,6 +17,8 @@ import {
   Plus, Minus, Trash2, ShoppingBag, Wallet, Layers, Percent, Lock, Search, Image as ImageIcon, Printer, Settings2
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { AuthorizationDialog } from "@/components/AuthorizationDialog";
+import { useOperationPin } from "@/hooks/useOperationPin";
 import { formatBRL } from "@/lib/format";
 import { OpenCashDialog } from "@/components/vendas/OpenCashDialog";
 import { WithdrawalDialog } from "@/components/vendas/WithdrawalDialog";
@@ -102,6 +104,11 @@ export function PdvView() {
   const [consumacaoOpen, setConsumacaoOpen] = useState(false);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [autoPrintEnabled, setAutoPrintEnabled] = useState(true);
+  const { token: pinToken, setUnlocked: setPinUnlocked } = useOperationPin();
+  const [pinDialog, setPinDialog] = useState<{ open: boolean; pendingProduct: Product | null }>({
+    open: false,
+    pendingProduct: null,
+  });
 
 
   const { data: session, refetch: refetchSession } = useQueryRQ({
@@ -263,18 +270,27 @@ export function PdvView() {
   const total = useMemo(() => +(subtotal - discountValue).toFixed(2), [subtotal, discountValue]);
 
   const addToCart = (p: Product) => {
+    // Se for produto de teste, exige PIN se ainda não estiver desbloqueado nesta sessão
+    if (p.name.toUpperCase().includes("TESTE") && !pinToken) {
+      setPinDialog({ open: true, pendingProduct: p });
+      return;
+    }
+
     setCart((prev) => {
       const existing = prev.find((i) => i.product_id === p.id);
       if (existing) {
-        return prev.map((i) => i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i);
+        return prev.map((i) => (i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
       }
-      return [...prev, {
-        product_id: p.id,
-        product_name: p.name,
-        unit_price: Number(p.price),
-        cost_price: Number(p.cost_price ?? 0),
-        quantity: 1,
-      }];
+      return [
+        ...prev,
+        {
+          product_id: p.id,
+          product_name: p.name,
+          unit_price: Number(p.price),
+          cost_price: Number(p.cost_price ?? 0),
+          quantity: 1,
+        },
+      ];
     });
   };
 
@@ -530,6 +546,20 @@ export function PdvView() {
         onChaveApproved={async (info) => { await recordSale(info); }}
       />
 
+      <AuthorizationDialog
+        open={pinDialog.open}
+        onOpenChange={(open) => setPinDialog((prev) => ({ ...prev, open }))}
+        title="Produto de Teste"
+        description="Este é um produto restrito. Digite o PIN para usá-lo."
+        onApproved={(token, name) => {
+          setPinUnlocked(token, name);
+          if (pinDialog.pendingProduct) {
+            addToCart(pinDialog.pendingProduct);
+          }
+          setPinDialog({ open: false, pendingProduct: null });
+        }}
+      />
+
       {session && (
         <div className="mb-3 flex flex-wrap items-center gap-2 p-2 sm:p-3 rounded-xl border bg-card/60">
           <Wallet className="h-4 w-4 text-primary" />
@@ -721,11 +751,20 @@ export function PdvView() {
                   inCartQty={inCart?.quantity ?? 0}
                   stockStatus={stockStatus}
                   stockText={stockText}
-                  badge={isCombo ? (
-                    <span className="text-[10px] px-1 py-0.5 rounded bg-secondary text-muted-foreground shrink-0 flex items-center gap-0.5">
-                      <Layers className="h-2.5 w-2.5" /> Combo
-                    </span>
-                  ) : undefined}
+                  badge={
+                    <div className="flex gap-1">
+                      {isCombo && (
+                        <span className="text-[10px] px-1 py-0.5 rounded bg-secondary text-muted-foreground shrink-0 flex items-center gap-0.5">
+                          <Layers className="h-2.5 w-2.5" /> Combo
+                        </span>
+                      )}
+                      {p.name.toUpperCase().includes("TESTE") && (
+                        <span className="text-[10px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 shrink-0 flex items-center gap-0.5 font-bold border border-amber-500/20">
+                          <Lock className="h-2.5 w-2.5" /> TESTE
+                        </span>
+                      )}
+                    </div>
+                  }
                   onAdd={() => addToCart(p)}
                   onInc={() => addToCart(p)}
                   onDec={() => updateQty(p.id, -1)}
