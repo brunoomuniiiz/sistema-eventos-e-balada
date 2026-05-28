@@ -42,7 +42,7 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_promoters")
-        .select("id, slug, promoter_id")
+        .select("id, slug, promoter_id, category, display_name")
         .eq("event_id", eventId);
       if (error) throw error;
       return data;
