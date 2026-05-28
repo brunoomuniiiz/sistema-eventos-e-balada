@@ -28,6 +28,7 @@ export type StorefrontSettings = {
   accent_color: string | null;
   stock_location_id: string | null;
   logo_url?: string | null;
+  closed_message?: string | null;
 };
 
 export type Storefront = {
