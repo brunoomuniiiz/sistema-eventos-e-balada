@@ -30,6 +30,7 @@ import { TicketCart, type CartLine } from "@/components/portaria/TicketCart";
 import { SplitPaymentPanel, type SplitLine, type PaymentMethod } from "@/components/portaria/SplitPaymentPanel";
 import { SaleDetailSheet, type PortariaSale } from "@/components/portaria/SaleDetailSheet";
 import { useOperationPin } from "@/hooks/useOperationPin";
+import { OperationPinLockButton } from "@/components/OperationPinLockButton";
 
 export const Route = createFileRoute("/_app/portaria")({
   component: PortariaPage,
