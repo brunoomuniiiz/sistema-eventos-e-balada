@@ -114,7 +114,7 @@ export function LojinhaScanner() {
                 }
               }
 
-              printUnitTickets({
+              await executePrint({
                 bar_name: bar?.bar_name ?? null,
                 daily_number: lookup.daily_number,
                 waiter: lookup.customer_name || 'Balcão',
