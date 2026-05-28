@@ -20,6 +20,7 @@ export type SellerRow = {
   email: string | null;
   role: "owner" | "staff";
   permissions: string[] | null;
+  owner_id: string | null;
   aceita_dinheiro: boolean;
   aceita_pix: boolean;
   aceita_cartao: boolean;
@@ -43,6 +44,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   row: SellerRow | null;
+  ownerId: string | null;
 }
 
 type Draft = {
@@ -90,30 +92,49 @@ function initialDraft(r: SellerRow | null): Draft {
 
 type RuleState = { print_on_sale: boolean; print_on_scan: boolean };
 
-export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
+export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Props) {
   const qc = useQueryClient();
   const [d, setD] = useState<Draft>(() => initialDraft(row));
   const [saving, setSaving] = useState(false);
   const [rules, setRules] = useState<Record<string, RuleState>>({});
+  const [prodRules, setProdRules] = useState<Record<string, RuleState>>({});
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
 
   useEffect(() => { setD(initialDraft(row)); }, [row]);
 
   // Carrega categorias do dono
   const { data: categories } = useQuery({
-    queryKey: ["product_categories", row?.user_id],
-    enabled: !!row?.user_id && open,
+    queryKey: ["product_categories", ownerId],
+    enabled: !!ownerId && open,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("product_categories")
         .select("id, name")
-        .eq("user_id", row!.user_id)
+        .eq("user_id", ownerId!)
         .order("name");
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  // Carrega regras existentes
+  // Carrega todos os produtos do dono para exibir dentro das categorias
+  const { data: products } = useQuery({
+    queryKey: ["products_for_print", ownerId],
+    enabled: !!ownerId && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, category_id")
+        .eq("user_id", ownerId!)
+        .eq("ativo_geral", true)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+
+  // Carrega regras de categorias existentes
   const { data: existingRules } = useQuery({
     queryKey: ["print_rules", row?.id],
     enabled: !!row?.id && open,
@@ -121,6 +142,20 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
       const { data, error } = await supabase
         .from("print_rules")
         .select("category_id, print_on_sale, print_on_scan")
+        .eq("user_role_id", row!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Carrega regras de produtos existentes
+  const { data: existingProdRules } = useQuery({
+    queryKey: ["print_rules_products", row?.id],
+    enabled: !!row?.id && open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("print_rules_products")
+        .select("product_id, print_on_sale, print_on_scan")
         .eq("user_role_id", row!.id);
       if (error) throw error;
       return data ?? [];
@@ -139,7 +174,17 @@ export function SellerPermissionDialog({ open, onOpenChange, row }: Props) {
       };
     }
     setRules(next);
-  }, [categories, existingRules]);
+
+    const nextProd: Record<string, RuleState> = {};
+    (existingProdRules ?? []).forEach(r => {
+      nextProd[r.product_id] = {
+        print_on_sale: !!r.print_on_sale,
+        print_on_scan: !!r.print_on_scan,
+      };
+    });
+    setProdRules(nextProd);
+  }, [categories, existingRules, existingProdRules]);
+
 
   if (!row) return null;
   const isOwnerRow = row.role === "owner";
