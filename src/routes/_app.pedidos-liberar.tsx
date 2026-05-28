@@ -134,6 +134,7 @@ function ReleasePage() {
           await supabase.rpc("mark_units_printed", { _qr_tokens: tokens });
         }
       }
+    }
 
       setReleased(true);
       toast.success(`Pedido ${formatOrderNo(res.daily_number)} entregue!`);
