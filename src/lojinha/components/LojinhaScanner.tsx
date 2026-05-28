@@ -202,16 +202,17 @@ export function LojinhaScanner() {
       </div>
 
       <div className="relative">
-        {!scanning ? (
-          <Button onClick={start} className="w-full h-14 text-base">
-            <Camera className="h-5 w-5 mr-2" /> Abrir câmera para validar QR
-          </Button>
-        ) : (
-          <div className="space-y-3">
-            <div id="lojinha-qr-reader" className="rounded-lg overflow-hidden bg-black aspect-square" />
+        <div className="space-y-3">
+          <div id="lojinha-qr-reader" className="rounded-lg overflow-hidden bg-black aspect-square" />
+          {!scanning && (
+            <Button onClick={start} className="w-full h-14 text-base">
+              <Camera className="h-5 w-5 mr-2" /> Tentar abrir câmera novamente
+            </Button>
+          )}
+          {scanning && (
             <Button variant="outline" onClick={stop} className="w-full">Parar câmera</Button>
-          </div>
-        )}
+          )}
+        </div>
 
         {status.type !== 'idle' && (
           <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-lg z-10 animate-in fade-in zoom-in duration-300 ${
