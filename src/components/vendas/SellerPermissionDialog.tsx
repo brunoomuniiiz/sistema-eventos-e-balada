@@ -272,7 +272,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
       const prodRuleRows = Object.entries(prodRules).map(([product_id, r]) => ({
         user_id: ownerId,
         user_role_id: row.id,
-        product_id: r.product_id,
+        product_id,
         print_on_sale: r.print_on_sale,
         print_on_scan: r.print_on_scan,
       }));
