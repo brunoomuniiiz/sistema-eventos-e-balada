@@ -143,6 +143,7 @@ export function LiveDashboardPanel() {
           )}
           {isOwner && <DrinkMarginCard eventId={openEvent.id} />}
           <ConsumacaoLivePanel eventId={openEvent.id} eventName={openEvent.name} />
+          <LiveLinksConversionPanel eventId={openEvent.id} />
         </>
       )}
 
