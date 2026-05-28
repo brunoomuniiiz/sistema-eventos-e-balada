@@ -260,7 +260,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
 
       // 2. Salva regras de impressão de CATEGORIAS (Upsert)
       const ruleRows = Object.entries(rules).map(([category_id, r]) => ({
-        user_id: ownerId,
+        user_id: ownerId!,
         user_role_id: row.id,
         category_id,
         print_on_sale: r.print_on_sale,
@@ -270,7 +270,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
       if (ruleRows.length > 0) {
         const { error: rErr } = await supabase
           .from("print_rules")
-          .upsert(ruleRows, { onConflict: 'user_role_id,category_id' });
+          .upsert(ruleRows as any, { onConflict: 'user_role_id,category_id' });
         if (rErr) {
           console.error("Erro ao salvar regras de categoria:", rErr);
           throw new Error(`Erro ao salvar regras de categoria: ${rErr.message}`);
@@ -279,7 +279,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
 
       // 3. Salva regras de impressão de PRODUTOS (Upsert)
       const prodRuleRows = Object.entries(prodRules).map(([product_id, r]) => ({
-        user_id: ownerId,
+        user_id: ownerId!,
         user_role_id: row.id,
         product_id,
         print_on_sale: r.print_on_sale,
@@ -289,7 +289,7 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
       if (prodRuleRows.length > 0) {
         const { error: prErr } = await supabase
           .from("print_rules_products")
-          .upsert(prodRuleRows, { onConflict: 'user_role_id,product_id' });
+          .upsert(prodRuleRows as any, { onConflict: 'user_role_id,product_id' });
         if (prErr) {
           console.error("Erro ao salvar regras de produto:", prErr);
           throw new Error(`Erro ao salvar regras de produto: ${prErr.message}`);
