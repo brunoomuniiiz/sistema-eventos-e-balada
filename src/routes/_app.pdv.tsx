@@ -549,6 +549,7 @@ export function PdvView() {
       <AuthorizationDialog
         open={pinDialog.open}
         onOpenChange={(open) => setPinDialog((prev) => ({ ...prev, open }))}
+        scope="operation"
         title="Produto de Teste"
         description="Este é um produto restrito. Digite o PIN para usá-lo."
         onApproved={(token, name) => {
