@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { createPixCharge, getPixChargeStatus, cancelPixCharge } from "@/lib/pix.functions";
-import { simulatePixApproval } from "@/lib/pix-public.functions";
+// simulatePixApproval was removed from this admin dialog — it's dev-only and only available in the public order page.
 import { formatBRL } from "@/lib/format";
 import { AuthorizationDialog } from "@/components/AuthorizationDialog";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -54,8 +54,6 @@ export function PixQrDialog({
   const create = useServerFn(createPixCharge);
   const checkStatus = useServerFn(getPixChargeStatus);
   const cancel = useServerFn(cancelPixCharge);
-  const simulate = useServerFn(simulatePixApproval);
-  const [simulating, setSimulating] = useState(false);
 
   const [charge, setCharge] = useState<Charge | null>(null);
   const [creating, setCreating] = useState(false);
