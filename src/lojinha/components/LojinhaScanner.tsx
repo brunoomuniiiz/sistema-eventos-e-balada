@@ -39,8 +39,33 @@ export function LojinhaScanner() {
   const [manual, setManual] = useState("");
   const [autoPrint, setAutoPrint] = useState(true);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string }>({ type: 'idle', message: '' });
+  const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const ref = useRef<Html5Qrcode | null>(null);
   const lastTokenRef = useRef<string>("");
+
+  const executePrint = async (opts: {
+    bar_name: string | null;
+    daily_number: number | null;
+    waiter: string | null;
+    tickets: any[];
+  }) => {
+    if (printConfig.method === 'rawbt') {
+      let fullText = "";
+      opts.tickets.forEach((t, idx) => {
+        fullText += generateThermalTicket({
+          bar_name: opts.bar_name,
+          daily_number: opts.daily_number,
+          product_name: t.product_name,
+          unit_index: idx + 1,
+          unit_total: opts.tickets.length,
+          waiter: opts.waiter,
+        });
+      });
+      printWithRawBT(fullText);
+    } else {
+      printUnitTickets(opts);
+    }
+  };
 
   async function handleToken(raw: string) {
     let token = raw.trim();
