@@ -166,7 +166,7 @@ export function LojinhaScanner() {
           setStatus({ type: 'success', message: 'Sucesso! Validado' });
           if (autoPrint) {
             const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
-            printUnitTickets({
+            await executePrint({
               bar_name: bar?.bar_name ?? null,
               daily_number: null,
               waiter: null,
