@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Camera, KeyboardIcon, Printer, CheckCircle2, XCircle } from "lucide-react";
+import { Camera, KeyboardIcon, Printer, CheckCircle2, XCircle, Settings2 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,27 @@ import { orderLookupByToken, validateQr } from "@/lojinha/api";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { printUnitTickets, qrSvgString } from "@/lib/order-print";
+import { 
+  getPrintConfig, 
+  savePrintConfig, 
+  generateThermalTicket, 
+  printWithRawBT,
+  PrintConfig 
+} from "@/lib/thermal-print";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function LojinhaScanner() {
   const navigate = useNavigate();
