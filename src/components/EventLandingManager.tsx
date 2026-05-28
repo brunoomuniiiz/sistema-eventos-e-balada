@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Plus, Trash2, Globe, Save } from "lucide-react";
+import { Copy, ExternalLink, Plus, Trash2, Globe, Save, Lock } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 
 function genSlug(name: string) {
