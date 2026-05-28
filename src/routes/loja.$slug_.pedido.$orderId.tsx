@@ -152,7 +152,7 @@ type Charge = {
 function PixCheckoutPanel({ orderId, onPaid }: { orderId: string; onPaid: () => void }) {
   const create = useServerFn(createPublicPixCharge);
   const check = useServerFn(getPublicPixChargeStatus);
-  const [charge, _setSimulating] = [null, null]; // removed simulate (dev-only, auth-gated)
+  // simulate removed (dev-only, auth-gated server function)
 
   const [charge, setCharge] = useState<Charge | null>(null);
   const [loading, setLoading] = useState(true);
