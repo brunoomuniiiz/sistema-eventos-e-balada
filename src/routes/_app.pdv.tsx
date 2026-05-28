@@ -565,6 +565,73 @@ export function PdvView() {
         </Card>
       ) : (
         <>
+          {/* Configurações de Impressão (Flutuante no Mobile) */}
+          <div className="fixed bottom-24 right-4 z-50 md:static md:mb-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="icon" variant="secondary" className="h-12 w-12 rounded-full shadow-lg border-2 border-primary/20 bg-background/80 backdrop-blur-sm">
+                  <Printer className="h-6 w-6" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[350px] rounded-xl">
+                <DialogHeader>
+                  <DialogTitle>Configurações de Impressora</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="pdv-auto-print">Auto-Imprimir Vendas</Label>
+                    <Switch 
+                      id="pdv-auto-print" 
+                      checked={autoPrintEnabled} 
+                      onCheckedChange={setAutoPrintEnabled} 
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Método de Impressão</Label>
+                    <Select 
+                      value={printConfig.method} 
+                      onValueChange={(val: 'system' | 'rawbt') => {
+                        const next = { ...printConfig, method: val };
+                        setPrintConfig(next);
+                        savePrintConfig(next);
+                        toast.success("Configuração salva");
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o método" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="system">Sistema (PDF/Navegador)</SelectItem>
+                        <SelectItem value="rawbt">RawBT (Android Térmica)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Largura do Papel</Label>
+                    <Select 
+                      value={printConfig.paperWidth} 
+                      onValueChange={(val: '58mm' | '80mm') => {
+                        const next = { ...printConfig, paperWidth: val };
+                        setPrintConfig(next);
+                        savePrintConfig(next);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a largura" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="58mm">58mm (Mini Impressora)</SelectItem>
+                        <SelectItem value="80mm">80mm (Mesa/POS)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           {/* Chips de categorias */}
           <div className="mb-3 w-full max-w-full min-w-0 overflow-x-hidden">
             <CategoryChipBar
