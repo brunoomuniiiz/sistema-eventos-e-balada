@@ -328,9 +328,6 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
 
           {!isOwnerRow && (
             <TabsContent value="perms" className="space-y-5 mt-4">
-              {/* ... keep existing perms content ... */}
-            </TabsContent>
-          )}
               <Section title="Acesso às abas de Vendas">
                 <Toggle icon={<ShoppingCart className="h-4 w-4" />} label="PDV Caixa" sub="Vender no caixa presencial" checked={d.vendas_pdv_caixa} onChange={(v) => set("vendas_pdv_caixa", v)} />
                 <Toggle icon={<Store className="h-4 w-4" />} label="Vender (garçom)" sub="PDV mobile / maquininha" checked={d.vendas_garcom} onChange={(v) => set("vendas_garcom", v)} />
@@ -379,61 +376,62 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
                 )}
               </Section>
             </TabsContent>
+          )}
 
-            <TabsContent value="print" className="space-y-4 mt-4">
-              <p className="text-xs text-muted-foreground">
-                Selecione quais categorias ou produtos específicos devem imprimir para esse funcionário. Toque na seta para ver os produtos.
-              </p>
-              {cats.length === 0 ? (
-                <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                  Nenhuma categoria cadastrada ainda.
-                </div>
-              ) : (
-                <Tabs defaultValue="sale">
-                  <TabsList className="grid grid-cols-2">
-                    <TabsTrigger value="sale">Ao vender</TabsTrigger>
-                    <TabsTrigger value="scan">Ao escanear</TabsTrigger>
-                  </TabsList>
+          <TabsContent value="print" className="space-y-4 mt-4">
+            <p className="text-xs text-muted-foreground">
+              Selecione quais categorias ou produtos específicos devem imprimir para esse funcionário. Toque na seta para ver os produtos.
+            </p>
+            {cats.length === 0 ? (
+              <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                Nenhuma categoria cadastrada ainda.
+              </div>
+            ) : (
+              <Tabs defaultValue="sale">
+                <TabsList className="grid grid-cols-2">
+                  <TabsTrigger value="sale">Ao vender</TabsTrigger>
+                  <TabsTrigger value="scan">Ao escanear</TabsTrigger>
+                </TabsList>
 
-                  <TabsContent value="sale" className="mt-3 space-y-1">
-                    <BulkRow onAll={() => setAllRules("print_on_sale", true)} onNone={() => setAllRules("print_on_sale", false)} />
-                    {cats.map((c) => (
-                      <CategoryWithProducts
-                        key={c.id}
-                        cat={c}
-                        expanded={expandedCats.has(c.id)}
-                        onToggleExpand={() => toggleExpand(c.id)}
-                        catChecked={rules[c.id]?.print_on_sale ?? true}
-                        onCatChange={(v) => setRule(c.id, "print_on_sale", v)}
-                        products={products.filter(p => p.category_id === c.id)}
-                        prodRules={prodRules}
-                        onProdChange={(pid, v) => setProdRule(pid, "print_on_sale", v)}
-                        trigger="print_on_sale"
-                      />
-                    ))}
-                  </TabsContent>
+                <TabsContent value="sale" className="mt-3 space-y-1">
+                  <BulkRow onAll={() => setAllRules("print_on_sale", true)} onNone={() => setAllRules("print_on_sale", false)} />
+                  {cats.map((c) => (
+                    <CategoryWithProducts
+                      key={c.id}
+                      cat={c}
+                      expanded={expandedCats.has(c.id)}
+                      onToggleExpand={() => toggleExpand(c.id)}
+                      catChecked={rules[c.id]?.print_on_sale ?? true}
+                      onCatChange={(v) => setRule(c.id, "print_on_sale", v)}
+                      products={products.filter(p => p.category_id === c.id)}
+                      prodRules={prodRules}
+                      onProdChange={(pid, v) => setProdRule(pid, "print_on_sale", v)}
+                      trigger="print_on_sale"
+                    />
+                  ))}
+                </TabsContent>
 
-                  <TabsContent value="scan" className="mt-3 space-y-1">
-                    <BulkRow onAll={() => setAllRules("print_on_scan", true)} onNone={() => setAllRules("print_on_scan", false)} />
-                    {cats.map((c) => (
-                      <CategoryWithProducts
-                        key={c.id}
-                        cat={c}
-                        expanded={expandedCats.has(c.id)}
-                        onToggleExpand={() => toggleExpand(c.id)}
-                        catChecked={rules[c.id]?.print_on_scan ?? true}
-                        onCatChange={(v) => setRule(c.id, "print_on_scan", v)}
-                        products={products.filter(p => p.category_id === c.id)}
-                        prodRules={prodRules}
-                        onProdChange={(pid, v) => setProdRule(pid, "print_on_scan", v)}
-                        trigger="print_on_scan"
-                      />
-                    ))}
-                  </TabsContent>
-                </Tabs>
-              )}
-            </TabsContent>
-          </Tabs>
+                <TabsContent value="scan" className="mt-3 space-y-1">
+                  <BulkRow onAll={() => setAllRules("print_on_scan", true)} onNone={() => setAllRules("print_on_scan", false)} />
+                  {cats.map((c) => (
+                    <CategoryWithProducts
+                      key={c.id}
+                      cat={c}
+                      expanded={expandedCats.has(c.id)}
+                      onToggleExpand={() => toggleExpand(c.id)}
+                      catChecked={rules[c.id]?.print_on_scan ?? true}
+                      onCatChange={(v) => setRule(c.id, "print_on_scan", v)}
+                      products={products.filter(p => p.category_id === c.id)}
+                      prodRules={prodRules}
+                      onProdChange={(pid, v) => setProdRule(pid, "print_on_scan", v)}
+                      trigger="print_on_scan"
+                    />
+                  ))}
+                </TabsContent>
+              </Tabs>
+            )}
+          </TabsContent>
+        </Tabs>
         )}
 
         <DialogFooter className="gap-2">
