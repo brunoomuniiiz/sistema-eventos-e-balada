@@ -36,9 +36,8 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
       const { data, error } = await supabase
         .from("events")
         .select("id, name, date, status")
-        .in("status", ["upcoming", "live", "ongoing"])
+        .in("status", ["upcoming", "live", "ongoing", "published"])
         .gte("date", start.toISOString())
-        .lte("date", end.toISOString())
         .order("date");
       if (error) throw error;
       return data as { id: string; name: string; date: string; status: string }[];
@@ -85,13 +84,13 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
             {step === 1 ? <><CalendarDays className="h-5 w-5 text-primary" /> Confirmar evento</> : <><Wallet className="h-5 w-5 text-primary" /> Abrir caixa</>}
           </DialogTitle>
           <DialogDescription>
-            {step === 1 ? "Confirme o evento de hoje para iniciar seu turno." : canSellCash ? "Informe o valor inicial em dinheiro (troco). A abertura precisa de autorização do gerente." : "Você não opera dinheiro — o caixa abre em R$ 0,00. A abertura precisa de autorização do gerente."}
+            {step === 1 ? "Selecione o evento para o qual deseja abrir o caixa ou visualizar a portaria." : canSellCash ? "Informe o valor inicial em dinheiro (troco). A abertura precisa de autorização do gerente." : "Você não opera dinheiro — o caixa abre em R$ 0,00. A abertura precisa de autorização do gerente."}
           </DialogDescription>
         </DialogHeader>
 
         {step === 1 && (
           <div className="space-y-3">
-            <Label className="text-xs">Evento de hoje</Label>
+            <Label className="text-xs">Evento (Próximos)</Label>
             <Select value={eventId} onValueChange={setEventId}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
@@ -104,7 +103,7 @@ export function OpenCashDialog({ open, onOpenChange, onOpened }: Props) {
               </SelectContent>
             </Select>
             {todayEvents.length === 0 && (
-              <p className="text-xs text-muted-foreground">Nenhum evento programado para hoje.</p>
+              <p className="text-xs text-muted-foreground">Nenhum evento futuro programado.</p>
             )}
             <DialogFooter>
               <Button className="w-full" onClick={() => setStep(2)}>

@@ -196,7 +196,7 @@ function PortariaPage() {
             <p>Crie um evento na aba Eventos para começar.</p>
             {isOwner && (
               <Button variant="outline" onClick={() => setForceOpen(true)}>
-                Forçar visualização da Portaria
+                Visualizar Portaria (Modo Gerente)
               </Button>
             )}
           </CardContent>

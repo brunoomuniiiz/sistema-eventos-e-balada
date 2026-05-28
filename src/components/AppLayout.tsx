@@ -77,8 +77,8 @@ function AppLayoutInner() {
             )}
           </div>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            <div className="font-display font-bold text-lg leading-none">{displayName === "Dashboard" ? "" : displayName}</div>
-            <div className="text-xs text-muted-foreground">Gestão de eventos</div>
+            <div className="font-display font-bold text-lg leading-none">{branding.logo_url ? "" : (displayName === "Dashboard" ? "" : displayName)}</div>
+            <div className="text-xs text-muted-foreground">{branding.logo_url ? "" : "Gestão de eventos"}</div>
           </div>
         </div>
 
@@ -141,7 +141,7 @@ function AppLayoutInner() {
                 <Sparkles className="h-4 w-4 text-primary-foreground" />
               )}
             </div>
-            <span className="font-display font-bold">{displayName === "Dashboard" ? "" : displayName}</span>
+            <span className="font-display font-bold">{branding.logo_url ? "" : (displayName === "Dashboard" ? "" : displayName)}</span>
           </div>
           <div className="flex items-center gap-1">
             <OperationPinLockButton />

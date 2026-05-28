@@ -227,7 +227,9 @@ function StorefrontPage() {
           >
             <Store className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold">{data.settings.store_name || "Loja"} está fechada</h1>
+          <h1 className="text-2xl font-bold">
+            {data.settings.closed_message || `${data.settings.store_name || "Loja"} está fechada`}
+          </h1>
           <p className="text-sm text-muted-foreground">
             {opensLabel
               ? <>Abrimos novamente <span className="font-semibold text-foreground">{opensLabel}</span>{opWindow.event_name ? <> para <span className="font-semibold text-foreground">{opWindow.event_name}</span></> : null}.</>

@@ -20,6 +20,7 @@ type Settings = {
   stock_location_id: string | null;
   pickup_message: string;
   accent_color: string;
+  closed_message: string | null;
 };
 
 const empty: Settings = {
@@ -29,6 +30,7 @@ const empty: Settings = {
   stock_location_id: null,
   pickup_message: "Retire no balcão apresentando o QR code.",
   accent_color: "#e94560",
+  closed_message: null,
 };
 
 export function LojinhaSettingsPanel() {
@@ -65,6 +67,7 @@ export function LojinhaSettingsPanel() {
         stock_location_id: settings.stock_location_id,
         pickup_message: settings.pickup_message ?? empty.pickup_message,
         accent_color: settings.accent_color ?? empty.accent_color,
+        closed_message: settings.closed_message ?? null,
       });
     }
   }, [settings]);
@@ -91,6 +94,7 @@ export function LojinhaSettingsPanel() {
         stock_location_id: stockLocId,
         pickup_message: form.pickup_message,
         accent_color: form.accent_color,
+        closed_message: form.closed_message || null,
       };
       const { error } = settings?.id
         ? await supabase.from("lojinha_settings").update(payload).eq("id", settings.id)
@@ -143,6 +147,16 @@ export function LojinhaSettingsPanel() {
           <Label>Mensagem de retirada</Label>
           <Textarea value={form.pickup_message} onChange={(e) => setForm({ ...form, pickup_message: e.target.value })} rows={2} />
         </div>
+
+        <div>
+          <Label>Mensagem quando fechada (ex: Lojinha do Happy está fechada)</Label>
+          <Input 
+            value={form.closed_message ?? ""} 
+            onChange={(e) => setForm({ ...form, closed_message: e.target.value })} 
+            placeholder="Ex: Lojinha do Happy está fechada" 
+          />
+        </div>
+
 
         <div>
           <Label>Cor de destaque</Label>
