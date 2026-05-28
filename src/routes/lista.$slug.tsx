@@ -29,6 +29,7 @@ function GuestListPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");
+  const [companions, setCompanions] = useState<{ name: string; gender: string }[]>([]);
   const [done, setDone] = useState(false);
   const [showCountRequested, setShowCountRequested] = useState(false);
   const [fakeViewing, setFakeViewing] = useState(() => 6 + Math.floor(Math.random() * 19));
