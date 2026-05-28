@@ -237,50 +237,63 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
         basePerms.add("vendas");
       }
 
+      // 1. Atualiza user_roles (flags de permissão)
+      // Se for owner, atualizamos apenas as flags de operação, não as permissões de sistema
+      const updateData: any = {
+        ...d,
+        lojinha_can_sell: d.vendas_garcom,
+      };
+      
       if (!isOwnerRow) {
-        const { error } = await supabase
-          .from("user_roles")
-          .update({
-            ...d,
-            permissions: Array.from(basePerms),
-            lojinha_can_sell: d.vendas_garcom,
-          } as any)
-          .eq("id", row.id);
-        if (error) {
-          console.error("Erro ao atualizar user_roles:", error);
-          throw error;
-        }
+        updateData.permissions = Array.from(basePerms);
       }
 
-      // Salva regras de impressão de CATEGORIAS
+      const { error: roleErr } = await supabase
+        .from("user_roles")
+        .update(updateData)
+        .eq("id", row.id);
+        
+      if (roleErr) {
+        console.error("Erro ao atualizar user_roles:", roleErr);
+        throw new Error(`Erro ao salvar permissões: ${roleErr.message}`);
+      }
+
+      // 2. Salva regras de impressão de CATEGORIAS (Upsert)
       const ruleRows = Object.entries(rules).map(([category_id, r]) => ({
-        user_id: ownerId,
+        user_id: ownerId!,
         user_role_id: row.id,
         category_id,
         print_on_sale: r.print_on_sale,
         print_on_scan: r.print_on_scan,
       }));
+      
       if (ruleRows.length > 0) {
-        await supabase.from("print_rules").delete().eq("user_role_id", row.id);
-        const { error: rErr } = await supabase.from("print_rules").insert(ruleRows as never);
-        if (rErr) throw rErr;
+        const { error: rErr } = await supabase
+          .from("print_rules")
+          .upsert(ruleRows as any, { onConflict: 'user_role_id,category_id' });
+        if (rErr) {
+          console.error("Erro ao salvar regras de categoria:", rErr);
+          throw new Error(`Erro ao salvar regras de categoria: ${rErr.message}`);
+        }
       }
 
-      // Salva regras de impressão de PRODUTOS
-      // Aqui só salvamos os produtos que DIFEREM da regra da categoria, ou salvamos tudo?
-      // Por simplicidade na lógica de filtro, vamos salvar as exceções explícitas.
+      // 3. Salva regras de impressão de PRODUTOS (Upsert)
       const prodRuleRows = Object.entries(prodRules).map(([product_id, r]) => ({
-        user_id: ownerId,
+        user_id: ownerId!,
         user_role_id: row.id,
         product_id,
         print_on_sale: r.print_on_sale,
         print_on_scan: r.print_on_scan,
       }));
       
-      await supabase.from("print_rules_products").delete().eq("user_role_id", row.id);
       if (prodRuleRows.length > 0) {
-        const { error: prErr } = await supabase.from("print_rules_products").insert(prodRuleRows as never);
-        if (prErr) throw prErr;
+        const { error: prErr } = await supabase
+          .from("print_rules_products")
+          .upsert(prodRuleRows as any, { onConflict: 'user_role_id,product_id' });
+        if (prErr) {
+          console.error("Erro ao salvar regras de produto:", prErr);
+          throw new Error(`Erro ao salvar regras de produto: ${prErr.message}`);
+        }
       }
 
       clearPrintRulesCache();

@@ -79,7 +79,9 @@ function ReleasePage() {
       const targetUserId = u.user?.id;
 
       // 1. Fichas de preparo (Combos)
-      if (res.prep_slips.length > 0 && targetUserId) {
+      // Não imprimimos preparo se a venda foi feita no PDV (source === 'sale'), 
+      // pois o PDV já imprime a ficha de preparo no ato da venda.
+      if (res.prep_slips.length > 0 && targetUserId && data.source !== "sale") {
         const filteredPrep = [];
         for (const s of res.prep_slips) {
           const ok = await shouldPrintItem(targetUserId, "scan", s.category_id ?? null, "");
