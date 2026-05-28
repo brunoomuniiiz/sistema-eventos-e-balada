@@ -543,23 +543,23 @@ export function PdvView() {
       {acceptedMethods.length > 0 || realIsOwner ? (
         <>
           {productsError ? (
+            <Card className="p-8 text-center text-destructive">
+              <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <div className="font-semibold mb-1">Erro ao carregar produtos</div>
+              <div className="text-xs opacity-80">{productsError.message}</div>
+            </Card>
+          ) : productsLoading ? (
+            <Card className="p-8 text-center text-muted-foreground">
+              Carregando produtos…
+            </Card>
+          ) : products.length === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground">
+              <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              Nenhum produto cadastrado
+            </Card>
+          ) : (
+            <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 
-        <Card className="p-8 text-center text-destructive">
-          <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
-          <div className="font-semibold mb-1">Erro ao carregar produtos</div>
-          <div className="text-xs opacity-80">{productsError.message}</div>
-        </Card>
-      ) : productsLoading ? (
-        <Card className="p-8 text-center text-muted-foreground">
-          Carregando produtos…
-        </Card>
-      ) : products.length === 0 ? (
-        <Card className="p-8 text-center text-muted-foreground">
-          <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
-          Nenhum produto cadastrado
-        </Card>
-      ) : (
-        <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {products
             .filter((p) => {
               if (categoryFilter === "all") return true;
@@ -613,8 +613,11 @@ export function PdvView() {
                 />
               );
             })}
-        </div>
-      )}
+            </div>
+          )}
+        </>
+      ) : null}
+
 
 
       {/* FAB do carrinho */}
