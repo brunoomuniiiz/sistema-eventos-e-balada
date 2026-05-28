@@ -432,7 +432,6 @@ export function SellerPermissionDialog({ open, onOpenChange, row, ownerId }: Pro
             )}
           </TabsContent>
         </Tabs>
-        )}
 
         <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
