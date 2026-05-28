@@ -92,17 +92,13 @@ function ReleasePage() {
       // Buscamos os tokens de unidade do banco para esse pedido
       const { data: units } = await supabase
         .from("lojinha_order_units")
-        .select("qr_token, product_name_snapshot, product_id")
+        .select("qr_token, product_name_snapshot, product_id, printed_at")
         .eq("order_id", data.id);
 
       if (units && units.length > 0) {
-        // Filtra para não imprimir o que já foi impresso como ficha de preparo (opcional, mas seguro)
-        // No fluxo atual, se for combo ele gera prep_slips, se for simples gera unit_ticket.
-        const simpleProductIds = data.items
-          .filter(i => i.product_type === "simple")
-          .map(i => i.product_id);
-        
-        let filteredUnits = units.filter(u => simpleProductIds.includes(u.product_id));
+        // Filtra para não imprimir o que já foi impresso fisicamente (PDV ou prévia)
+        let filteredUnits = units.filter(u => !u.printed_at);
+
 
         if (allowed) {
           const { data: prods } = await supabase
@@ -131,6 +127,9 @@ function ReleasePage() {
             waiter: data.delivered_by_name ?? "Garçom",
             tickets
           });
+          // Marca como impresso
+          const tokens = tickets.map(t => t.qr_token);
+          await supabase.rpc("mark_units_printed", { _qr_tokens: tokens });
         }
       }
 

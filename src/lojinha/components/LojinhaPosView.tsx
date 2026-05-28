@@ -266,6 +266,9 @@ export function LojinhaPosView() {
             waiter: orderRes.data?.seller_name ?? null,
             tickets,
           });
+          // Marca como impresso no banco para evitar duplicidade no scanner
+          const tokens = tickets.map(t => t.qr_token);
+          await supabase.rpc("mark_units_printed", { _qr_tokens: tokens });
         }
       } catch (err) {
         console.error("Falha ao imprimir tickets", err);
