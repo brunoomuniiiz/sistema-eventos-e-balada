@@ -69,12 +69,12 @@ export function usePermissions() {
   const maxDiscountPercent = isOwner ? 100 : Number((useMask ? 0 : data?.max_discount_percent) ?? 0);
   const canAuthorize = isOwner || flagOf("can_authorize", false);
 
-  const aceitaDinheiro = isOwner || flagOf("aceita_dinheiro", true);
-  const aceitaPix = isOwner || flagOf("aceita_pix", true);
-  const aceitaCartao = isOwner || flagOf("aceita_cartao", true);
-  const aceitaCreditoPromoter = isOwner || flagOf("aceita_credito_promoter", false);
-  const canConsumacao = isOwner || flagOf("pode_lancar_consumacao", false);
-  const canPixChave = isOwner || flagOf("pode_pix_chave", false);
+  const aceitaDinheiro = realIsOwner || flagOf("aceita_dinheiro", true);
+  const aceitaPix = realIsOwner || flagOf("aceita_pix", true);
+  const aceitaCartao = realIsOwner || flagOf("aceita_cartao", true);
+  const aceitaCreditoPromoter = realIsOwner || flagOf("aceita_credito_promoter", false);
+  const canConsumacao = realIsOwner || flagOf("pode_lancar_consumacao", false);
+  const canPixChave = realIsOwner || flagOf("pode_pix_chave", false);
   const acceptedMethods: AcceptedMethod[] = [];
   if (aceitaDinheiro) acceptedMethods.push("dinheiro");
   if (aceitaCartao) acceptedMethods.push("debito", "credito");
@@ -112,9 +112,9 @@ export function usePermissions() {
   const canFinVerNumeros = isOwner || (hasFinanceiro && flagOf("financeiro_ver_numeros", false));
   const canFinFecharCaixa = isOwner || (hasFinanceiro && flagOf("financeiro_fechar_caixa", false));
 
-  const lojinhaCanSell = isOwner || flagOf("lojinha_can_sell", false);
+  const lojinhaCanSell = realIsOwner || flagOf("lojinha_can_sell", false);
   const lojinhaPaymentMethods = (
-    isOwner ? ["pix", "card"] : (useMask ? [] : ((data as { lojinha_payment_methods?: string[] } | null)?.lojinha_payment_methods ?? []))
+    realIsOwner ? ["pix", "card"] : (useMask ? [] : ((data as { lojinha_payment_methods?: string[] } | null)?.lojinha_payment_methods ?? []))
   ) as Array<"pix" | "card">;
   const lojinhaPointDeviceId = useMask ? null : ((data as { lojinha_point_device_id?: string | null } | null)?.lojinha_point_device_id ?? null);
   const promoterId = useMask ? null : ((data as { promoter_id?: string | null } | null)?.promoter_id ?? null);

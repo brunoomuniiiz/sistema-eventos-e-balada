@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Minus, Trash2, ShoppingBag, Search, QrCode, CreditCard, CheckCircle2, ArrowLeft, Copy, AlertTriangle, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ type CartItem = { product_id: string; product_name: string; unit_price: number; 
 type Step = "cart" | "method" | "waiting" | "delivered";
 
 export function LojinhaPosView() {
-  const { ownerId, lojinhaCanSell, canVenderGarcom, lojinhaPaymentMethods, lojinhaPointDeviceId, loading } = usePermissions();
+  const { ownerId, lojinhaCanSell, canVenderGarcom, lojinhaPaymentMethods, lojinhaPointDeviceId, realIsOwner, loading } = usePermissions();
   const canAccess = lojinhaCanSell || canVenderGarcom;
   const qc = useQueryClient();
   const createPix = useServerFn(createPixCharge);
@@ -417,6 +417,20 @@ export function LojinhaPosView() {
   }
 
   // --- step: cart ---
+  if (lojinhaPaymentMethods.length === 0 && !realIsOwner) {
+    return (
+      <Card>
+        <CardContent className="py-20 text-center space-y-4">
+          <Lock className="h-12 w-12 mx-auto text-amber-500 opacity-50" />
+          <div className="space-y-1">
+            <h3 className="text-lg font-bold">Sem permissão de recebimento</h3>
+            <p className="text-sm text-muted-foreground">O administrador não habilitou formas de pagamento para o seu perfil da lojinha.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="w-full max-w-full overflow-x-hidden space-y-3 pb-32">
       <div className="relative">

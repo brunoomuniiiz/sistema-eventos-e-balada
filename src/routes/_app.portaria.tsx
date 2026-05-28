@@ -30,6 +30,7 @@ import { TicketCart, type CartLine } from "@/components/portaria/TicketCart";
 import { SplitPaymentPanel, type SplitLine, type PaymentMethod } from "@/components/portaria/SplitPaymentPanel";
 import { SaleDetailSheet, type PortariaSale } from "@/components/portaria/SaleDetailSheet";
 import { useOperationPin } from "@/hooks/useOperationPin";
+import { OperationPinLockButton } from "@/components/OperationPinLockButton";
 
 export const Route = createFileRoute("/_app/portaria")({
   component: PortariaPage,
@@ -266,6 +267,11 @@ function PortariaPage() {
           <CompactTabsTrigger value="caixa" icon={Wallet} short="Cx.">Caixa</CompactTabsTrigger>
           <CompactTabsTrigger value="historico" icon={History} short="Hist.">Histórico</CompactTabsTrigger>
           <CompactTabsTrigger value="relatorio" icon={BarChart3} short="Rel.">Relatório</CompactTabsTrigger>
+          {pinToken && (
+            <div className="ml-auto pl-2 flex items-center">
+              <OperationPinLockButton />
+            </div>
+          )}
         </CompactTabsList>
 
         {/* LISTA */}
