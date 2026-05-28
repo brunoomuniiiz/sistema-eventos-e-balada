@@ -125,6 +125,22 @@ export function EventPromotersManager({ eventId }: { eventId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateDisplayNameMut = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase
+        .from("event_promoters")
+        .update({ display_name: name })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Nome atualizado");
+      qc.invalidateQueries({ queryKey: ["event-promoters", eventId] });
+      setEditingDisplayName(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const checkInMut = useMutation({
     mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
       const { error } = await supabase
