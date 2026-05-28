@@ -130,13 +130,31 @@ export const getPublicPixChargeStatus = createServerFn({ method: "POST" })
  * pagos por um banco real.
  */
 export const simulatePixApproval = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ chargeId: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     // Gate: only available outside production. In production this is a no-op
     // to prevent free order fulfillment via simulated PIX approvals.
     if (process.env.NODE_ENV === "production") {
       throw new Error("Simulação de PIX desabilitada em produção");
     }
+
+    // Only the owner of the charge's tenant may simulate approval.
+    const { userId, supabase } = context;
+    const { data: charge, error: chargeErr } = await supabase
+      .from("pix_charges")
+      .select("id, user_id")
+      .eq("id", data.chargeId)
+      .maybeSingle();
+    if (chargeErr) throw new Error(chargeErr.message);
+    if (!charge) throw new Error("Cobrança não encontrada");
+
+    const { data: isOwner, error: ownerErr } = await supabase.rpc("is_owner_of", {
+      _user_id: userId,
+      _owner_id: charge.user_id,
+    });
+    if (ownerErr || !isOwner) throw new Error("Não autorizado");
+
 
     const nowIso = new Date().toISOString();
 
