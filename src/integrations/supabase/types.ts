@@ -3190,7 +3190,6 @@ export type Database = {
           promoter_guest_message: string
           promoter_instagram: string
           promoter_name: string
-          promoter_phone: string
           show_real_count_when_big: boolean
           total_entries: number
         }[]
