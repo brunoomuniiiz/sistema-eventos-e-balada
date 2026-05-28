@@ -245,7 +245,7 @@ function StorefrontPage() {
         <div className="flex items-center gap-3 max-w-4xl mx-auto">
           <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-white/15 grid place-items-center backdrop-blur shrink-0 overflow-hidden">
             {data.settings.logo_url ? (
-              <img src={data.settings.logo_url} alt={data.settings.store_name} className="w-full h-full object-cover" />
+              <img src={data.settings.logo_url ?? undefined} alt={data.settings.store_name ?? ""} className="w-full h-full object-cover" />
             ) : (
               <Store className="h-5 w-5 sm:h-6 sm:w-6" />
             )}
