@@ -18,8 +18,18 @@ export const Route = createFileRoute("/_app/meus-eventos")({
 type Row = {
   ep_id: string;
   slug: string;
+  category?: string;
+  display_name?: string | null;
   event: { id: string; name: string; date: string; location: string | null; flyer_url: string | null; status: string };
   counts: { total: number; checkin: number; women: number; men: number };
+  all_promoters?: Array<{
+    id: string;
+    display_name: string | null;
+    promoter_name: string;
+    total: number;
+    present: number;
+    is_me: boolean;
+  }>;
 };
 
 function MeusEventosPage() {
