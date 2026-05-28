@@ -65,8 +65,10 @@ function MeusEventosPage() {
       const out = (eps ?? []).map((ep) => ({
         ep_id: ep.id,
         slug: ep.slug,
+        category: ep.category,
+        display_name: ep.display_name,
         event: evMap[ep.event_id] ?? null,
-      })).filter((r): r is { ep_id: string; slug: string; event: Row["event"] } => !!r.event);
+      })).filter((r): r is { ep_id: string; slug: string; category: string; display_name: string | null; event: Row["event"] } => !!r.event);
 
       const epIds = out.map((r) => r.ep_id);
       const counts: Record<string, Row["counts"]> = {};
