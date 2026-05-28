@@ -501,31 +501,49 @@ export function PdvView() {
         </div>
       )}
 
-      {/* Chips de categorias */}
-      <div className="mb-3 w-full max-w-full min-w-0 overflow-x-hidden">
-        <CategoryChipBar
-          items={[
-            { id: "all", label: "Todas" },
-            ...categories.map((c) => ({ id: c.id, label: c.name })),
-            { id: "none", label: "Sem categoria" },
-          ]}
-          activeId={categoryFilter}
-          onChange={setCategoryFilter}
-        />
-      </div>
+      {/* Content */}
+      {acceptedMethods.length === 0 && !realIsOwner ? (
+        <Card className="m-4">
+          <CardContent className="py-20 text-center space-y-4">
+            <Lock className="h-12 w-12 mx-auto text-amber-500 opacity-50" />
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold">Sem permissão de recebimento</h3>
+              <p className="text-sm text-muted-foreground">Você não possui formas de pagamento autorizadas para realizar vendas.</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Chips de categorias */}
+          <div className="mb-3 w-full max-w-full min-w-0 overflow-x-hidden">
+            <CategoryChipBar
+              items={[
+                { id: "all", label: "Todas" },
+                ...categories.map((c) => ({ id: c.id, label: c.name })),
+                { id: "none", label: "Sem categoria" },
+              ]}
+              activeId={categoryFilter}
+              onChange={setCategoryFilter}
+            />
+          </div>
 
-      {/* Busca por produto */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar produto…"
-          value={searchQ}
-          onChange={(e) => setSearchQ(e.target.value)}
-          className="pl-9 h-10"
-        />
-      </div>
+          {/* Busca por produto */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar produto…"
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              className="pl-9 h-10"
+            />
+          </div>
+        </>
+      )}
 
-      {productsError ? (
+      {acceptedMethods.length > 0 || realIsOwner ? (
+        <>
+          {productsError ? (
+
         <Card className="p-8 text-center text-destructive">
           <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
           <div className="font-semibold mb-1">Erro ao carregar produtos</div>
