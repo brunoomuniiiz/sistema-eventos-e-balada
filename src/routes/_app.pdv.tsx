@@ -429,6 +429,7 @@ export function PdvView() {
                 unit_index: currentTicketIdx++,
                 unit_total: totalUnits,
                 waiter: user.email?.split('@')[0] ?? 'Vendedor',
+                qr_token: (sale as any).pickup_token,
                 is_test: item.product_name.includes("TESTE IMPRESSORA")
               });
             }
