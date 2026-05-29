@@ -69,6 +69,70 @@ export function LojinhaPosView() {
     },
   });
 
+  // Estoque agregado em todos os locais (vendedor é cego — não escolhe local)
+  const { data: stockData = { map: {}, hasRows: new Set<string>() } } = useQuery({
+    queryKey: ["lojinha-stock-total", ownerId],
+    enabled: !!ownerId && canAccess,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_stock")
+        .select("product_id, quantity");
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      const hasRows = new Set<string>();
+      (data ?? []).forEach((r) => {
+        map[r.product_id] = (map[r.product_id] ?? 0) + r.quantity;
+        hasRows.add(r.product_id);
+      });
+      return { map, hasRows };
+    },
+  });
+  const stockMap = stockData.map;
+  const productsWithStockRows = stockData.hasRows;
+
+  // Componentes de todos os combos para calcular estoque virtual
+  const { data: comboItems = [] } = useQuery({
+    queryKey: ["lojinha-combo-items", ownerId],
+    enabled: !!ownerId && canAccess,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_combo_items_for_sales");
+      if (error) throw error;
+      return (data ?? []) as { combo_product_id: string; component_product_id: string; quantity: number }[];
+    },
+  });
+
+  // mapa de track_stock por produto (para checar componentes do combo)
+  const productTrackMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    products.forEach((p) => { map[p.id] = !!p.sell_online; });
+    return map;
+  }, [products]);
+
+  // stock virtual: combo => min(stock_componente / qty)
+  const comboStockMap = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    const grouped = new Map<string, { component_product_id: string; quantity: number }[]>();
+    comboItems.forEach((ci) => {
+      const list = grouped.get(ci.combo_product_id) ?? [];
+      list.push({ component_product_id: ci.component_product_id, quantity: Number(ci.quantity) });
+      grouped.set(ci.combo_product_id, list);
+    });
+    grouped.forEach((items, comboId) => {
+      let min = Infinity;
+      let anyTracked = false;
+      for (const it of items) {
+        const tracked = productTrackMap[it.component_product_id] && productsWithStockRows.has(it.component_product_id);
+        if (!tracked) continue;
+        anyTracked = true;
+        const stock = stockMap[it.component_product_id] ?? 0;
+        const qty = it.quantity > 0 ? it.quantity : 1;
+        min = Math.min(min, Math.floor(stock / qty));
+      }
+      map[comboId] = anyTracked ? (Number.isFinite(min) ? min : 0) : null;
+    });
+    return map;
+  }, [comboItems, stockMap, productTrackMap, productsWithStockRows]);
+
   // Poll status do pedido quando estiver aguardando pagamento
   const { data: orderStatus } = useQuery({
     queryKey: ["lojinha-pos-order-status", orderId],

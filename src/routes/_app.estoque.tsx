@@ -193,9 +193,12 @@ function LocaisTab({
       // Deleta o estoque vinculado primeiro para evitar erros de constraint
       await supabase.from("product_stock").delete().eq("location_id", id);
       const { error } = await supabase.from("stock_locations").delete().eq("id", id);
-      if (error) return toast.error(error.message);
-      onLocChange();
-      toast.success("Local removido");
+      if (error) {
+        toast.error(error.message);
+      } else {
+        onLocChange();
+        toast.success("Local removido");
+      }
     });
   };
 
