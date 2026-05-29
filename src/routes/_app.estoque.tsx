@@ -79,7 +79,7 @@ export function EstoqueView() {
     if (!ownerId || !can("estoque") || loading) return;
     if (locations.length === 0) {
       supabase.from("stock_locations").insert({
-        user_id: ownerId, name: "Estoque principal", is_default: true,
+        user_id: ownerId, name: "Principal", is_default: true,
       }).then(({ error }) => { if (!error) refetchLocs(); });
     }
   }, [ownerId, can, loading, locations.length, refetchLocs]);
