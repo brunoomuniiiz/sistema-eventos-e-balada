@@ -35,10 +35,17 @@ function timeBR(d?: string | Date) {
 export function printWithRawBT(text: string) {
   // Protocolo RawBT para Android via Intent
   try {
-    // Usamos TextEncoder para garantir UTF-8 correto antes do Base64
+    // Usamos TextEncoder para garantir UTF-8 correto
     const encoder = new TextEncoder();
-    const data = encoder.encode(text);
-    const base64 = btoa(String.fromCharCode(...data));
+    const bytes = encoder.encode(text);
+    
+    // Converte bytes para string binária antes de btoa
+    let binary = "";
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
     
     // O prefixo data:text/plain;base64 informa ao RawBT que deve processar o texto e suas tags
     const url = `intent:data:text/plain;base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
@@ -49,7 +56,11 @@ export function printWithRawBT(text: string) {
     console.error("Erro ao enviar para RawBT:", err);
     // Fallback simples se o Intent falhar
     try {
-      const base64 = btoa(unescape(encodeURIComponent(text)));
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(text);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
       window.location.href = `rawbt:base64:${base64}`;
     } catch (e) {
       console.error("Erro no fallback do RawBT:", e);
@@ -119,7 +130,7 @@ export function generateThermalTicket(opts: {
   if (opts.qr_token) {
     out += "\n";
     out += `[QR]${opts.qr_token}[/QR]\n`;
-    out += `[C]TOKEN: ${opts.qr_token.toUpperCase()}\n`;
+    out += `[C]TOKEN: ${opts.qr_token}\n`;
     out += "\n";
   }
   
