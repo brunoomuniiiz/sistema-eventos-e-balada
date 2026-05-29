@@ -18,6 +18,7 @@ import {
   savePrintConfig, 
   generateThermalTicket, 
   printWithRawBT,
+  concatUint8Arrays,
   PrintConfig 
 } from "@/lib/thermal-print";
 import {
@@ -62,27 +63,25 @@ export function LojinhaScanner() {
       trigger: "scan" as const
     };
     if (printConfig.method === 'rawbt') {
-      let fullText = "";
+      const tickets: Uint8Array[] = [];
       for (const [idx, t] of opts.tickets.entries()) {
         const shouldPrint = user?.id ? await shouldPrintItem(user.id, "scan", t.category_id || null, t.product_id) : true;
         if (!shouldPrint) continue;
 
-        fullText += generateThermalTicket({
+        tickets.push(generateThermalTicket({
           bar_name: opts.bar_name,
-          logo_url: opts.logo_url,
           daily_number: opts.daily_number,
           product_name: t.product_name,
           description: t.description,
-          customer_name: opts.customer_name,
-          unit_index: idx + 1,
-          unit_total: opts.tickets.length,
           waiter: opts.waiter,
           qr_token: t.qr_token,
           payment_method: opts.payment_method,
-          seller_type: opts.seller_type
-        });
+        }));
       }
-      if (fullText) printWithRawBT(fullText);
+      if (tickets.length > 0) {
+        const fullBuffer = concatUint8Arrays(tickets);
+        printWithRawBT(fullBuffer);
+      }
     } else {
       await printUnitTickets(printOpts);
     }

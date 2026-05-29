@@ -34,6 +34,7 @@ import {
   savePrintConfig, 
   printWithRawBT, 
   generateThermalTicket, 
+  concatUint8Arrays,
   type PrintConfig 
 } from "@/lib/thermal-print";
 import { shouldPrintItem } from "@/lib/print-rules";
