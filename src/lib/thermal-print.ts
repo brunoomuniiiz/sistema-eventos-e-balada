@@ -84,9 +84,9 @@ export function generateThermalTicket(opts: {
     out += "[C]*** TESTE DE IMPRESSAO ***\n";
   }
   
-  // Logotipo se disponível
+  // Logotipo se disponível - Tag de imagem deve estar sozinha na linha
   if (opts.logo_url) {
-    out += `[C][IMAGE]${opts.logo_url}[/IMAGE]\n`;
+    out += `[IMAGE]${opts.logo_url}[/IMAGE]\n`;
   }
   
   out += `[C]${opts.bar_name?.toUpperCase() ?? "SISTEMA"}\n`;
@@ -94,9 +94,9 @@ export function generateThermalTicket(opts: {
   if (opts.customer_name) {
     out += `[C]${opts.customer_name.toUpperCase()}\n`;
   }
-  out += hr + "\n\n";
+  out += "[L]" + hr + "\n\n";
   out += `[C]PEDIDO ${formatOrderNo(opts.daily_number)}\n\n`;
-  out += hr + "\n";
+  out += "[L]" + hr + "\n";
   out += `[C]${opts.product_name.toUpperCase()}\n`;
   if (opts.description) {
     out += `[C]${opts.description}\n`;
@@ -104,7 +104,7 @@ export function generateThermalTicket(opts: {
   if (opts.unit_total && opts.unit_total > 1) {
     out += `[C]Unidade ${opts.unit_index} de ${opts.unit_total}\n`;
   }
-  out += hr + "\n";
+  out += "[L]" + hr + "\n";
   
   if (opts.payment_method) {
     out += `[L]PAGAMENTO: ${opts.payment_method.toUpperCase()}\n`;
@@ -112,15 +112,15 @@ export function generateThermalTicket(opts: {
   
   const sellerLabel = opts.seller_type === 'app' ? "VENDA: APP" : `VENDEDOR: ${opts.waiter?.toUpperCase() ?? "---"}`;
   out += `[L]${sellerLabel}\n`;
-  out += hr + "\n";
+  out += "[L]" + hr + "\n";
 
   if (opts.qr_token) {
-    // Adicionamos [C] para centralizar o QR code
-    out += "\n[C][QR]" + opts.qr_token + "[/QR]\n\n";
+    // QR Code deve estar sozinho na linha para o RawBT processar
+    out += `\n[QR]${opts.qr_token}[/QR]\n\n`;
   }
   
   out += `[C]${opts.is_test ? "CONEXAO OK" : "VALIDADO COM SUCESSO"}\n`;
-  out += hr + "\n";
+  out += "[L]" + hr + "\n";
   out += `[C]${timeBR().split(' ')[1].slice(0, 8)}\n`;
   out += "\n\n\n\n\n"; // Espaço para corte extra
 
