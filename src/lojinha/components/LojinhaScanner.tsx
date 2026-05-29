@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, KeyboardIcon, Printer, CheckCircle2, XCircle, Settings2 } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { printUnitTickets, qrSvgString } from "@/lib/order-print";
 import { useAuth } from "@/hooks/useAuth";
+import { DeliverButton } from "@/components/DeliverButton";
+
 import { shouldPrintItem } from "@/lib/print-rules";
 import { 
   getPrintConfig, 
@@ -38,14 +40,18 @@ import {
 } from "@/components/ui/select";
 
 export function LojinhaScanner() {
-  const navigate = useNavigate();
   const { user } = useAuth();
+
   const { displayName } = usePermissions();
   const [scanning, setScanning] = useState(false);
   const [manual, setManual] = useState("");
   const [autoPrint, setAutoPrint] = useState(true);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string }>({ type: 'idle', message: '' });
+  const [manualDelivery, setManualDelivery] = useState<
+    { source: 'sale' | 'order'; id: string; dailyNo: number | null; label: string } | null
+  >(null);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
+
   const ref = useRef<Html5Qrcode | null>(null);
   const lastTokenRef = useRef<string>("");
 
@@ -163,11 +169,21 @@ export function LojinhaScanner() {
             toast.error("Erro ao imprimir ou validar");
           }
         } else {
-          // Se autoPrint estiver desligado, abre a página de conferência
+          // Auto-Imprimir desligado → Entrega Manual (sem impressão).
+          // Mostra um card com botão "Entregar" que confirma no banco.
           await stop();
-          navigate({ to: "/pedidos-liberar", search: { token } });
+          const label = lookup.source === 'sale' ? 'Venda' : 'Pedido';
+          const numTxt = lookup.daily_number != null ? ' #' + String(lookup.daily_number).padStart(3, '0') : '';
+          setManualDelivery({
+            source: lookup.source as 'sale' | 'order',
+            id: lookup.id,
+            dailyNo: lookup.daily_number,
+            label: `${label}${numTxt}`,
+          });
+          setStatus({ type: 'idle', message: '' });
           return;
         }
+
       } else {
         // Fallback para unidades individuais (fluxo antigo)
         const res = await validateQr(token);
@@ -360,6 +376,39 @@ export function LojinhaScanner() {
           </div>
         )}
       </div>
+
+      {manualDelivery && (
+        <Card className="border-2 border-primary/40 bg-primary/5 animate-in fade-in slide-in-from-bottom-2">
+          <CardContent className="p-4 space-y-3">
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Entrega Manual</p>
+              <p className="text-lg font-bold mt-0.5">{manualDelivery.label}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Impressão desligada. Entregue o pedido e confirme abaixo.
+              </p>
+            </div>
+            <DeliverButton
+              source={manualDelivery.source}
+              id={manualDelivery.id}
+              onDelivered={() => {
+                setTimeout(() => {
+                  setManualDelivery(null);
+                  void start();
+                }, 1200);
+              }}
+            />
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => { setManualDelivery(null); void start(); }}
+            >
+              Cancelar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+
 
       <Card>
         <CardContent className="p-3">

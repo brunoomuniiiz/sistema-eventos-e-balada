@@ -53,6 +53,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DeliverButton } from "@/components/DeliverButton";
+
 
 export const Route = createFileRoute("/_app/pdv")({
   component: PdvView,
@@ -106,6 +108,8 @@ export function PdvView() {
   const [consumacaoOpen, setConsumacaoOpen] = useState(false);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [autoPrintEnabled, setAutoPrintEnabled] = useState(true);
+  const [manualDelivery, setManualDelivery] = useState<{ saleId: string; dailyNo: number | null; total: number } | null>(null);
+
   const { token: pinToken, setUnlocked: setPinUnlocked } = useOperationPin();
   const [pinDialog, setPinDialog] = useState<{ open: boolean; pendingProduct: Product | null }>({
     open: false,
@@ -418,44 +422,51 @@ export function PdvView() {
       toast.success(
         `Venda ${dailyNo != null ? "#" + String(dailyNo).padStart(3, "0") : ""} de ${formatBRL(total)} registrada!`,
       );
-      // Abre cupom imprimível
-      try {
-        if (printConfig.method === 'rawbt' && autoPrintEnabled) {
-          const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
-          
-          const tickets: Uint8Array[] = [];
-          
-          const effectivePayments = chaveInfo
-            ? payments.map((p) => p.method === "pix" ? { ...p, method: "pix_chave" as unknown as typeof p.method } : p)
-            : payments;
-          const dominant = dominantMethod(effectivePayments as typeof payments);
+      // Impressão (apenas se Auto-Imprimir estiver ATIVADO). Caso contrário,
+      // abrimos o diálogo de Entrega Manual abaixo (botão "Entregar").
+      if (autoPrintEnabled) {
+        try {
+          if (printConfig.method === 'rawbt') {
+            const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
 
-          for (const item of cart) {
-            const shouldPrint = await shouldPrintItem(user.id, "sale", null, item.product_id);
-            if (!shouldPrint) continue;
+            const tickets: Uint8Array[] = [];
 
-            const productDetails = products.find(p => p.id === item.product_id);
+            const effectivePayments = chaveInfo
+              ? payments.map((p) => p.method === "pix" ? { ...p, method: "pix_chave" as unknown as typeof p.method } : p)
+              : payments;
+            const dominant = dominantMethod(effectivePayments as typeof payments);
 
-            for (let i = 0; i < item.quantity; i++) {
-              tickets.push(generateThermalTicket({
-                bar_name: (bar as any)?.bar_name ?? null,
-                daily_number: dailyNo,
-                product_name: item.product_name,
-                description: (productDetails as any)?.pickup_description || (productDetails as any)?.description || null,
-                waiter: displayName || user.email?.split('@')[0] || 'Vendedor',
-                qr_token: (sale as any).pickup_token,
-                is_test: item.product_name.includes("TESTE IMPRESSORA"),
-                payment_method: dominant,
-              }));
+            for (const item of cart) {
+              const shouldPrint = await shouldPrintItem(user.id, "sale", null, item.product_id);
+              if (!shouldPrint) continue;
+
+              const productDetails = products.find(p => p.id === item.product_id);
+
+              for (let i = 0; i < item.quantity; i++) {
+                tickets.push(generateThermalTicket({
+                  bar_name: (bar as any)?.bar_name ?? null,
+                  daily_number: dailyNo,
+                  product_name: item.product_name,
+                  description: (productDetails as any)?.pickup_description || (productDetails as any)?.description || null,
+                  waiter: displayName || user.email?.split('@')[0] || 'Vendedor',
+                  qr_token: (sale as any).pickup_token,
+                  is_test: item.product_name.includes("TESTE IMPRESSORA"),
+                  payment_method: dominant,
+                }));
+              }
             }
+            if (tickets.length > 0) {
+              printWithRawBT(concatUint8Arrays(tickets));
+            }
+          } else {
+            window.open(`/pdv/cupom/${sale.id}`, "_blank");
           }
-          if (tickets.length > 0) {
-            printWithRawBT(concatUint8Arrays(tickets));
-          }
-        } else {
-          window.open(`/pdv/cupom/${sale.id}`, "_blank");
-        }
-      } catch { /* ignore popup block */ }
+        } catch { /* ignore popup block */ }
+      } else {
+        // Sem impressão → exibe diálogo de Entrega Manual
+        setManualDelivery({ saleId: sale.id, dailyNo, total });
+      }
+
 
       setCart([]);
       setPayments([]);
@@ -973,6 +984,32 @@ export function PdvView() {
         onOpenChange={setConsumacaoOpen}
         onPick={(target, recipientName) => { void saveConsumacao(target, recipientName); }}
       />
+
+      {/* Diálogo de Entrega Manual — quando Auto-Imprimir está desligado */}
+      <Dialog open={!!manualDelivery} onOpenChange={(v) => { if (!v) setManualDelivery(null); }}>
+        <DialogContent className="max-w-[360px] rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">
+              Venda {manualDelivery?.dailyNo != null ? "#" + String(manualDelivery.dailyNo).padStart(3, "0") : ""} registrada
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-center text-3xl font-bold">
+              {manualDelivery ? formatBRL(manualDelivery.total) : ""}
+            </p>
+            <p className="text-center text-sm text-muted-foreground">
+              Impressão desativada. Entregue o produto e confirme abaixo.
+            </p>
+            {manualDelivery && (
+              <DeliverButton source="sale" id={manualDelivery.saleId} />
+            )}
+            <Button variant="ghost" className="w-full" onClick={() => setManualDelivery(null)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
