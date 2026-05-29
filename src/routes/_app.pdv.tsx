@@ -728,7 +728,7 @@ export function PdvView() {
           ) : (
             <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 
-          {products
+          {filteredProducts
             .filter((p) => {
               if (categoryFilter === "all") return true;
               if (categoryFilter === "none") return !p.category_id;
