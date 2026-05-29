@@ -73,6 +73,7 @@ export function LojinhaScanner() {
           unit_index: idx + 1,
           unit_total: opts.tickets.length,
           waiter: opts.waiter,
+          qr_token: t.qr_token
         });
       }
       if (fullText) printWithRawBT(fullText);
