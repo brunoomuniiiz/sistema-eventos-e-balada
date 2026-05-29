@@ -377,6 +377,39 @@ export function LojinhaScanner() {
         )}
       </div>
 
+      {manualDelivery && (
+        <Card className="border-2 border-primary/40 bg-primary/5 animate-in fade-in slide-in-from-bottom-2">
+          <CardContent className="p-4 space-y-3">
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Entrega Manual</p>
+              <p className="text-lg font-bold mt-0.5">{manualDelivery.label}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Impressão desligada. Entregue o pedido e confirme abaixo.
+              </p>
+            </div>
+            <DeliverButton
+              source={manualDelivery.source}
+              id={manualDelivery.id}
+              onDelivered={() => {
+                setTimeout(() => {
+                  setManualDelivery(null);
+                  void start();
+                }, 1200);
+              }}
+            />
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => { setManualDelivery(null); void start(); }}
+            >
+              Cancelar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+
+
       <Card>
         <CardContent className="p-3">
           <label className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
