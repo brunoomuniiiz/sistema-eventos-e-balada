@@ -169,6 +169,7 @@ export type OrderLookup =
       customer_phone: string | null;
       delivered_at: string | null;
       delivered_by_name: string | null;
+      payment_method: string | null;
       items: OrderLookupItem[];
     };
 

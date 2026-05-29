@@ -410,27 +410,38 @@ export function PdvView() {
       // Abre cupom imprimível
       try {
         if (printConfig.method === 'rawbt' && autoPrintEnabled) {
-          const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
+          const { data: bar } = await supabase.from("bar_settings").select("bar_name, logo_url").maybeSingle();
           
           let fullText = "";
           let currentTicketIdx = 1;
           const totalUnits = cart.reduce((acc, item) => acc + item.quantity, 0);
           
+          const effectivePayments = chaveInfo
+            ? payments.map((p) => p.method === "pix" ? { ...p, method: "pix_chave" as unknown as typeof p.method } : p)
+            : payments;
+          const dominant = dominantMethod(effectivePayments as typeof payments);
+
           for (const item of cart) {
             // Verifica permissão de impressão para cada item
             const shouldPrint = await shouldPrintItem(user.id, "sale", null, item.product_id);
             if (!shouldPrint) continue;
 
+            const productDetails = products.find(p => p.id === item.product_id);
+
             for (let i = 0; i < item.quantity; i++) {
               fullText += generateThermalTicket({
                 bar_name: (bar as any)?.bar_name ?? null,
+                logo_url: (bar as any)?.logo_url ?? null,
                 daily_number: dailyNo,
                 product_name: item.product_name,
+                description: (productDetails as any)?.pickup_description || (productDetails as any)?.description || null,
                 unit_index: currentTicketIdx++,
                 unit_total: totalUnits,
                 waiter: user.email?.split('@')[0] ?? 'Vendedor',
                 qr_token: (sale as any).pickup_token,
-                is_test: item.product_name.includes("TESTE IMPRESSORA")
+                is_test: item.product_name.includes("TESTE IMPRESSORA"),
+                payment_method: dominant,
+                seller_type: 'staff'
               });
             }
           }
