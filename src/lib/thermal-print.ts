@@ -53,6 +53,7 @@ export function generateThermalTicket(opts: {
   unit_index?: number;
   unit_total?: number;
   waiter: string | null;
+  qr_token?: string | null;
   is_test?: boolean;
 }): string {
   const config = getPrintConfig();
@@ -86,11 +87,14 @@ export function generateThermalTicket(opts: {
     out += center(`Unidade ${opts.unit_index} de ${opts.unit_total}`) + "\n";
   }
   out += hr + "\n";
+  if (opts.qr_token) {
+    out += "\n" + center(`[QR]${opts.qr_token}[/QR]`) + "\n\n";
+  }
   out += center(opts.is_test ? "CONEXAO OK" : "VALIDADO COM SUCESSO") + "\n";
   out += hr + "\n";
   const seller = (opts.customer_name ? opts.waiter : (opts.waiter ?? "---")) || "---";
   out += seller.slice(0, width - 11) + " ".repeat(Math.max(1, width - (seller.slice(0, width - 11).length) - 10)) + timeBR().split(' ')[1].slice(0, 8) + "\n";
-  out += "\n\n\n\n"; // Espaço para corte
+  out += "\n\n\n\n\n"; // Espaço para corte extra
 
   return out;
 }
