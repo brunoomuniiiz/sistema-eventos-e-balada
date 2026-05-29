@@ -53,7 +53,7 @@ type OrderRow = {
   pickup_token: string | null;
   pickup_code: string | null;
   hasCombo: boolean;
-  items: Array<{ name: string; quantity: number; unit_price: number; product_type: string }>;
+  items: Array<{ name: string; quantity: number; unit_price: number; product_type: string; description?: string | null }>;
 };
 
 export function LojinhaOrdersPanel() {
@@ -92,7 +92,7 @@ export function LojinhaOrdersPanel() {
       const ids = rows.map((r) => r.id);
       const { data: items } = await supabase
         .from("lojinha_order_items")
-        .select("order_id,product_name_snapshot,quantity,unit_price,products(product_type)")
+        .select("order_id,product_name_snapshot,quantity,unit_price,products(product_type, description, pickup_description)")
         .in("order_id", ids);
 
       const byOrder = new Map<string, OrderRow["items"]>();
@@ -103,6 +103,7 @@ export function LojinhaOrdersPanel() {
           quantity: it.quantity,
           unit_price: Number(it.unit_price),
           product_type: it.products?.product_type ?? "simple",
+          description: it.products?.pickup_description || it.products?.description || null
         });
         byOrder.set(it.order_id, arr);
       });
@@ -130,14 +131,17 @@ export function LojinhaOrdersPanel() {
     try {
       const { data: units } = await supabase
         .from("lojinha_order_units")
-        .select("qr_token, product_name_snapshot, product_id")
+        .select("qr_token, product_name_snapshot, product_id, products(description, pickup_description)")
         .eq("order_id", o.id);
 
       if (units && units.length > 0) {
-        const tickets = await Promise.all(units.map(async (u) => ({
+        const tickets = await Promise.all(units.map(async (u: any) => ({
           product_name: u.product_name_snapshot,
+          description: u.products?.pickup_description || u.products?.description || null,
+          customer_name: o.customer_name,
           qr_token: u.qr_token,
           qr_svg_string: await qrSvgString(u.qr_token),
+          product_id: u.product_id,
         })));
 
         printUnitTickets({
