@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Undo2, AlertTriangle, Loader2 } from "lucide-react";
+import { Undo2, AlertTriangle, Loader2, Printer, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import { refundLojinhaOrder } from "@/lib/refund.functions";
 import { useOperationPin } from "@/hooks/useOperationPin";
+import { printReceipt, printUnitTickets, qrSvgString } from "@/lib/order-print";
+import { useAuth } from "@/hooks/useAuth";
 
 export type UnifiedSale = {
   id: string;
@@ -44,12 +46,14 @@ interface Props {
 export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlock, onDone }: Props) {
   const qc = useQueryClient();
   const { token: pinToken } = useOperationPin();
+  const { user } = useAuth();
   const refundOnlineFn = useServerFn(refundLojinhaOrder);
 
   const [mode, setMode] = useState<"none" | "total" | "partial">("none");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   const isOnline = sale?.channel === "online" || sale?.channel === "pos";
 
@@ -60,50 +64,136 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
     queryFn: async () => {
       if (!sale) return null;
       if (isOnline) {
-        const [items, order] = await Promise.all([
-          supabase.from("lojinha_order_items")
-            .select("id, product_name_snapshot, unit_price, quantity")
-            .eq("order_id", sale.id),
-          supabase.from("lojinha_orders")
-            .select("refund_amount, refunded_reason")
-            .eq("id", sale.id).maybeSingle(),
-        ]);
+        const { data: orderRes } = await supabase.from("lojinha_orders")
+          .select("*")
+          .eq("id", sale.id).maybeSingle();
+        
+        const { data: itemsRes } = await supabase.from("lojinha_order_items")
+          .select("*, lojinha_products(category_id)")
+          .eq("order_id", sale.id);
+        
+        let barName = null;
+        if ((orderRes as any)?.bar_id) {
+          const { data: bar } = await supabase.from("bars" as any).select("name").eq("id", (orderRes as any).bar_id).maybeSingle();
+          barName = (bar as any)?.name;
+        }
+
         return {
-          items: (items.data ?? []).map((i) => ({
+          items: (itemsRes ?? []).map((i: any) => ({
             name: i.product_name_snapshot,
             qty: i.quantity,
             unit: Number(i.unit_price),
             subtotal: Number(i.unit_price) * i.quantity,
+            product_id: i.product_id,
+            category_id: i.lojinha_products?.category_id
           })),
           payments: sale.payment_method
             ? [{ method: sale.payment_method, amount: Number(sale.total) }]
             : [],
-          refund_amount: order.data?.refund_amount ? Number(order.data.refund_amount) : 0,
-          refund_reason: order.data?.refunded_reason ?? null,
+          refund_amount: (orderRes as any)?.refund_amount ? Number((orderRes as any).refund_amount) : 0,
+          refund_reason: (orderRes as any)?.refunded_reason ?? null,
+          pickup_token: (orderRes as any)?.pickup_token,
+          pickup_code: (orderRes as any)?.pickup_code,
+          bar_name: barName
         };
       } else {
-        const [items, pays] = await Promise.all([
-          supabase.from("sale_items")
-            .select("id, product_name, unit_price, quantity, subtotal")
-            .eq("sale_id", sale.id),
-          supabase.from("sale_payments")
-            .select("method, amount")
-            .eq("sale_id", sale.id),
-        ]);
+        const { data: saleRes } = await supabase.from("sales")
+          .select("*")
+          .eq("id", sale.id).maybeSingle();
+          
+        const { data: itemsRes } = await supabase.from("sale_items")
+          .select("*, products(category_id)")
+          .eq("sale_id", sale.id);
+          
+        const { data: paysRes } = await supabase.from("sale_payments")
+          .select("*")
+          .eq("sale_id", sale.id);
+
+        let barName = null;
+        if ((saleRes as any)?.bar_id) {
+          const { data: bar } = await supabase.from("bars" as any).select("name").eq("id", (saleRes as any).bar_id).maybeSingle();
+          barName = (bar as any)?.name;
+        }
+
         return {
-          items: (items.data ?? []).map((i) => ({
+          items: (itemsRes ?? []).map((i: any) => ({
             name: i.product_name,
             qty: i.quantity,
             unit: Number(i.unit_price),
             subtotal: Number(i.subtotal),
+            product_id: i.product_id,
+            category_id: i.products?.category_id
           })),
-          payments: (pays.data ?? []).map((p) => ({ method: p.method as string, amount: Number(p.amount) })),
+          payments: (paysRes ?? []).map((p) => ({ method: p.method as string, amount: Number(p.amount) })),
           refund_amount: 0,
           refund_reason: null as string | null,
+          pickup_token: (saleRes as any)?.pickup_token,
+          pickup_code: null,
+          bar_name: barName
         };
       }
     },
   });
+
+  const handlePrint = async () => {
+    if (!details || !sale) return;
+    setPrinting(true);
+    try {
+      const qrSvg = details.pickup_token ? await qrSvgString(details.pickup_token) : "";
+      
+      printReceipt({
+        daily_number: sale.daily_number,
+        bar_name: details.bar_name || null,
+        items: details.items.map((i: any) => ({
+          product_name: i.name,
+          quantity: i.qty,
+          unit_price: i.unit
+        })),
+        total: Number(sale.total),
+        payment_method: sale.payment_method,
+        qr_svg_string: qrSvg,
+        pickup_token: details.pickup_token || "",
+        pickup_code: details.pickup_code
+      });
+      toast.success("Enviado para impressão");
+    } catch (e) {
+      toast.error("Erro ao imprimir");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const handlePrintTickets = async () => {
+    if (!details || !sale || !user) return;
+    setPrinting(true);
+    try {
+      const qrSvg = details.pickup_token ? await qrSvgString(details.pickup_token) : "";
+      
+      const tickets = details.items.flatMap((i: any) => 
+        Array.from({ length: i.qty }).map(() => ({
+          product_name: i.name,
+          qr_token: details.pickup_token || "",
+          qr_svg_string: qrSvg,
+          product_id: i.product_id,
+          category_id: i.category_id
+        }))
+      );
+
+      await printUnitTickets({
+        daily_number: sale.daily_number,
+        bar_name: details.bar_name || null,
+        waiter: sale.seller_name,
+        tickets,
+        userId: user.id,
+        trigger: "sale"
+      });
+      toast.success("Fichas enviadas para impressão");
+    } catch (e) {
+      toast.error("Erro ao imprimir fichas");
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   if (!sale) return null;
   const cancelled = sale.status === "cancelled" || sale.status === "refunded";
@@ -162,11 +252,38 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
-          <div className="rounded-lg border border-border p-3">
-            <div className="text-[11px] uppercase text-muted-foreground">Total</div>
-            <div className="text-3xl font-bold text-gradient">{formatBRL(Number(sale.total))}</div>
-            {details && details.refund_amount > 0 && (
-              <div className="text-xs text-amber-500 mt-1">Já estornado: {formatBRL(details.refund_amount)}</div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="rounded-lg border border-border p-3 flex-1">
+              <div className="text-[11px] uppercase text-muted-foreground">Total</div>
+              <div className="text-3xl font-bold text-gradient">{formatBRL(Number(sale.total))}</div>
+              {details && details.refund_amount > 0 && (
+                <div className="text-xs text-amber-500 mt-1">Já estornado: {formatBRL(details.refund_amount)}</div>
+              )}
+            </div>
+            
+            {!cancelled && (
+              <div className="flex gap-2 shrink-0">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-12 w-12" 
+                  onClick={handlePrintTickets}
+                  title="Imprimir Fichas"
+                  disabled={printing || detailsLoading}
+                >
+                  {printing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Ticket className="h-5 w-5" />}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-12 w-12" 
+                  onClick={handlePrint}
+                  title="Imprimir Comprovante"
+                  disabled={printing || detailsLoading}
+                >
+                  {printing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -176,7 +293,7 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             <div>
               <div className="text-xs font-semibold mb-1.5">Produtos ({details.items.length})</div>
               <div className="space-y-1">
-                {details.items.map((i, idx) => (
+                {details.items.map((i: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2 text-sm gap-2">
                     <span className="flex-1 truncate">{i.qty}× {i.name}</span>
                     <span className="font-semibold shrink-0">{formatBRL(i.subtotal)}</span>
@@ -190,7 +307,7 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             <div>
               <div className="text-xs font-semibold mb-1.5">Pagamento</div>
               <div className="space-y-1">
-                {details.payments.map((p, idx) => (
+                {details.payments.map((p: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2 text-sm">
                     <span>{methodLabel(p.method)}</span>
                     <span className="font-semibold">{formatBRL(p.amount)}</span>

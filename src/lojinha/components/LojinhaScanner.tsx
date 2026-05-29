@@ -11,6 +11,8 @@ import { orderLookupByToken, validateQr } from "@/lojinha/api";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { printUnitTickets, qrSvgString } from "@/lib/order-print";
+import { useAuth } from "@/hooks/useAuth";
+import { shouldPrintItem } from "@/lib/print-rules";
 import { 
   getPrintConfig, 
   savePrintConfig, 
@@ -35,6 +37,7 @@ import {
 
 export function LojinhaScanner() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [scanning, setScanning] = useState(false);
   const [manual, setManual] = useState("");
   const [autoPrint, setAutoPrint] = useState(true);
@@ -49,9 +52,17 @@ export function LojinhaScanner() {
     waiter: string | null;
     tickets: any[];
   }) => {
+    const printOpts = {
+      ...opts,
+      userId: user?.id,
+      trigger: "scan" as const
+    };
     if (printConfig.method === 'rawbt') {
       let fullText = "";
-      opts.tickets.forEach((t, idx) => {
+      for (const [idx, t] of opts.tickets.entries()) {
+        const shouldPrint = user?.id ? await shouldPrintItem(user.id, "scan", t.category_id || null, t.product_id) : true;
+        if (!shouldPrint) continue;
+
         fullText += generateThermalTicket({
           bar_name: opts.bar_name,
           daily_number: opts.daily_number,
@@ -60,10 +71,10 @@ export function LojinhaScanner() {
           unit_total: opts.tickets.length,
           waiter: opts.waiter,
         });
-      });
-      printWithRawBT(fullText);
+      }
+      if (fullText) printWithRawBT(fullText);
     } else {
-      printUnitTickets(opts);
+      await printUnitTickets(printOpts);
     }
   };
 
@@ -110,6 +121,8 @@ export function LojinhaScanner() {
                     product_name: item.product_name,
                     qr_token: token, // Usa o token principal para o QR da ficha
                     qr_svg_string: await qrSvgString(token),
+                    product_id: item.product_id,
+                    category_id: item.category_id || null
                   });
                 }
               }
@@ -137,6 +150,8 @@ export function LojinhaScanner() {
                   product_name: u.product_name_snapshot,
                   qr_token: u.qr_token,
                   qr_svg_string: await qrSvgString(u.qr_token),
+                  product_id: u.product_id,
+                  category_id: (u as any).category_id || null
                 })));
 
                 await executePrint({
@@ -174,6 +189,8 @@ export function LojinhaScanner() {
                 product_name: res.product_name || "Produto",
                 qr_token: token,
                 qr_svg_string: await qrSvgString(token),
+                product_id: (res as any).product_id,
+                category_id: (res as any).category_id || null
               }],
             });
             await supabase.rpc("mark_units_printed", { _qr_tokens: [token] });

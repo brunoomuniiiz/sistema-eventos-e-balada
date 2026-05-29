@@ -1,6 +1,7 @@
 // Build HTML for printable PDV receipt and combo prep slips.
 import QRCode from "qrcode";
 import { escapeHtml, formatOrderNo, openPrintWindow } from "./print-receipt";
+import { shouldPrintItem } from "./print-rules";
 
 export async function qrSvgString(value: string): Promise<string> {
   return QRCode.toString(value, { type: "svg", margin: 0, width: 200, errorCorrectionLevel: "M" });
@@ -105,17 +106,36 @@ export type UnitTicket = {
   product_name: string;
   qr_token: string;
   qr_svg_string: string;
+  product_id?: string;
+  category_id?: string | null;
 };
 
-export function printUnitTickets(opts: {
+export async function printUnitTickets(opts: {
   bar_name: string | null;
   daily_number: number | null;
   waiter: string | null;
   tickets: UnitTicket[];
-}): boolean {
+  userId?: string;
+  trigger?: "sale" | "scan";
+}): Promise<boolean> {
   if (opts.tickets.length === 0) return true;
-  const total = opts.tickets.length;
-  const pages = opts.tickets
+
+  // Filtrar tickets com base nas permissões do funcionário
+  let filteredTickets = opts.tickets;
+  if (opts.userId && opts.trigger) {
+    const results = await Promise.all(
+      opts.tickets.map(async (t) => {
+        if (!t.product_id) return true;
+        return await shouldPrintItem(opts.userId!, opts.trigger!, t.category_id || null, t.product_id);
+      })
+    );
+    filteredTickets = opts.tickets.filter((_, i) => results[i]);
+  }
+
+  if (filteredTickets.length === 0) return true;
+
+  const total = filteredTickets.length;
+  const pages = filteredTickets
     .map((t, idx) => `
       <div class="sheet pagebreak">
         <div class="center big">HAPPYBEER</div>
