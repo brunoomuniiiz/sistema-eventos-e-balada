@@ -45,7 +45,11 @@ export function LojinhaScanner() {
   const [manual, setManual] = useState("");
   const [autoPrint, setAutoPrint] = useState(true);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string }>({ type: 'idle', message: '' });
+  const [manualDelivery, setManualDelivery] = useState<
+    { source: 'sale' | 'order'; id: string; dailyNo: number | null; label: string } | null
+  >(null);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
+
   const ref = useRef<Html5Qrcode | null>(null);
   const lastTokenRef = useRef<string>("");
 
