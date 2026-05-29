@@ -418,44 +418,51 @@ export function PdvView() {
       toast.success(
         `Venda ${dailyNo != null ? "#" + String(dailyNo).padStart(3, "0") : ""} de ${formatBRL(total)} registrada!`,
       );
-      // Abre cupom imprimível
-      try {
-        if (printConfig.method === 'rawbt' && autoPrintEnabled) {
-          const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
-          
-          const tickets: Uint8Array[] = [];
-          
-          const effectivePayments = chaveInfo
-            ? payments.map((p) => p.method === "pix" ? { ...p, method: "pix_chave" as unknown as typeof p.method } : p)
-            : payments;
-          const dominant = dominantMethod(effectivePayments as typeof payments);
+      // Impressão (apenas se Auto-Imprimir estiver ATIVADO). Caso contrário,
+      // abrimos o diálogo de Entrega Manual abaixo (botão "Entregar").
+      if (autoPrintEnabled) {
+        try {
+          if (printConfig.method === 'rawbt') {
+            const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
 
-          for (const item of cart) {
-            const shouldPrint = await shouldPrintItem(user.id, "sale", null, item.product_id);
-            if (!shouldPrint) continue;
+            const tickets: Uint8Array[] = [];
 
-            const productDetails = products.find(p => p.id === item.product_id);
+            const effectivePayments = chaveInfo
+              ? payments.map((p) => p.method === "pix" ? { ...p, method: "pix_chave" as unknown as typeof p.method } : p)
+              : payments;
+            const dominant = dominantMethod(effectivePayments as typeof payments);
 
-            for (let i = 0; i < item.quantity; i++) {
-              tickets.push(generateThermalTicket({
-                bar_name: (bar as any)?.bar_name ?? null,
-                daily_number: dailyNo,
-                product_name: item.product_name,
-                description: (productDetails as any)?.pickup_description || (productDetails as any)?.description || null,
-                waiter: displayName || user.email?.split('@')[0] || 'Vendedor',
-                qr_token: (sale as any).pickup_token,
-                is_test: item.product_name.includes("TESTE IMPRESSORA"),
-                payment_method: dominant,
-              }));
+            for (const item of cart) {
+              const shouldPrint = await shouldPrintItem(user.id, "sale", null, item.product_id);
+              if (!shouldPrint) continue;
+
+              const productDetails = products.find(p => p.id === item.product_id);
+
+              for (let i = 0; i < item.quantity; i++) {
+                tickets.push(generateThermalTicket({
+                  bar_name: (bar as any)?.bar_name ?? null,
+                  daily_number: dailyNo,
+                  product_name: item.product_name,
+                  description: (productDetails as any)?.pickup_description || (productDetails as any)?.description || null,
+                  waiter: displayName || user.email?.split('@')[0] || 'Vendedor',
+                  qr_token: (sale as any).pickup_token,
+                  is_test: item.product_name.includes("TESTE IMPRESSORA"),
+                  payment_method: dominant,
+                }));
+              }
             }
+            if (tickets.length > 0) {
+              printWithRawBT(concatUint8Arrays(tickets));
+            }
+          } else {
+            window.open(`/pdv/cupom/${sale.id}`, "_blank");
           }
-          if (tickets.length > 0) {
-            printWithRawBT(concatUint8Arrays(tickets));
-          }
-        } else {
-          window.open(`/pdv/cupom/${sale.id}`, "_blank");
-        }
-      } catch { /* ignore popup block */ }
+        } catch { /* ignore popup block */ }
+      } else {
+        // Sem impressão → exibe diálogo de Entrega Manual
+        setManualDelivery({ saleId: sale.id, dailyNo, total });
+      }
+
 
       setCart([]);
       setPayments([]);
