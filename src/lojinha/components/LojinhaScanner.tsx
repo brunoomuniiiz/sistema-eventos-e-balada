@@ -122,7 +122,7 @@ export function LojinhaScanner() {
                     qr_token: token, // Usa o token principal para o QR da ficha
                     qr_svg_string: await qrSvgString(token),
                     product_id: item.product_id,
-                    category_id: item.category_id || null
+                    category_id: (item as any).category_id || null
                   });
                 }
               }
