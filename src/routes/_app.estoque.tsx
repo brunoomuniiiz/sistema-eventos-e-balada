@@ -17,10 +17,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   Plus, Minus, Package, ArrowRightLeft, ClipboardList, MapPin,
-  CheckCircle2, AlertTriangle, ChevronRight, Save, Folder, FileText, Lock
+  CheckCircle2, AlertTriangle, ChevronRight, Save, Folder, FileText, Lock, History,
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { AuthorizationDialog } from "@/components/AuthorizationDialog";
+import { StockLedgerTimeline } from "@/components/estoque/StockLedgerTimeline";
+
 
 export const Route = createFileRoute("/_app/estoque")({
   component: EstoqueView,
@@ -128,6 +130,7 @@ export function EstoqueView() {
           <CompactTabsTrigger value="locais" icon={MapPin} short="Locais">Locais</CompactTabsTrigger>
           <CompactTabsTrigger value="transferir" icon={ArrowRightLeft} short="Transf.">Transferir</CompactTabsTrigger>
           <CompactTabsTrigger value="inventario" icon={ClipboardList} short="Inv.">Inventário</CompactTabsTrigger>
+          <CompactTabsTrigger value="extrato" icon={History} short="Extrato">Extrato</CompactTabsTrigger>
         </CompactTabsList>
 
         <TabsContent value="locais" className="space-y-4 mt-4">
@@ -151,7 +154,12 @@ export function EstoqueView() {
             onClosed={() => { refetchStock(); qc.invalidateQueries({ queryKey: ["products-full"] }); }}
           />
         </TabsContent>
+
+        <TabsContent value="extrato" className="space-y-4 mt-4">
+          <StockLedgerTimeline />
+        </TabsContent>
       </Tabs>
+
     </div>
   );
 }
