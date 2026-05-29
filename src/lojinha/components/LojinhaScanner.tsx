@@ -167,11 +167,21 @@ export function LojinhaScanner() {
             toast.error("Erro ao imprimir ou validar");
           }
         } else {
-          // Se autoPrint estiver desligado, abre a página de conferência
+          // Auto-Imprimir desligado → Entrega Manual (sem impressão).
+          // Mostra um card com botão "Entregar" que confirma no banco.
           await stop();
-          navigate({ to: "/pedidos-liberar", search: { token } });
+          const label = lookup.source === 'sale' ? 'Venda' : 'Pedido';
+          const numTxt = lookup.daily_number != null ? ' #' + String(lookup.daily_number).padStart(3, '0') : '';
+          setManualDelivery({
+            source: lookup.source as 'sale' | 'order',
+            id: lookup.id,
+            dailyNo: lookup.daily_number,
+            label: `${label}${numTxt}`,
+          });
+          setStatus({ type: 'idle', message: '' });
           return;
         }
+
       } else {
         // Fallback para unidades individuais (fluxo antigo)
         const res = await validateQr(token);
