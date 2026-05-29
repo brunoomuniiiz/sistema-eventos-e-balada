@@ -94,7 +94,7 @@ export function ViewAsBar() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <button
-            className="fixed z-40 bottom-24 md:bottom-6 left-4 md:left-auto md:right-4 h-10 md:h-12 px-3 md:px-4 rounded-full bg-primary/90 backdrop-blur text-primary-foreground shadow-lg flex items-center gap-1.5 md:gap-2 text-xs md:text-sm font-semibold hover:opacity-90 transition"
+            className="fixed z-40 bottom-24 md:bottom-6 left-4 h-10 md:h-12 px-3 md:px-4 rounded-full bg-primary/90 backdrop-blur text-primary-foreground shadow-lg flex items-center gap-1.5 md:gap-2 text-xs md:text-sm font-semibold hover:opacity-90 transition"
             aria-label="Ver como"
           >
             <Eye className="h-3.5 w-3.5 md:h-4 md:w-4" />
