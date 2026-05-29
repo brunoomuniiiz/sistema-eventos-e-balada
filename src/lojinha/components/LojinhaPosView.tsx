@@ -451,7 +451,45 @@ export function LojinhaPosView() {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);
             
+            // Lógica de estoque global unificada
+            const track = !!p.sell_online; // Lojinha usa sell_online como track_stock para vendas online
+            const rawStock = stockMap[p.id] ?? 0;
+            const virtual = comboStockMap[p.id];
+            
+            const effectiveStock = virtual !== undefined && virtual !== null ? virtual : rawStock;
+            const isTracked = virtual !== undefined && virtual !== null ? true : track;
+            
+            let stockStatus: "ok" | "low" | "last" | "out" = "ok";
+            let stockText: string | null = null;
+            
+            if (isTracked) {
+              if (effectiveStock <= 0) {
+                stockStatus = "out";
+                stockText = "Esgotado";
+              } else if (effectiveStock <= 5) {
+                stockStatus = "last";
+                stockText = `Últimas ${effectiveStock} un.`;
+              }
+            }
+            
             return (
+              <ProductCard
+                key={p.id}
+                product={{
+                  id: p.id,
+                  name: p.name,
+                  price: price,
+                  photo_url: p.photo_url,
+                }}
+                inCartQty={inCart?.quantity ?? 0}
+                stockStatus={stockStatus}
+                stockText={stockText}
+                onAdd={() => addToCart(p)}
+                onInc={() => updateQty(p.id, 1)}
+                onDec={() => updateQty(p.id, -1)}
+              />
+            );
+          })}
               <ProductCard
                 key={p.id}
                 product={{ ...p, price }}
