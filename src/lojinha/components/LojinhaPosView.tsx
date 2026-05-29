@@ -450,10 +450,11 @@ export function LojinhaPosView() {
           {filtered.map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);
+            
             return (
               <ProductCard
                 key={p.id}
-                product={{ id: p.id, name: p.name, price, photo_url: p.photo_url }}
+                product={{ ...p, price }}
                 inCartQty={inCart?.quantity ?? 0}
                 onAdd={() => { void addToCart(p); }}
                 onInc={() => { void addToCart(p); }}
