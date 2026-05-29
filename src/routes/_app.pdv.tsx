@@ -308,6 +308,15 @@ export function PdvView() {
 
   const removeItem = (id: string) => setCart((prev) => prev.filter((i) => i.product_id !== id));
 
+  // Filtragem de produtos por estoque global
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      if (!p.track_stock) return true;
+      const qty = stockMap[p.id] ?? 0;
+      return qty > 0;
+    });
+  }, [products, stockMap]);
+
   const recordSale = async (chaveInfo?: { notes: string; authorizedByName: string }) => {
     if (!user || !ownerId) return;
     if (!locationId || !session) return;
@@ -719,7 +728,7 @@ export function PdvView() {
           ) : (
             <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
 
-          {products
+          {filteredProducts
             .filter((p) => {
               if (categoryFilter === "all") return true;
               if (categoryFilter === "none") return !p.category_id;
