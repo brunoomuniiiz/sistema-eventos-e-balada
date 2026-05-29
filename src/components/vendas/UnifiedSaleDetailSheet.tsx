@@ -14,7 +14,7 @@ import { formatBRL } from "@/lib/format";
 import { refundLojinhaOrder } from "@/lib/refund.functions";
 import { useOperationPin } from "@/hooks/useOperationPin";
 import { printReceipt, qrSvgString } from "@/lib/order-print";
-import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
 
 export type UnifiedSale = {
   id: string;
@@ -46,7 +46,7 @@ interface Props {
 export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlock, onDone }: Props) {
   const qc = useQueryClient();
   const { token: pinToken } = useOperationPin();
-  const { user } = usePermissions();
+  const { user } = useAuth();
   const refundOnlineFn = useServerFn(refundLojinhaOrder);
 
   const [mode, setMode] = useState<"none" | "total" | "partial">("none");
@@ -66,20 +66,26 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
       if (isOnline) {
         const [items, order] = await Promise.all([
           supabase.from("lojinha_order_items")
-            .select("id, product_name_snapshot, unit_price, quantity, product_id, lojinha_products(category_id)")
+            .select("id, product_name_snapshot, unit_price, quantity, product_id")
             .eq("order_id", sale.id),
           supabase.from("lojinha_orders")
-            .select("refund_amount, refunded_reason, pickup_token, pickup_code, bar_id, bars(name)")
+            .select("refund_amount, refunded_reason, pickup_token, pickup_code, bar_id")
             .eq("id", sale.id).maybeSingle(),
         ]);
+        
+        let barName = null;
+        if (order.data?.bar_id) {
+          const { data: bar } = await supabase.from("bars").select("name").eq("id", order.data.bar_id).maybeSingle();
+          barName = bar?.name;
+        }
+
         return {
           items: (items.data ?? []).map((i: any) => ({
             name: i.product_name_snapshot,
             qty: i.quantity,
             unit: Number(i.unit_price),
             subtotal: Number(i.unit_price) * i.quantity,
-            product_id: i.product_id,
-            category_id: i.lojinha_products?.category_id
+            product_id: i.product_id
           })),
           payments: sale.payment_method
             ? [{ method: sale.payment_method, amount: Number(sale.total) }]
@@ -88,35 +94,41 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
           refund_reason: order.data?.refunded_reason ?? null,
           pickup_token: order.data?.pickup_token,
           pickup_code: order.data?.pickup_code,
-          bar_name: order.data?.bars?.name
+          bar_name: barName
         };
       } else {
         const [items, pays, saleData] = await Promise.all([
           supabase.from("sale_items")
-            .select("id, product_name, unit_price, quantity, subtotal, product_id, products(category_id)")
+            .select("id, product_name, unit_price, quantity, subtotal, product_id")
             .eq("sale_id", sale.id),
           supabase.from("sale_payments")
             .select("method, amount")
             .eq("sale_id", sale.id),
           supabase.from("sales")
-            .select("pickup_token, pickup_code, bar_id, bars(name)")
+            .select("pickup_token, bar_id")
             .eq("id", sale.id).maybeSingle(),
         ]);
+
+        let barName = null;
+        if (saleData.data?.bar_id) {
+          const { data: bar } = await supabase.from("bars").select("name").eq("id", saleData.data.bar_id).maybeSingle();
+          barName = bar?.name;
+        }
+
         return {
           items: (items.data ?? []).map((i: any) => ({
             name: i.product_name,
             qty: i.quantity,
             unit: Number(i.unit_price),
             subtotal: Number(i.subtotal),
-            product_id: i.product_id,
-            category_id: i.products?.category_id
+            product_id: i.product_id
           })),
           payments: (pays.data ?? []).map((p) => ({ method: p.method as string, amount: Number(p.amount) })),
           refund_amount: 0,
           refund_reason: null as string | null,
           pickup_token: saleData.data?.pickup_token,
-          pickup_code: saleData.data?.pickup_code,
-          bar_name: saleData.data?.bars?.name
+          pickup_code: null, // sales table doesn't have pickup_code
+          bar_name: barName
         };
       }
     },
@@ -131,7 +143,7 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
       printReceipt({
         daily_number: sale.daily_number,
         bar_name: details.bar_name || null,
-        items: details.items.map(i => ({
+        items: details.items.map((i: any) => ({
           product_name: i.name,
           quantity: i.qty,
           unit_price: i.unit
