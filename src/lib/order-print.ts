@@ -1,6 +1,7 @@
 // Build HTML for printable PDV receipt and combo prep slips.
 import QRCode from "qrcode";
 import { escapeHtml, formatOrderNo, openPrintWindow } from "./print-receipt";
+import { shouldPrintItem } from "./print-rules";
 
 export async function qrSvgString(value: string): Promise<string> {
   return QRCode.toString(value, { type: "svg", margin: 0, width: 200, errorCorrectionLevel: "M" });
@@ -105,6 +106,8 @@ export type UnitTicket = {
   product_name: string;
   qr_token: string;
   qr_svg_string: string;
+  product_id?: string;
+  category_id?: string | null;
 };
 
 export function printUnitTickets(opts: {

@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Undo2, AlertTriangle, Loader2 } from "lucide-react";
+import { Undo2, AlertTriangle, Loader2, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import { refundLojinhaOrder } from "@/lib/refund.functions";
 import { useOperationPin } from "@/hooks/useOperationPin";
+import { printReceipt, printPrepSlips, qrSvgString } from "@/lib/order-print";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export type UnifiedSale = {
   id: string;
@@ -162,11 +164,25 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
         </SheetHeader>
 
         <div className="mt-4 space-y-4">
-          <div className="rounded-lg border border-border p-3">
-            <div className="text-[11px] uppercase text-muted-foreground">Total</div>
-            <div className="text-3xl font-bold text-gradient">{formatBRL(Number(sale.total))}</div>
-            {details && details.refund_amount > 0 && (
-              <div className="text-xs text-amber-500 mt-1">Já estornado: {formatBRL(details.refund_amount)}</div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="rounded-lg border border-border p-3 flex-1">
+              <div className="text-[11px] uppercase text-muted-foreground">Total</div>
+              <div className="text-3xl font-bold text-gradient">{formatBRL(Number(sale.total))}</div>
+              {details && details.refund_amount > 0 && (
+                <div className="text-xs text-amber-500 mt-1">Já estornado: {formatBRL(details.refund_amount)}</div>
+              )}
+            </div>
+            
+            {!cancelled && (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="h-12 w-12 shrink-0" 
+                onClick={handlePrint}
+                disabled={printing || detailsLoading}
+              >
+                {printing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
+              </Button>
             )}
           </div>
 
