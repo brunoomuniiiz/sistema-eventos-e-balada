@@ -729,70 +729,59 @@ export function PdvView() {
               Nenhum produto cadastrado
             </Card>
           ) : (
-            <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-
-          {filteredProducts
-            .filter((p) => {
-              if (categoryFilter === "all") return true;
-              if (categoryFilter === "none") return !p.category_id;
-              return p.category_id === categoryFilter;
-            })
-            .filter((p) => p.is_available !== false)
-            .filter((p) => {
-              const q = searchQ.trim().toLowerCase();
-              if (!q) return true;
-              return p.name.toLowerCase().includes(q);
-            })
-            .map((p) => {
-              const inCart = cart.find((i) => i.product_id === p.id);
-              const isCombo = p.product_type === "combo";
-              const comboStock = isCombo ? comboStockMap[p.id] : undefined;
-              const tracked = isCombo
-                ? (comboStock !== null && comboStock !== undefined)
-                : (p.track_stock && productsWithStockRows.has(p.id));
-              const stockTotal = isCombo ? (comboStock ?? 0) : (stockMap[p.id] ?? 0);
-              const outOfStock = tracked && stockTotal <= 0;
-              const stockStatus: "ok" | "low" | "last" | "out" = outOfStock
-                ? "out"
-                : tracked && stockTotal === 1
-                ? "last"
-                : tracked && stockTotal <= 10
-                ? "low"
-                : "ok";
-              const stockText = outOfStock
-                ? "Esgotado"
-                : tracked && stockTotal === 1
-                ? "Última unidade"
-                : tracked && stockTotal <= 10
-                ? `Últimas ${stockTotal}`
-                : null;
-              return (
-                <ProductCard
-                  key={p.id}
-                  product={{ id: p.id, name: p.name, price: Number(p.price), photo_url: p.photo_url }}
-                  inCartQty={inCart?.quantity ?? 0}
-                  stockStatus={stockStatus}
-                  stockText={stockText}
-                  badge={
-                    <div className="flex gap-1">
-                      {isCombo && (
-                        <span className="text-[10px] px-1 py-0.5 rounded bg-secondary text-muted-foreground shrink-0 flex items-center gap-0.5">
-                          <Layers className="h-2.5 w-2.5" /> Combo
-                        </span>
-                      )}
-                      {p.name.toUpperCase().includes("TESTE") && (
-                        <span className="text-[10px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 shrink-0 flex items-center gap-0.5 font-bold border border-amber-500/20">
-                          <Lock className="h-2.5 w-2.5" /> TESTE
-                        </span>
-                      )}
-                    </div>
-                  }
-                  onAdd={() => addToCart(p)}
-                  onInc={() => addToCart(p)}
-                  onDec={() => updateQty(p.id, -1)}
-                />
-              );
-            })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pb-24">
+            {filteredProducts
+              .filter((p) => p.is_available !== false)
+              .map((p) => {
+                const inCart = cart.find((i) => i.product_id === p.id);
+                const isCombo = p.product_type === "combo";
+                const comboStock = isCombo ? comboStockMap[p.id] : undefined;
+                const tracked = isCombo
+                  ? (comboStock !== null && comboStock !== undefined)
+                  : (p.track_stock && productsWithStockRows.has(p.id));
+                const stockTotal = isCombo ? (comboStock ?? 0) : (stockMap[p.id] ?? 0);
+                const outOfStock = tracked && stockTotal <= 0;
+                const stockStatus: "ok" | "low" | "last" | "out" = outOfStock
+                  ? "out"
+                  : tracked && stockTotal === 1
+                  ? "last"
+                  : tracked && stockTotal <= 10
+                  ? "low"
+                  : "ok";
+                const stockText = outOfStock
+                  ? "Esgotado"
+                  : tracked && stockTotal === 1
+                  ? "Última unidade"
+                  : tracked && stockTotal <= 10
+                  ? `Últimas ${stockTotal}`
+                  : null;
+                return (
+                  <ProductCard
+                    key={p.id}
+                    product={{ id: p.id, name: p.name, price: Number(p.price), photo_url: p.photo_url }}
+                    inCartQty={inCart?.quantity ?? 0}
+                    stockStatus={stockStatus}
+                    stockText={stockText}
+                    badge={
+                      <div className="flex gap-1">
+                        {isCombo && (
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-secondary text-muted-foreground shrink-0 flex items-center gap-0.5">
+                            <Layers className="h-2.5 w-2.5" /> Combo
+                          </span>
+                        )}
+                        {p.name.toUpperCase().includes("TESTE") && (
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-600 shrink-0 flex items-center gap-0.5 font-bold border border-amber-500/20">
+                            <Lock className="h-2.5 w-2.5" /> TESTE
+                          </span>
+                        )}
+                      </div>
+                    }
+                    onAdd={() => addToCart(p)}
+                    onInc={() => addToCart(p)}
+                    onDec={() => updateQty(p.id, -1)}
+                  />
+                );
+              })}
             </div>
           )}
         </>
