@@ -53,6 +53,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { DeliverButton } from "@/components/DeliverButton";
+
 
 export const Route = createFileRoute("/_app/pdv")({
   component: PdvView,
