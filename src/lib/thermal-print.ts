@@ -32,112 +32,152 @@ function timeBR(d?: string | Date) {
   return dt.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
 }
 
-export function printWithRawBT(text: string) {
+/**
+ * Concatena múltiplos Uint8Arrays em um único buffer.
+ */
+export function concatUint8Arrays(arrays: Uint8Array[]): Uint8Array {
+  const totalLength = arrays.reduce((acc, arr) => acc + arr.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+  return result;
+}
+
+export function printWithRawBT(data: string | Uint8Array) {
   // Protocolo RawBT para Android via Intent
   try {
-    // Usamos TextEncoder para garantir UTF-8 correto
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(text);
-    
-    // Converte bytes para string binária antes de btoa
-    let binary = "";
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    let base64 = "";
+    if (typeof data === 'string') {
+      const encoder = new TextEncoder();
+      const bytes = encoder.encode(data);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      base64 = btoa(binary);
+    } else {
+      let binary = "";
+      for (let i = 0; i < data.byteLength; i++) binary += String.fromCharCode(data[i]);
+      base64 = btoa(binary);
     }
-    const base64 = btoa(binary);
     
-    // O prefixo data:text/plain;base64 informa ao RawBT que deve processar o texto e suas tags
-    const url = `intent:data:text/plain;base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    // Para binário ESC/POS, o RawBT recomenda data:application/octet-stream;base64
+    const mime = typeof data === 'string' ? "text/plain" : "application/octet-stream";
+    const url = `intent:data:${mime};base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
     
-    console.log("Enviando para RawBT:", text);
     window.location.href = url;
   } catch (err) {
     console.error("Erro ao enviar para RawBT:", err);
-    // Fallback simples se o Intent falhar
-    try {
-      const encoder = new TextEncoder();
-      const bytes = encoder.encode(text);
-      let binary = "";
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-      const base64 = btoa(binary);
-      window.location.href = `rawbt:base64:${base64}`;
-    } catch (e) {
-      console.error("Erro no fallback do RawBT:", e);
-    }
   }
 }
 
+/**
+ * Gera um buffer ESC/POS binário para o ticket.
+ */
 export function generateThermalTicket(opts: {
   bar_name: string | null;
-  logo_url?: string | null;
   daily_number: number | null;
   product_name: string;
   description?: string | null;
-  customer_name?: string | null;
-  unit_index?: number;
-  unit_total?: number;
   waiter: string | null;
   qr_token?: string | null;
   is_test?: boolean;
   payment_method?: string | null;
-  seller_type?: 'app' | 'staff';
-}): string {
-  const config = getPrintConfig();
-  const is58 = config.paperWidth === '58mm';
-  const width = is58 ? 32 : 48; // Aprox caracteres por linha
+}): Uint8Array {
+  const chunks: Uint8Array[] = [];
+  const encoder = new TextEncoder();
   
-  // O RawBT processa tags de alinhamento por linha: [L], [C], [R]
-  const hr = "-".repeat(is58 ? 32 : 48);
+  const add = (bytes: number[] | string) => {
+    if (typeof bytes === 'string') {
+      chunks.push(encoder.encode(bytes));
+    } else {
+      chunks.push(new Uint8Array(bytes));
+    }
+  };
 
-  let out = "";
-  if (opts.is_test) {
-    out += "[C]*** TESTE DE IMPRESSAO ***\n";
-  }
+  // 1. Inicializar impressora
+  add([0x1B, 0x40]);
+
+  // 2. Cabeçalho (Centralizado)
+  add([0x1B, 0x61, 0x01]); // Alinhamento centro
+  if (opts.is_test) add("*** TESTE DE IMPRESSAO ***\n");
   
-  // Logotipo removido temporariamente a pedido do usuário
-  /*
-  if (opts.logo_url) {
-    out += `[IMAGE]${opts.logo_url}[/IMAGE]\n`;
-  }
-  */
+  // NOME DO BAR
+  add(opts.bar_name?.toUpperCase() ?? "HAPPY BEER");
+  add("\n");
   
-  out += `[C]${opts.bar_name?.toUpperCase() ?? "SISTEMA"}\n`;
-  out += `[C]${timeBR()}\n`;
-  if (opts.customer_name) {
-    out += `[C]${opts.customer_name.toUpperCase()}\n`;
-  }
-  out += "[L]" + hr + "\n";
-  out += `[C]PEDIDO ${formatOrderNo(opts.daily_number)}\n`;
-  out += "[L]" + hr + "\n";
-  out += `[C]${opts.product_name.toUpperCase()}\n`;
+  // Data e Horário (Tamanho menor se possível, ou apenas normal)
+  add([0x1B, 0x21, 0x01]); // Fonte B (menor)
+  add(timeBR() + "\n");
+  add([0x1B, 0x21, 0x00]); // Fonte A (normal)
+  
+  add("--------------------------------\n");
+
+  // 3. Identificação do Pedido
+  add([0x1B, 0x61, 0x00]); // Alinhamento esquerda
+  add(`PEDIDO ${formatOrderNo(opts.daily_number)}\n`);
+
+  // 4. Produto em Destaque (GRANDE)
+  // GS ! 0x11 = Dobro de largura e altura
+  add([0x1D, 0x21, 0x11]); 
+  add(opts.product_name.toUpperCase() + "\n");
+  add([0x1D, 0x21, 0x00]); // Volta ao normal
+
+  // 5. Descrição (MENOR)
   if (opts.description) {
-    out += `[C]${opts.description}\n`;
+    add([0x1B, 0x21, 0x01]); // Fonte B
+    add(opts.description + "\n");
+    add([0x1B, 0x21, 0x00]); // Volta ao normal
   }
-  if (opts.unit_total && opts.unit_total > 1) {
-    out += `[C]Unidade ${opts.unit_index} de ${opts.unit_total}\n`;
+
+  add("--------------------------------\n");
+
+  // 6. QR Code Nativo ESC/POS
+  if (opts.qr_token) {
+    const store = opts.qr_token;
+    const len = store.length + 3;
+    const pL = len % 256;
+    const pH = Math.floor(len / 256);
+
+    add([0x1B, 0x61, 0x01]); // Centro
+    // Set QR code size
+    add([0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x43, 0x06]);
+    // Set error correction level
+    add([0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x45, 0x31]);
+    // Store data in symbol storage area
+    add([0x1D, 0x28, 0x6B, pL, pH, 0x31, 0x50, 0x30]);
+    add(store);
+    // Print symbol
+    add([0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x51, 0x30]);
+    
+    add("\n");
+    add(`TOKEN: ${opts.qr_token}\n`);
+    add("\n");
   }
-  out += "[L]" + hr + "\n";
+
+  // 7. Informações Extras (MENOR)
+  add([0x1B, 0x61, 0x00]); // Esquerda
+  add([0x1B, 0x21, 0x01]); // Fonte B
+  
+  // Primeiro nome do vendedor
+  const firstName = (opts.waiter?.split(' ')[0] || "SISTEMA").charAt(0).toUpperCase() + (opts.waiter?.split(' ')[0] || "SISTEMA").slice(1).toLowerCase();
+  add(`VENDEDOR: ${firstName}\n`);
   
   if (opts.payment_method) {
-    out += `[L]PAGAMENTO: ${opts.payment_method.toUpperCase()}\n`;
+    add(`PAGAMENTO: ${opts.payment_method.toUpperCase()}\n`);
   }
   
-  const sellerLabel = opts.seller_type === 'app' ? "VENDA: APP" : `VENDEDOR: ${opts.waiter?.toUpperCase() ?? "---"}`;
-  out += `[L]${sellerLabel}\n`;
-  out += "[L]" + hr + "\n";
+  add(`HORA: ${timeBR().split(' ')[1].slice(0, 5)}\n`);
+  add([0x1B, 0x21, 0x00]); // Volta ao normal
 
-  if (opts.qr_token) {
-    out += "\n";
-    out += `[QR]${opts.qr_token}[/QR]\n`;
-    out += `[C]TOKEN: ${opts.qr_token}\n`;
-    out += "\n";
-  }
+  // 8. Mensagem de Encerramento (Centralizado)
+  add([0x1B, 0x61, 0x01]);
+  add("Obrigado por escolher a gente!\n");
   
-  out += `[C]${opts.is_test ? "CONEXAO OK" : "VALIDADO COM SUCESSO"}\n`;
-  out += "[L]" + hr + "\n";
-  out += `[C]${timeBR().split(' ')[1].slice(0, 8)}\n`;
-  out += "\n\n\n\n\n"; // Espaço para corte extra
+  // Avanço de papel
+  add("\n\n\n\n\n");
+  add([0x1D, 0x56, 0x41, 0x00]); // Cut command (opcional, algumas impressoras ignoram)
 
-  return out;
+  return concatUint8Arrays(chunks);
 }
