@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, KeyboardIcon, Printer, CheckCircle2, XCircle, Settings2 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -39,6 +40,7 @@ import {
 export function LojinhaScanner() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { displayName } = usePermissions();
   const [scanning, setScanning] = useState(false);
   const [manual, setManual] = useState("");
   const [autoPrint, setAutoPrint] = useState(true);
@@ -141,7 +143,7 @@ export function LojinhaScanner() {
                 bar_name: bar?.bar_name ?? null,
                 logo_url: bar?.logo_url ?? null,
                 daily_number: lookup.daily_number,
-                waiter: 'APP (Balcão)',
+                waiter: displayName || 'APP (Balcão)',
                 customer_name: lookup.customer_name,
                 tickets,
                 payment_method: lookup.payment_method,

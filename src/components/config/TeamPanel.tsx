@@ -494,8 +494,14 @@ export function TeamPanel() {
                 {/* Identidade */}
                 <div className="grid gap-3">
                   <div>
-                    <Label>Nome</Label>
-                    <Input value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
+                    <Label htmlFor="display_name">Apelido (Nome no Ticket)</Label>
+                    <Input
+                      id="display_name"
+                      placeholder="Ex: Bruno"
+                      value={form.display_name}
+                      onChange={(e) => setForm({ ...form, display_name: e.target.value })}
+                    />
+                    <p className="text-[10px] text-muted-foreground">Este nome aparecerá nos tickets impressos.</p>
                   </div>
                   {!editing && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
