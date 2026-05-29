@@ -34,15 +34,20 @@ function timeBR(d?: string | Date) {
 
 export function printWithRawBT(text: string) {
   // Protocolo RawBT para Android via Intent
-  // O formato Intent é mais robusto para abrir o app RawBT e passar os dados
   try {
-    const base64 = btoa(unescape(encodeURIComponent(text)));
-    // Usamos o esquema de Intent do Android para garantir que o app RawBT processe o base64
-    const url = `intent:base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    // Usamos TextEncoder para garantir UTF-8 correto antes do Base64
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const base64 = btoa(String.fromCharCode(...data));
+    
+    // O prefixo data:text/plain;base64 informa ao RawBT que deve processar o texto e suas tags
+    const url = `intent:data:text/plain;base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    
+    console.log("Enviando para RawBT:", text);
     window.location.href = url;
   } catch (err) {
     console.error("Erro ao enviar para RawBT:", err);
-    // Fallback para o esquema antigo se algo falhar na construção
+    // Fallback simples se o Intent falhar
     try {
       const base64 = btoa(unescape(encodeURIComponent(text)));
       window.location.href = `rawbt:base64:${base64}`;
@@ -71,16 +76,12 @@ export function generateThermalTicket(opts: {
   const is58 = config.paperWidth === '58mm';
   const width = is58 ? 32 : 48; // Aprox caracteres por linha
   
-  const center = (text: string) => {
-    const pad = Math.max(0, Math.floor((width - text.length) / 2));
-    return " ".repeat(pad) + text;
-  };
-
-  const hr = "-".repeat(width);
+  // O RawBT processa tags de alinhamento por linha: [L], [C], [R]
+  const hr = "-".repeat(is58 ? 32 : 48);
 
   let out = "";
   if (opts.is_test) {
-    out += center("*** TESTE DE IMPRESSAO ***") + "\n";
+    out += "[C]*** TESTE DE IMPRESSAO ***\n";
   }
   
   // Logotipo se disponível
@@ -88,40 +89,39 @@ export function generateThermalTicket(opts: {
     out += `[C][IMAGE]${opts.logo_url}[/IMAGE]\n`;
   }
   
-  out += center(opts.bar_name?.toUpperCase() ?? "SISTEMA") + "\n";
-  out += center(timeBR()) + "\n";
+  out += `[C]${opts.bar_name?.toUpperCase() ?? "SISTEMA"}\n`;
+  out += `[C]${timeBR()}\n`;
   if (opts.customer_name) {
-    out += center(opts.customer_name.toUpperCase()) + "\n";
+    out += `[C]${opts.customer_name.toUpperCase()}\n`;
   }
   out += hr + "\n\n";
-  out += center("PEDIDO " + formatOrderNo(opts.daily_number)) + "\n\n";
+  out += `[C]PEDIDO ${formatOrderNo(opts.daily_number)}\n\n`;
   out += hr + "\n";
-  out += center(opts.product_name.toUpperCase()) + "\n";
+  out += `[C]${opts.product_name.toUpperCase()}\n`;
   if (opts.description) {
-    out += center(opts.description) + "\n";
+    out += `[C]${opts.description}\n`;
   }
   if (opts.unit_total && opts.unit_total > 1) {
-    out += center(`Unidade ${opts.unit_index} de ${opts.unit_total}`) + "\n";
+    out += `[C]Unidade ${opts.unit_index} de ${opts.unit_total}\n`;
   }
   out += hr + "\n";
   
   if (opts.payment_method) {
-    out += `PAGAMENTO: ${opts.payment_method.toUpperCase()}\n`;
+    out += `[L]PAGAMENTO: ${opts.payment_method.toUpperCase()}\n`;
   }
   
   const sellerLabel = opts.seller_type === 'app' ? "VENDA: APP" : `VENDEDOR: ${opts.waiter?.toUpperCase() ?? "---"}`;
-  out += `${sellerLabel}\n`;
+  out += `[L]${sellerLabel}\n`;
   out += hr + "\n";
 
   if (opts.qr_token) {
-    // [QR] no RawBT aceita configurações, mas o formato básico [QR]conteudo[/QR] funciona
     // Adicionamos [C] para centralizar o QR code
     out += "\n[C][QR]" + opts.qr_token + "[/QR]\n\n";
   }
   
-  out += center(opts.is_test ? "CONEXAO OK" : "VALIDADO COM SUCESSO") + "\n";
+  out += `[C]${opts.is_test ? "CONEXAO OK" : "VALIDADO COM SUCESSO"}\n`;
   out += hr + "\n";
-  out += center(timeBR().split(' ')[1].slice(0, 8)) + "\n";
+  out += `[C]${timeBR().split(' ')[1].slice(0, 8)}\n`;
   out += "\n\n\n\n\n"; // Espaço para corte extra
 
   return out;
