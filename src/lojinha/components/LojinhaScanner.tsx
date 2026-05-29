@@ -116,51 +116,25 @@ export function LojinhaScanner() {
         }
 
         if (autoPrint) {
-          setStatus({ type: 'success', message: 'Sucesso! Validado' });
-          
           try {
-            // Se for do tipo 'sale', precisamos imprimir e marcar como entregue
+            // Se for do tipo 'sale', validamos SEM imprimir (já foi impresso no PDV)
             if (lookup.source === 'sale') {
-              const { data: bar } = await supabase.from("bar_settings").select("bar_name, logo_url").maybeSingle();
-              
-              
-              // Gera os tickets baseados nos itens da venda
-              const tickets: any[] = [];
-              for (const item of lookup.items) {
-                for (let i = 0; i < item.quantity; i++) {
-                  tickets.push({
-                    product_name: item.product_name,
-                    description: (item as any).pickup_description || (item as any).description || null,
-                    qr_token: token,
-                    qr_svg_string: await qrSvgString(token),
-                    product_id: item.product_id,
-                    category_id: (item as any).category_id || null
-                  });
-                }
-              }
-
-              await executePrint({
-                bar_name: bar?.bar_name ?? null,
-                logo_url: bar?.logo_url ?? null,
-                daily_number: lookup.daily_number,
-                waiter: displayName || 'APP (Balcão)',
-                customer_name: lookup.customer_name,
-                tickets,
-                payment_method: lookup.payment_method,
-                seller_type: 'app'
-              });
-
+              setStatus({ type: 'success', message: 'Sucesso!\nValidado (Venda Local)' });
               // Efetiva a liberação no banco
               await supabase.rpc("order_release", { _source: 'sale', _id: lookup.id });
             } else {
+              // Pedido Online (order) - Imprime pois o cliente só tem o QR no celular
+              setStatus({ type: 'success', message: 'Sucesso!\nValidado (Imprimindo...)' });
+              const { data: bar } = await supabase.from("bar_settings").select("bar_name, logo_url").maybeSingle();
+              const { data: bar } = await supabase.from("bar_settings").select("bar_name, logo_url").maybeSingle();
+              
+              
               // Pedido Online (order)
               const { data: units } = await supabase
                 .from("lojinha_order_units")
                 .select("qr_token, product_name_snapshot, product_id, order_id, products(description, pickup_description)")
                 .eq("order_id", lookup.id);
               
-              const { data: bar } = await supabase.from("bar_settings").select("bar_name, logo_url").maybeSingle();
-
               if (units && units.length > 0) {
                 const tickets = await Promise.all(units.map(async (u: any) => ({
                   product_name: u.product_name_snapshot,
