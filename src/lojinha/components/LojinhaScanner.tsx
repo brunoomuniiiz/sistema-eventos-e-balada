@@ -126,7 +126,6 @@ export function LojinhaScanner() {
               // Pedido Online (order) - Imprime pois o cliente só tem o QR no celular
               setStatus({ type: 'success', message: 'Sucesso!\nValidado (Imprimindo...)' });
               const { data: bar } = await supabase.from("bar_settings").select("bar_name, logo_url").maybeSingle();
-              const { data: bar } = await supabase.from("bar_settings").select("bar_name, logo_url").maybeSingle();
               
               
               // Pedido Online (order)
