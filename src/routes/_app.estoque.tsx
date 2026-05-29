@@ -17,9 +17,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   Plus, Minus, Package, ArrowRightLeft, ClipboardList, MapPin,
-  CheckCircle2, AlertTriangle, ChevronRight, Save,
+  CheckCircle2, AlertTriangle, ChevronRight, Save, Folder, FileText, Lock
 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
+import { AuthorizationDialog } from "@/components/AuthorizationDialog";
 
 export const Route = createFileRoute("/_app/estoque")({
   component: EstoqueView,
@@ -431,6 +432,7 @@ function InventarioTab({
   ownerId: string; locations: Location[]; products: Product[]; stock: Stock[]; onClosed: () => void;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [pinTargetId, setPinTargetId] = useState<string | null>(null);
 
   const { data: inventories = [], refetch: refetchInv } = useQuery({
     queryKey: ["stock_inventories"],
@@ -497,6 +499,20 @@ function InventarioTab({
 
   return (
     <>
+      <AuthorizationDialog
+        open={!!pinTargetId}
+        onOpenChange={(open) => !open && setPinTargetId(null)}
+        scope="operation"
+        title="Ver Inventário"
+        description="Acesso restrito. Digite o PIN para visualizar o histórico."
+        onApproved={() => {
+          if (pinTargetId) {
+            setActiveId(pinTargetId);
+            setPinTargetId(null);
+          }
+        }}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Iniciar inventário</CardTitle>
@@ -512,41 +528,50 @@ function InventarioTab({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Histórico</CardTitle></CardHeader>
-        <CardContent>
-          {inventories.length === 0 ? (
-            <div className="text-sm text-muted-foreground text-center py-6">Nenhum inventário ainda</div>
-          ) : (
-            <div className="space-y-2">
-              {inventories.map((i) => {
-                const loc = locations.find((l) => l.id === i.location_id);
-                return (
-                  <button
-                    key={i.id} onClick={() => setActiveId(i.id)}
-                    className="w-full flex items-center gap-3 p-3 rounded border text-left hover:bg-card/60"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium">{loc?.name ?? "?"}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(i.opened_at).toLocaleString("pt-BR")} · {i.opened_by_name ?? "—"}
-                      </div>
+      <div className="space-y-2">
+        <div className="text-sm font-bold flex items-center gap-2 px-1">
+          <Folder className="h-4 w-4 text-primary" /> Histórico (Pastas)
+        </div>
+        {inventories.length === 0 ? (
+          <div className="text-sm text-muted-foreground text-center py-6 border rounded-lg bg-card/40">Nenhum inventário ainda</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2">
+            {inventories.map((i) => {
+              const loc = locations.find((l) => l.id === i.location_id);
+              const isClosed = i.status === "closed";
+              return (
+                <button
+                  key={i.id} 
+                  onClick={() => isClosed ? setPinTargetId(i.id) : setActiveId(i.id)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border bg-card/60 hover:bg-card/80 transition shadow-sm text-left group"
+                >
+                  <div className={`p-2 rounded-lg ${isClosed ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary animate-pulse"}`}>
+                    {isClosed ? <FileText className="h-5 w-5" /> : <ClipboardList className="h-5 w-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm flex items-center gap-2">
+                      {new Date(i.opened_at).toLocaleDateString("pt-BR")}
+                      {isClosed && <Lock className="h-3 w-3 text-muted-foreground/50" />}
                     </div>
-                    <Badge variant={i.status === "open" ? "default" : "secondary"}>
-                      {i.status === "open" ? "aberto" : "fechado"}
-                    </Badge>
-                    {i.status === "closed" && (
-                      <span className={`text-sm font-semibold ${i.net_value < 0 ? "text-destructive" : "text-emerald-400"}`}>
-                        {formatBRL(Number(i.net_value))}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    <div className="text-[10px] text-muted-foreground uppercase font-medium">
+                      {loc?.name ?? "Geral"} · {i.opened_by_name?.split(' ')[0] ?? "Sistema"}
+                    </div>
+                  </div>
+                  {isClosed && (
+                    <div className="text-right">
+                      <div className={`text-sm font-bold ${i.net_value < 0 ? "text-destructive" : "text-emerald-400"}`}>
+                        {i.net_value > 0 ? "+" : ""}{formatBRL(Number(i.net_value))}
+                      </div>
+                      <div className="text-[9px] text-muted-foreground uppercase">Resultado</div>
+                    </div>
+                  )}
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </>
   );
 }
