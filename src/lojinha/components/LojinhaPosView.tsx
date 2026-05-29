@@ -490,16 +490,6 @@ export function LojinhaPosView() {
               />
             );
           })}
-              <ProductCard
-                key={p.id}
-                product={{ ...p, price }}
-                inCartQty={inCart?.quantity ?? 0}
-                onAdd={() => { void addToCart(p); }}
-                onInc={() => { void addToCart(p); }}
-                onDec={() => updateQty(p.id, -1)}
-              />
-            );
-          })}
         </div>
       )}
 
