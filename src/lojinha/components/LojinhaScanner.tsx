@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, KeyboardIcon, Printer, CheckCircle2, XCircle, Settings2 } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
