@@ -50,22 +50,30 @@ export function printWithRawBT(data: string | Uint8Array) {
   // Protocolo RawBT para Android via Intent
   try {
     let base64 = "";
+    
+    // Conversão eficiente de binário para base64 que evita estouro de pilha
     if (typeof data === 'string') {
       const encoder = new TextEncoder();
       const bytes = encoder.encode(data);
-      let binary = "";
-      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-      base64 = btoa(binary);
+      base64 = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''));
     } else {
+      // Chunking para evitar erro de limite de argumentos em strings gigantes
+      const CHUNK_SIZE = 0x8000;
       let binary = "";
-      for (let i = 0; i < data.byteLength; i++) binary += String.fromCharCode(data[i]);
+      for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+        binary += String.fromCharCode.apply(null, Array.from(data.subarray(i, i + CHUNK_SIZE)));
+      }
       base64 = btoa(binary);
     }
     
-    // Para binário ESC/POS, o RawBT recomenda data:application/octet-stream;base64
-    const mime = typeof data === 'string' ? "text/plain" : "application/octet-stream";
-    const url = `intent:data:${mime};base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+    /**
+     * O RawBT suporta vários formatos de intent.
+     * O formato "intent:base64,DATA#Intent;scheme=rawbt;..." é frequentemente o mais estável
+     * para dados binários puros (application/octet-stream).
+     */
+    const url = `intent:base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
     
+    console.log(`Enviando ${base64.length} caracteres base64 para RawBT`);
     window.location.href = url;
   } catch (err) {
     console.error("Erro ao enviar para RawBT:", err);
