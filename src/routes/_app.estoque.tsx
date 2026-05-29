@@ -165,6 +165,7 @@ function LocaisTab({
 }) {
   const [newLoc, setNewLoc] = useState("");
   const [openLocs, setOpenLocs] = useState(false);
+  const [pinAction, setPinAction] = useState<(() => Promise<void>) | null>(null);
   const defaultLoc = locations.find((l) => l.is_default) ?? locations[0];
   const [selectedLoc, setSelectedLoc] = useState<string>("");
 
@@ -184,22 +185,21 @@ function LocaisTab({
   };
 
   const removeLoc = async (id: string) => {
-    // PIN de proteção para excluir local
-    const pinOk = await new Promise<boolean>((resolve) => {
-      // Usando o componente AuthorizationDialog que já existe no projeto
-      // Mas para simplificar aqui no código, vamos pedir o PIN via hook se disponível ou apenas confirmar
-      // O usuário pediu "excluir usando pin".
-      resolve(confirm("Deseja realmente excluir este local de estoque? Esta ação é irreversível."));
-    });
+    const loc = locations.find(l => l.id === id);
+    if (loc?.is_default) return toast.error("Não é possível remover o local principal.");
 
-    if (!pinOk) return;
-    
-    // Deleta o estoque vinculado primeiro para evitar erros de constraint (se houver)
-    await supabase.from("product_stock").delete().eq("location_id", id);
-    const { error } = await supabase.from("stock_locations").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    onLocChange();
-    toast.success("Local removido");
+    // PIN de proteção para excluir local
+    setPinAction(() => async () => {
+      // Deleta o estoque vinculado primeiro para evitar erros de constraint
+      await supabase.from("product_stock").delete().eq("location_id", id);
+      const { error } = await supabase.from("stock_locations").delete().eq("id", id);
+      if (error) {
+        toast.error(error.message);
+      } else {
+        onLocChange();
+        toast.success("Local removido");
+      }
+    });
   };
 
   const adjust = async (pid: string, lid: string, delta: number) => {
@@ -236,6 +236,20 @@ function LocaisTab({
 
   return (
     <>
+      <AuthorizationDialog
+        open={!!pinAction}
+        onOpenChange={(open) => !open && setPinAction(null)}
+        scope="operation"
+        title="Confirmar Exclusão"
+        description="Digite o PIN para confirmar a exclusão deste local de estoque."
+        onApproved={() => {
+          if (pinAction) {
+            pinAction();
+            setPinAction(null);
+          }
+        }}
+      />
+
       <div className="flex items-center gap-2 flex-wrap">
         <Select value={selectedLoc} onValueChange={setSelectedLoc}>
           <SelectTrigger className="w-60"><SelectValue placeholder="Selecione um local" /></SelectTrigger>

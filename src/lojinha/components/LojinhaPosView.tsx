@@ -57,8 +57,6 @@ export function LojinhaPosView() {
         .from("products")
         .select("id, name, price, online_price, photo_url, category_id, sell_online, is_available, category:product_categories(name)")
         .eq("ativo_geral", true)
-        .eq("disponivel_venda", true)
-        .eq("is_sellable", true)
         .order("name");
       if (error) throw error;
 
@@ -68,6 +66,70 @@ export function LojinhaPosView() {
       })) as Product[];
     },
   });
+
+  // Estoque agregado em todos os locais (vendedor é cego — não escolhe local)
+  const { data: stockData = { map: {}, hasRows: new Set<string>() } } = useQuery({
+    queryKey: ["lojinha-stock-total", ownerId],
+    enabled: !!ownerId && canAccess,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_stock")
+        .select("product_id, quantity");
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      const hasRows = new Set<string>();
+      (data ?? []).forEach((r) => {
+        map[r.product_id] = (map[r.product_id] ?? 0) + r.quantity;
+        hasRows.add(r.product_id);
+      });
+      return { map, hasRows };
+    },
+  });
+  const stockMap = stockData.map;
+  const productsWithStockRows = stockData.hasRows;
+
+  // Componentes de todos os combos para calcular estoque virtual
+  const { data: comboItems = [] } = useQuery({
+    queryKey: ["lojinha-combo-items", ownerId],
+    enabled: !!ownerId && canAccess,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_combo_items_for_sales");
+      if (error) throw error;
+      return (data ?? []) as { combo_product_id: string; component_product_id: string; quantity: number }[];
+    },
+  });
+
+  // mapa de track_stock por produto (para checar componentes do combo)
+  const productTrackMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    products.forEach((p) => { map[p.id] = !!p.sell_online; });
+    return map;
+  }, [products]);
+
+  // stock virtual: combo => min(stock_componente / qty)
+  const comboStockMap = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    const grouped = new Map<string, { component_product_id: string; quantity: number }[]>();
+    comboItems.forEach((ci) => {
+      const list = grouped.get(ci.combo_product_id) ?? [];
+      list.push({ component_product_id: ci.component_product_id, quantity: Number(ci.quantity) });
+      grouped.set(ci.combo_product_id, list);
+    });
+    grouped.forEach((items, comboId) => {
+      let min = Infinity;
+      let anyTracked = false;
+      for (const it of items) {
+        const tracked = productTrackMap[it.component_product_id] && productsWithStockRows.has(it.component_product_id);
+        if (!tracked) continue;
+        anyTracked = true;
+        const stock = stockMap[it.component_product_id] ?? 0;
+        const qty = it.quantity > 0 ? it.quantity : 1;
+        min = Math.min(min, Math.floor(stock / qty));
+      }
+      map[comboId] = anyTracked ? (Number.isFinite(min) ? min : 0) : null;
+    });
+    return map;
+  }, [comboItems, stockMap, productTrackMap, productsWithStockRows]);
 
   // Poll status do pedido quando estiver aguardando pagamento
   const { data: orderStatus } = useQuery({
@@ -451,13 +513,41 @@ export function LojinhaPosView() {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);
             
+            // Lógica de estoque global unificada
+            const track = !!p.sell_online; // Lojinha usa sell_online como track_stock para vendas online
+            const rawStock = stockMap[p.id] ?? 0;
+            const virtual = comboStockMap[p.id];
+            
+            const effectiveStock = virtual !== undefined && virtual !== null ? virtual : rawStock;
+            const isTracked = virtual !== undefined && virtual !== null ? true : track;
+            
+            let stockStatus: "ok" | "low" | "last" | "out" = "ok";
+            let stockText: string | null = null;
+            
+            if (isTracked) {
+              if (effectiveStock <= 0) {
+                stockStatus = "out";
+                stockText = "Esgotado";
+              } else if (effectiveStock <= 5) {
+                stockStatus = "last";
+                stockText = `Últimas ${effectiveStock} un.`;
+              }
+            }
+            
             return (
               <ProductCard
                 key={p.id}
-                product={{ ...p, price }}
+                product={{
+                  id: p.id,
+                  name: p.name,
+                  price: price,
+                  photo_url: p.photo_url,
+                }}
                 inCartQty={inCart?.quantity ?? 0}
-                onAdd={() => { void addToCart(p); }}
-                onInc={() => { void addToCart(p); }}
+                stockStatus={stockStatus}
+                stockText={stockText}
+                onAdd={() => addToCart(p)}
+                onInc={() => updateQty(p.id, 1)}
                 onDec={() => updateQty(p.id, -1)}
               />
             );
