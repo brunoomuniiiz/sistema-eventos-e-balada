@@ -67,16 +67,16 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
       if (!sale) return null;
       if (isOnline) {
         const { data: orderRes } = await supabase.from("lojinha_orders")
-          .select("refund_amount, refunded_reason, pickup_token, pickup_code, bar_id")
+          .select("*")
           .eq("id", sale.id).maybeSingle();
         
         const { data: itemsRes } = await supabase.from("lojinha_order_items")
-          .select("id, product_name_snapshot, unit_price, quantity, product_id")
+          .select("*, lojinha_products(category_id)")
           .eq("order_id", sale.id);
         
         let barName = null;
-        if (orderRes?.bar_id) {
-          const { data: bar } = await supabase.from("bars").select("name").eq("id", orderRes.bar_id).maybeSingle();
+        if ((orderRes as any)?.bar_id) {
+          const { data: bar } = await supabase.from("bars").select("name").eq("id", (orderRes as any).bar_id).maybeSingle();
           barName = bar?.name;
         }
 
@@ -86,33 +86,34 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             qty: i.quantity,
             unit: Number(i.unit_price),
             subtotal: Number(i.unit_price) * i.quantity,
-            product_id: i.product_id
+            product_id: i.product_id,
+            category_id: i.lojinha_products?.category_id
           })),
           payments: sale.payment_method
             ? [{ method: sale.payment_method, amount: Number(sale.total) }]
             : [],
-          refund_amount: orderRes?.refund_amount ? Number(orderRes.refund_amount) : 0,
-          refund_reason: orderRes?.refunded_reason ?? null,
-          pickup_token: orderRes?.pickup_token,
-          pickup_code: orderRes?.pickup_code,
+          refund_amount: (orderRes as any)?.refund_amount ? Number((orderRes as any).refund_amount) : 0,
+          refund_reason: (orderRes as any)?.refunded_reason ?? null,
+          pickup_token: (orderRes as any)?.pickup_token,
+          pickup_code: (orderRes as any)?.pickup_code,
           bar_name: barName
         };
       } else {
         const { data: saleRes } = await supabase.from("sales")
-          .select("pickup_token, bar_id")
+          .select("*")
           .eq("id", sale.id).maybeSingle();
           
         const { data: itemsRes } = await supabase.from("sale_items")
-          .select("id, product_name, unit_price, quantity, subtotal, product_id")
+          .select("*, products(category_id)")
           .eq("sale_id", sale.id);
           
         const { data: paysRes } = await supabase.from("sale_payments")
-          .select("method, amount")
+          .select("*")
           .eq("sale_id", sale.id);
 
         let barName = null;
-        if (saleRes?.bar_id) {
-          const { data: bar } = await supabase.from("bars").select("name").eq("id", saleRes.bar_id).maybeSingle();
+        if ((saleRes as any)?.bar_id) {
+          const { data: bar } = await supabase.from("bars").select("name").eq("id", (saleRes as any).bar_id).maybeSingle();
           barName = bar?.name;
         }
 
@@ -122,12 +123,13 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             qty: i.quantity,
             unit: Number(i.unit_price),
             subtotal: Number(i.subtotal),
-            product_id: i.product_id
+            product_id: i.product_id,
+            category_id: i.products?.category_id
           })),
           payments: (paysRes ?? []).map((p) => ({ method: p.method as string, amount: Number(p.amount) })),
           refund_amount: 0,
           refund_reason: null as string | null,
-          pickup_token: saleRes?.pickup_token,
+          pickup_token: (saleRes as any)?.pickup_token,
           pickup_code: null,
           bar_name: barName
         };
