@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import { refundLojinhaOrder } from "@/lib/refund.functions";
 import { useOperationPin } from "@/hooks/useOperationPin";
-import { printReceipt, printPrepSlips, qrSvgString } from "@/lib/order-print";
+import { printReceipt, qrSvgString } from "@/lib/order-print";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export type UnifiedSale = {
@@ -46,12 +46,14 @@ interface Props {
 export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlock, onDone }: Props) {
   const qc = useQueryClient();
   const { token: pinToken } = useOperationPin();
+  const { user } = usePermissions();
   const refundOnlineFn = useServerFn(refundLojinhaOrder);
 
   const [mode, setMode] = useState<"none" | "total" | "partial">("none");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   const isOnline = sale?.channel === "online" || sale?.channel === "pos";
 
@@ -64,48 +66,89 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
       if (isOnline) {
         const [items, order] = await Promise.all([
           supabase.from("lojinha_order_items")
-            .select("id, product_name_snapshot, unit_price, quantity")
+            .select("id, product_name_snapshot, unit_price, quantity, product_id, lojinha_products(category_id)")
             .eq("order_id", sale.id),
           supabase.from("lojinha_orders")
-            .select("refund_amount, refunded_reason")
+            .select("refund_amount, refunded_reason, pickup_token, pickup_code, bar_id, bars(name)")
             .eq("id", sale.id).maybeSingle(),
         ]);
         return {
-          items: (items.data ?? []).map((i) => ({
+          items: (items.data ?? []).map((i: any) => ({
             name: i.product_name_snapshot,
             qty: i.quantity,
             unit: Number(i.unit_price),
             subtotal: Number(i.unit_price) * i.quantity,
+            product_id: i.product_id,
+            category_id: i.lojinha_products?.category_id
           })),
           payments: sale.payment_method
             ? [{ method: sale.payment_method, amount: Number(sale.total) }]
             : [],
           refund_amount: order.data?.refund_amount ? Number(order.data.refund_amount) : 0,
           refund_reason: order.data?.refunded_reason ?? null,
+          pickup_token: order.data?.pickup_token,
+          pickup_code: order.data?.pickup_code,
+          bar_name: order.data?.bars?.name
         };
       } else {
-        const [items, pays] = await Promise.all([
+        const [items, pays, saleData] = await Promise.all([
           supabase.from("sale_items")
-            .select("id, product_name, unit_price, quantity, subtotal")
+            .select("id, product_name, unit_price, quantity, subtotal, product_id, products(category_id)")
             .eq("sale_id", sale.id),
           supabase.from("sale_payments")
             .select("method, amount")
             .eq("sale_id", sale.id),
+          supabase.from("sales")
+            .select("pickup_token, pickup_code, bar_id, bars(name)")
+            .eq("id", sale.id).maybeSingle(),
         ]);
         return {
-          items: (items.data ?? []).map((i) => ({
+          items: (items.data ?? []).map((i: any) => ({
             name: i.product_name,
             qty: i.quantity,
             unit: Number(i.unit_price),
             subtotal: Number(i.subtotal),
+            product_id: i.product_id,
+            category_id: i.products?.category_id
           })),
           payments: (pays.data ?? []).map((p) => ({ method: p.method as string, amount: Number(p.amount) })),
           refund_amount: 0,
           refund_reason: null as string | null,
+          pickup_token: saleData.data?.pickup_token,
+          pickup_code: saleData.data?.pickup_code,
+          bar_name: saleData.data?.bars?.name
         };
       }
     },
   });
+
+  const handlePrint = async () => {
+    if (!details || !sale) return;
+    setPrinting(true);
+    try {
+      const qrSvg = details.pickup_token ? await qrSvgString(details.pickup_token) : "";
+      
+      printReceipt({
+        daily_number: sale.daily_number,
+        bar_name: details.bar_name || null,
+        items: details.items.map(i => ({
+          product_name: i.name,
+          quantity: i.qty,
+          unit_price: i.unit
+        })),
+        total: Number(sale.total),
+        payment_method: sale.payment_method,
+        qr_svg_string: qrSvg,
+        pickup_token: details.pickup_token || "",
+        pickup_code: details.pickup_code
+      });
+      toast.success("Enviado para impressão");
+    } catch (e) {
+      toast.error("Erro ao imprimir");
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   if (!sale) return null;
   const cancelled = sale.status === "cancelled" || sale.status === "refunded";
@@ -192,7 +235,7 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             <div>
               <div className="text-xs font-semibold mb-1.5">Produtos ({details.items.length})</div>
               <div className="space-y-1">
-                {details.items.map((i, idx) => (
+                {details.items.map((i: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2 text-sm gap-2">
                     <span className="flex-1 truncate">{i.qty}× {i.name}</span>
                     <span className="font-semibold shrink-0">{formatBRL(i.subtotal)}</span>
@@ -206,7 +249,7 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             <div>
               <div className="text-xs font-semibold mb-1.5">Pagamento</div>
               <div className="space-y-1">
-                {details.payments.map((p, idx) => (
+                {details.payments.map((p: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between rounded-md bg-muted/30 px-3 py-2 text-sm">
                     <span>{methodLabel(p.method)}</span>
                     <span className="font-semibold">{formatBRL(p.amount)}</span>
