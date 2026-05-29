@@ -106,6 +106,8 @@ export function PdvView() {
   const [consumacaoOpen, setConsumacaoOpen] = useState(false);
   const [printConfig, setPrintConfig] = useState<PrintConfig>(getPrintConfig());
   const [autoPrintEnabled, setAutoPrintEnabled] = useState(true);
+  const [manualDelivery, setManualDelivery] = useState<{ saleId: string; dailyNo: number | null; total: number } | null>(null);
+
   const { token: pinToken, setUnlocked: setPinUnlocked } = useOperationPin();
   const [pinDialog, setPinDialog] = useState<{ open: boolean; pendingProduct: Product | null }>({
     open: false,
