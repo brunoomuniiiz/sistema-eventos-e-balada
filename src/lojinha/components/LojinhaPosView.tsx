@@ -57,8 +57,6 @@ export function LojinhaPosView() {
         .from("products")
         .select("id, name, price, online_price, photo_url, category_id, sell_online, is_available, category:product_categories(name)")
         .eq("ativo_geral", true)
-        .eq("disponivel_venda", true)
-        .eq("is_sellable", true)
         .order("name");
       if (error) throw error;
 
