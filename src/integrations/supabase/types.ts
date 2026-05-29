@@ -2581,6 +2581,60 @@ export type Database = {
           },
         ]
       }
+      stock_ledger: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          delta: number
+          id: string
+          location_id: string
+          location_name_snapshot: string | null
+          product_id: string
+          product_name_snapshot: string
+          qty_after: number
+          qty_before: number
+          reason: string | null
+          source: string
+          source_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          delta: number
+          id?: string
+          location_id: string
+          location_name_snapshot?: string | null
+          product_id: string
+          product_name_snapshot: string
+          qty_after: number
+          qty_before: number
+          reason?: string | null
+          source?: string
+          source_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          delta?: number
+          id?: string
+          location_id?: string
+          location_name_snapshot?: string | null
+          product_id?: string
+          product_name_snapshot?: string
+          qty_after?: number
+          qty_before?: number
+          reason?: string | null
+          source?: string
+          source_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock_locations: {
         Row: {
           created_at: string
@@ -3115,6 +3169,16 @@ export type Database = {
           _name: string
           _phone: string
           _slug: string
+        }
+        Returns: Json
+      }
+      adjust_product_stock: {
+        Args: {
+          _delta: number
+          _grant_token: string
+          _location_id: string
+          _product_id: string
+          _reason: string
         }
         Returns: Json
       }

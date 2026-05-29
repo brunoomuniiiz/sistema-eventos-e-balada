@@ -530,9 +530,10 @@ export function LojinhaPosView() {
                 stockText = "Esgotado";
               } else if (effectiveStock <= 5) {
                 stockStatus = "last";
-                stockText = `Últimas ${effectiveStock} un.`;
+                stockText = `Estoque baixo: ${effectiveStock} un`;
               }
             }
+
             
             return (
               <ProductCard

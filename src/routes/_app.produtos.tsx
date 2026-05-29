@@ -32,6 +32,8 @@ import { toggleProductOnline } from "@/lojinha/api";
 import { EstoqueView } from "./_app.estoque";
 import { CategoriasManager } from "@/components/produtos/CategoriasManager";
 import { PurchaseSheet } from "@/components/estoque/PurchaseSheet";
+import { StockAdjustPanel } from "@/components/produtos/StockAdjustPanel";
+
 
 export const Route = createFileRoute("/_app/produtos")({
   component: ProdutosShell,
@@ -282,7 +284,7 @@ function ProdutosPage() {
     const price = form.price;
     const isCombo = form.product_type === "combo";
     const cost = isCombo ? draftCost : form.cost_price;
-    const stock = isCombo ? 0 : parseInt(form.stock_quantity) || 0;
+
 
     if (isCombo && draftComponents.length === 0) {
       return toast.error("Adicione ao menos um item ao combo");
@@ -292,7 +294,7 @@ function ProdutosPage() {
       name: form.name.trim(),
       price,
       cost_price: cost,
-      stock_quantity: isCombo ? 0 : stock,
+
       product_type: form.product_type,
       track_stock: isCombo ? false : form.track_stock,
       description: form.description.trim() || null,
@@ -756,20 +758,16 @@ function ProdutosPage() {
                   />
                 </div>
 
-                {form.track_stock && (
-                  <div>
-                    <Label>Estoque inicial</Label>
-                    <Input
-                      type="number"
-                      value={form.stock_quantity}
-                      onChange={(e) => setForm({ ...form, stock_quantity: e.target.value })}
-                      disabled={!!editing}
-                    />
-                    {editing && <div className="text-[11px] text-muted-foreground mt-1">Use a página de Estoque para ajustar quantidades</div>}
-                  </div>
+                {form.track_stock && editing && (
+                  <StockAdjustPanel
+                    ownerId={ownerId!}
+                    productId={editing.id}
+                    productName={editing.name}
+                  />
                 )}
               </>
             )}
+
 
             <div>
               <Label>Descrição</Label>
