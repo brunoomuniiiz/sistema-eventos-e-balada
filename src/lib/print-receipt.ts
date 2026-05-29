@@ -1,36 +1,48 @@
 // Helpers for opening a print-friendly window with thermal-receipt styling.
 
 export const RECEIPT_PRINT_STYLES = `
-  @page { size: 80mm auto; margin: 0; }
-  * { box-sizing: border-box; }
+  @page { 
+    size: 58mm auto; 
+    margin: 0; 
+  }
+  * { 
+    box-sizing: border-box; 
+    -webkit-print-color-adjust: exact;
+  }
   html, body {
     margin: 0;
     padding: 0;
     background: #fff;
     color: #000;
-    font-family: ui-monospace, "Courier New", monospace;
-    font-size: 12px;
-    line-height: 1.35;
-    width: 80mm;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 11px;
+    line-height: 1.2;
+    width: 58mm;
   }
-  .sheet { padding: 6mm 4mm; width: 80mm; }
+  .sheet { 
+    padding: 2mm; 
+    width: 58mm; 
+    overflow: hidden;
+  }
   .center { text-align: center; }
   .right { text-align: right; }
-  .big { font-size: 22px; font-weight: 800; letter-spacing: 1px; }
-  .huge { font-size: 32px; font-weight: 900; letter-spacing: 2px; }
-  .small { font-size: 10px; }
-  .muted { color: #444; }
-  .row { display: flex; justify-content: space-between; gap: 6px; }
-  hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  .bold { font-weight: bold; }
+  .big { font-size: 16px; font-weight: bold; }
+  .huge { font-size: 24px; font-weight: bold; }
+  .row { display: flex; justify-content: space-between; gap: 2px; }
+  hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }
   .qr-wrap { display: flex; justify-content: center; padding: 4px 0; }
+  .qr-wrap svg { width: 140px !important; height: 140px !important; }
   .pagebreak { page-break-after: always; break-after: page; }
   .pagebreak:last-child { page-break-after: auto; break-after: auto; }
+  
   @media screen {
-    body { background: #f3f4f6; padding: 20px; }
+    body { background: #f3f4f6; padding: 20px; width: 100%; }
     .sheet {
       background: #fff;
       box-shadow: 0 4px 20px rgba(0,0,0,.15);
       margin: 0 auto 12px;
+      width: 58mm;
     }
   }
 `;

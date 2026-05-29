@@ -46,33 +46,28 @@ export function printReceipt(opts: {
     .map(
       (i) => `
         <div class="row">
-          <span>${i.quantity}× ${escapeHtml(i.product_name)}</span>
+          <span>${String(i.quantity).padStart(2, "0")} x ${escapeHtml(i.product_name)}</span>
           <span>${BRL(i.unit_price * i.quantity)}</span>
         </div>`,
     )
     .join("");
 
-  const shortCode = opts.pickup_code ?? opts.pickup_token.slice(0, 6).toUpperCase();
-  const shortHtml = `
-    <div class="center small" style="margin-top:6px">Sem leitor? Digite o código:</div>
-    <div class="center huge" style="letter-spacing:6px;font-family:monospace">${escapeHtml(shortCode)}</div>
-  `;
-
   const body = `
     <div class="sheet">
-      <div class="center big">${escapeHtml(opts.bar_name ?? "Cupom")}</div>
-      <div class="center small muted">${escapeHtml(timeBR())}</div>
+      <div class="center big">HAPPYBEER</div>
+      <div class="center bold">${escapeHtml(opts.bar_name ?? "PDV")}</div>
+      <div class="center small">${escapeHtml(timeBR())}</div>
       <hr />
-      <div class="center huge">${escapeHtml(formatOrderNo(opts.daily_number))}</div>
+      <div class="center big">PEDIDO ${escapeHtml(formatOrderNo(opts.daily_number))}</div>
       <hr />
       ${itemsHtml}
       <hr />
-      <div class="row big"><span>TOTAL</span><span>${BRL(opts.total)}</span></div>
-      <div class="row small muted"><span>Pagamento</span><span>${escapeHtml(opts.payment_method ?? "—")}</span></div>
+      <div class="row bold"><span>TOTAL</span><span>${BRL(opts.total)}</span></div>
+      <div class="row small"><span>Pagam.</span><span>${escapeHtml(opts.payment_method ?? "—")}</span></div>
       <hr />
       <div class="qr-wrap">${opts.qr_svg_string}</div>
-      <div class="center small">Apresente este QR ao garçom para retirar</div>
-      ${shortHtml}
+      <div class="center bold">${escapeHtml(opts.pickup_code ?? opts.pickup_token.slice(0, 6).toUpperCase())}</div>
+      <div class="center small" style="margin-top:4px">Apresente para retirar</div>
     </div>
   `;
   return openPrintWindow(`Cupom ${formatOrderNo(opts.daily_number)}`, body);
@@ -123,16 +118,16 @@ export function printUnitTickets(opts: {
   const pages = opts.tickets
     .map((t, idx) => `
       <div class="sheet pagebreak">
-        <div class="center small muted">${escapeHtml(opts.bar_name ?? "Sistema de Gestão")}</div>
-        <div class="center huge">${escapeHtml(formatOrderNo(opts.daily_number))}</div>
+        <div class="center big">HAPPYBEER</div>
+        <div class="center bold">${escapeHtml(opts.bar_name ?? "TICKET")}</div>
         <hr />
         <div class="center big">${escapeHtml(t.product_name)}</div>
-        ${total > 1 ? `<div class="center small muted">Unidade ${idx + 1} de ${total}</div>` : ""}
+        ${total > 1 ? `<div class="center">Unidade ${idx + 1} de ${total}</div>` : ""}
+        <div class="center small">${escapeHtml(timeBR())}</div>
         <hr />
         <div class="qr-wrap">${t.qr_svg_string}</div>
-        <div class="center small">Apresente este QR ao garçom para retirar</div>
-        <hr />
-        <div class="row small muted"><span>${escapeHtml(opts.waiter ?? "—")}</span><span>${escapeHtml(timeBR())}</span></div>
+        <div class="center bold">${escapeHtml(formatOrderNo(opts.daily_number))}</div>
+        <div class="center small" style="margin-top:4px">Apresente para retirar</div>
       </div>
     `)
     .join("");
