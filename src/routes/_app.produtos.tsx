@@ -284,8 +284,7 @@ function ProdutosPage() {
     const price = form.price;
     const isCombo = form.product_type === "combo";
     const cost = isCombo ? draftCost : form.cost_price;
-    const isCombo = form.product_type === "combo";
-    const cost = isCombo ? draftCost : form.cost_price;
+
 
     if (isCombo && draftComponents.length === 0) {
       return toast.error("Adicione ao menos um item ao combo");
