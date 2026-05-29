@@ -90,9 +90,38 @@ export function EstoqueView() {
   const getQty = (pid: string, lid: string) =>
     stock.find((s) => s.product_id === pid && s.location_id === lid)?.quantity ?? 0;
 
+  const totals = useMemo(() => {
+    let totalCost = 0;
+    let totalSale = 0;
+    products.forEach((p) => {
+      const qty = stock
+        .filter((s) => s.product_id === p.id)
+        .reduce((sum, s) => sum + s.quantity, 0);
+      totalCost += qty * Number(p.cost_price || 0);
+      totalSale += qty * Number((p as any).price || 0);
+    });
+    return { totalCost, totalSale };
+  }, [products, stock]);
+
   return (
-    <div>
+    <div className="space-y-4 pb-20">
       <PageHeader title="Estoque" subtitle="Quantidades por local, transferências e inventários" />
+      
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="bg-card/50">
+          <CardContent className="p-3 pt-4 text-center">
+            <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Custo Total</div>
+            <div className="text-lg font-bold text-primary">{formatBRL(totals.totalCost)}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card/50">
+          <CardContent className="p-3 pt-4 text-center">
+            <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Projeção Venda</div>
+            <div className="text-lg font-bold text-emerald-400">{formatBRL(totals.totalSale)}</div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue="locais">
         <CompactTabsList>
           <CompactTabsTrigger value="locais" icon={MapPin} short="Locais">Locais</CompactTabsTrigger>
