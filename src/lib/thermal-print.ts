@@ -54,6 +54,7 @@ export function printWithRawBT(text: string) {
 
 export function generateThermalTicket(opts: {
   bar_name: string | null;
+  logo_url?: string | null;
   daily_number: number | null;
   product_name: string;
   description?: string | null;
@@ -63,6 +64,8 @@ export function generateThermalTicket(opts: {
   waiter: string | null;
   qr_token?: string | null;
   is_test?: boolean;
+  payment_method?: string | null;
+  seller_type?: 'app' | 'staff';
 }): string {
   const config = getPrintConfig();
   const is58 = config.paperWidth === '58mm';
@@ -79,6 +82,12 @@ export function generateThermalTicket(opts: {
   if (opts.is_test) {
     out += center("*** TESTE DE IMPRESSAO ***") + "\n";
   }
+  
+  // Logotipo se disponível
+  if (opts.logo_url) {
+    out += `[C][IMAGE]${opts.logo_url}[/IMAGE]\n`;
+  }
+  
   out += center(opts.bar_name?.toUpperCase() ?? "SISTEMA") + "\n";
   out += center(timeBR()) + "\n";
   if (opts.customer_name) {
@@ -95,13 +104,24 @@ export function generateThermalTicket(opts: {
     out += center(`Unidade ${opts.unit_index} de ${opts.unit_total}`) + "\n";
   }
   out += hr + "\n";
-  if (opts.qr_token) {
-    out += "\n" + center(`[QR]${opts.qr_token}[/QR]`) + "\n\n";
+  
+  if (opts.payment_method) {
+    out += `PAGAMENTO: ${opts.payment_method.toUpperCase()}\n`;
   }
+  
+  const sellerLabel = opts.seller_type === 'app' ? "VENDA: APP" : `VENDEDOR: ${opts.waiter?.toUpperCase() ?? "---"}`;
+  out += `${sellerLabel}\n`;
+  out += hr + "\n";
+
+  if (opts.qr_token) {
+    // [QR] no RawBT aceita configurações, mas o formato básico [QR]conteudo[/QR] funciona
+    // Adicionamos [C] para centralizar o QR code
+    out += "\n[C][QR]" + opts.qr_token + "[/QR]\n\n";
+  }
+  
   out += center(opts.is_test ? "CONEXAO OK" : "VALIDADO COM SUCESSO") + "\n";
   out += hr + "\n";
-  const seller = (opts.customer_name ? opts.waiter : (opts.waiter ?? "---")) || "---";
-  out += seller.slice(0, width - 11) + " ".repeat(Math.max(1, width - (seller.slice(0, width - 11).length) - 10)) + timeBR().split(' ')[1].slice(0, 8) + "\n";
+  out += center(timeBR().split(' ')[1].slice(0, 8)) + "\n";
   out += "\n\n\n\n\n"; // Espaço para corte extra
 
   return out;
