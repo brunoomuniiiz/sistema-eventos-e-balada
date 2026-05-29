@@ -742,16 +742,17 @@ export function PdvView() {
                   ? "out"
                   : tracked && stockTotal === 1
                   ? "last"
-                  : tracked && stockTotal <= 10
+                  : tracked && stockTotal <= 5
                   ? "low"
                   : "ok";
                 const stockText = outOfStock
                   ? "Esgotado"
                   : tracked && stockTotal === 1
                   ? "Última unidade"
-                  : tracked && stockTotal <= 10
-                  ? `Últimas ${stockTotal}`
+                  : tracked && stockTotal <= 5
+                  ? `Estoque baixo: ${stockTotal} un`
                   : null;
+
                 return (
                   <ProductCard
                     key={p.id}
