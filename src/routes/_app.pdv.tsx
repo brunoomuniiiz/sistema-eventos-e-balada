@@ -308,14 +308,17 @@ export function PdvView() {
 
   const removeItem = (id: string) => setCart((prev) => prev.filter((i) => i.product_id !== id));
 
-  // Filtragem de produtos por estoque global
+  // Filtragem de produtos por estoque global - Agora mostra todos, mas marca como esgotado
   const filteredProducts = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    const cat = categoryFilter;
+
     return products.filter((p) => {
-      if (!p.track_stock) return true;
-      const qty = stockMap[p.id] ?? 0;
-      return qty > 0;
+      if (cat !== "all" && p.category_id !== cat) return false;
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q);
     });
-  }, [products, stockMap]);
+  }, [products, searchQ, categoryFilter]);
 
   const recordSale = async (chaveInfo?: { notes: string; authorizedByName: string }) => {
     if (!user || !ownerId) return;

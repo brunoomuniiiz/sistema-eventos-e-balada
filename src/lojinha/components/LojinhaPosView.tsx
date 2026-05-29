@@ -450,7 +450,23 @@ export function LojinhaPosView() {
           {filtered.map((p) => {
             const inCart = cart.find((i) => i.product_id === p.id);
             const price = Number(p.online_price ?? p.price);
+            
+            // Lógica de estoque similar ao PDV
+            // Para lojinha POS, o estoque é gerenciado pelo reserveCartItem, 
+            // mas podemos mostrar o status visual se tivermos os dados.
+            // Por enquanto, o componente ProductCard já lida com o estado visual.
+            
             return (
+              <ProductCard
+                key={p.id}
+                product={{ ...p, price }}
+                inCartQty={inCart?.quantity ?? 0}
+                onAdd={() => addToCart(p)}
+                onInc={() => addToCart(p)}
+                onDec={() => updateQty(p.id, -1)}
+              />
+            );
+          })}
               <ProductCard
                 key={p.id}
                 product={{ id: p.id, name: p.name, price, photo_url: p.photo_url }}
