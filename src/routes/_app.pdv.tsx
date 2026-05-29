@@ -413,17 +413,17 @@ export function PdvView() {
           const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
           
           let fullText = "";
-          // Gera recibo principal
-          // (Poderia ter um template de recibo completo, mas para o teste/Android usaremos os tickets de unidade)
-          
-          // Gera tickets individuais para cada item
           let currentTicketIdx = 1;
           const totalUnits = cart.reduce((acc, item) => acc + item.quantity, 0);
           
           for (const item of cart) {
+            // Verifica permissão de impressão para cada item
+            const shouldPrint = await shouldPrintItem(user.id, "sale", null, item.product_id);
+            if (!shouldPrint) continue;
+
             for (let i = 0; i < item.quantity; i++) {
               fullText += generateThermalTicket({
-                bar_name: bar?.bar_name ?? null,
+                bar_name: (bar as any)?.bar_name ?? null,
                 daily_number: dailyNo,
                 product_name: item.product_name,
                 unit_index: currentTicketIdx++,
@@ -433,7 +433,7 @@ export function PdvView() {
               });
             }
           }
-          printWithRawBT(fullText);
+          if (fullText) printWithRawBT(fullText);
         } else {
           window.open(`/pdv/cupom/${sale.id}`, "_blank");
         }
