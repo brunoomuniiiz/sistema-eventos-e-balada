@@ -982,6 +982,32 @@ export function PdvView() {
         onOpenChange={setConsumacaoOpen}
         onPick={(target, recipientName) => { void saveConsumacao(target, recipientName); }}
       />
+
+      {/* Diálogo de Entrega Manual — quando Auto-Imprimir está desligado */}
+      <Dialog open={!!manualDelivery} onOpenChange={(v) => { if (!v) setManualDelivery(null); }}>
+        <DialogContent className="max-w-[360px] rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">
+              Venda {manualDelivery?.dailyNo != null ? "#" + String(manualDelivery.dailyNo).padStart(3, "0") : ""} registrada
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-center text-3xl font-bold">
+              {manualDelivery ? formatBRL(manualDelivery.total) : ""}
+            </p>
+            <p className="text-center text-sm text-muted-foreground">
+              Impressão desativada. Entregue o produto e confirme abaixo.
+            </p>
+            {manualDelivery && (
+              <DeliverButton source="sale" id={manualDelivery.saleId} />
+            )}
+            <Button variant="ghost" className="w-full" onClick={() => setManualDelivery(null)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
