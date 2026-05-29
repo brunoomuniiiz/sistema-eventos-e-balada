@@ -8,12 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Undo2, AlertTriangle, Loader2, Printer } from "lucide-react";
+import { Undo2, AlertTriangle, Loader2, Printer, Ticket } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import { refundLojinhaOrder } from "@/lib/refund.functions";
 import { useOperationPin } from "@/hooks/useOperationPin";
-import { printReceipt, qrSvgString } from "@/lib/order-print";
+import { printReceipt, printUnitTickets, qrSvgString } from "@/lib/order-print";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -165,6 +165,38 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
     }
   };
 
+  const handlePrintTickets = async () => {
+    if (!details || !sale || !user) return;
+    setPrinting(true);
+    try {
+      const qrSvg = details.pickup_token ? await qrSvgString(details.pickup_token) : "";
+      
+      const tickets = details.items.flatMap((i: any) => 
+        Array.from({ length: i.qty }).map(() => ({
+          product_name: i.name,
+          qr_token: details.pickup_token || "",
+          qr_svg_string: qrSvg,
+          product_id: i.product_id,
+          category_id: i.category_id
+        }))
+      );
+
+      await printUnitTickets({
+        daily_number: sale.daily_number,
+        bar_name: details.bar_name || null,
+        waiter: sale.seller_name,
+        tickets,
+        userId: user.id,
+        trigger: "sale"
+      });
+      toast.success("Fichas enviadas para impressão");
+    } catch (e) {
+      toast.error("Erro ao imprimir fichas");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   if (!sale) return null;
   const cancelled = sale.status === "cancelled" || sale.status === "refunded";
   const canRefund = !cancelled && Number(sale.total) > 0;
@@ -232,15 +264,28 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             </div>
             
             {!cancelled && (
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="h-12 w-12 shrink-0" 
-                onClick={handlePrint}
-                disabled={printing || detailsLoading}
-              >
-                {printing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
-              </Button>
+              <div className="flex gap-2 shrink-0">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-12 w-12" 
+                  onClick={handlePrintTickets}
+                  title="Imprimir Fichas"
+                  disabled={printing || detailsLoading}
+                >
+                  {printing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Ticket className="h-5 w-5" />}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-12 w-12" 
+                  onClick={handlePrint}
+                  title="Imprimir Comprovante"
+                  disabled={printing || detailsLoading}
+                >
+                  {printing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Printer className="h-5 w-5" />}
+                </Button>
+              </div>
             )}
           </div>
 
