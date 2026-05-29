@@ -33,14 +33,22 @@ function timeBR(d?: string | Date) {
 }
 
 export function printWithRawBT(text: string) {
-  // Protocolo RawBT para Android
-  // Ver: https://rawbt.ru/help/protocol.html
+  // Protocolo RawBT para Android via Intent
+  // O formato Intent é mais robusto para abrir o app RawBT e passar os dados
   try {
     const base64 = btoa(unescape(encodeURIComponent(text)));
-    const url = `rawbt:base64:${base64}`;
+    // Usamos o esquema de Intent do Android para garantir que o app RawBT processe o base64
+    const url = `intent:base64,${base64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
     window.location.href = url;
   } catch (err) {
     console.error("Erro ao enviar para RawBT:", err);
+    // Fallback para o esquema antigo se algo falhar na construção
+    try {
+      const base64 = btoa(unescape(encodeURIComponent(text)));
+      window.location.href = `rawbt:base64:${base64}`;
+    } catch (e) {
+      console.error("Erro no fallback do RawBT:", e);
+    }
   }
 }
 
