@@ -15,6 +15,7 @@ import { refundLojinhaOrder } from "@/lib/refund.functions";
 import { useOperationPin } from "@/hooks/useOperationPin";
 import { printReceipt, qrSvgString } from "@/lib/order-print";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export type UnifiedSale = {
   id: string;
@@ -47,6 +48,7 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
   const qc = useQueryClient();
   const { token: pinToken } = useOperationPin();
   const { user } = useAuth();
+  const { ownerId } = usePermissions();
   const refundOnlineFn = useServerFn(refundLojinhaOrder);
 
   const [mode, setMode] = useState<"none" | "total" | "partial">("none");
@@ -64,17 +66,22 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
     queryFn: async () => {
       if (!sale) return null;
       if (isOnline) {
-        const [itemsRes, orderRes] = await Promise.all([
-          supabase.from("lojinha_order_items")
-            .select("id, product_name_snapshot, unit_price, quantity, product_id")
-            .eq("order_id", sale.id),
-          supabase.from("lojinha_orders")
-            .select("refund_amount, refunded_reason, pickup_token, pickup_code")
-            .eq("id", sale.id).maybeSingle(),
-        ]);
+        const { data: orderRes } = await supabase.from("lojinha_orders")
+          .select("refund_amount, refunded_reason, pickup_token, pickup_code, bar_id")
+          .eq("id", sale.id).maybeSingle();
         
+        const { data: itemsRes } = await supabase.from("lojinha_order_items")
+          .select("id, product_name_snapshot, unit_price, quantity, product_id")
+          .eq("order_id", sale.id);
+        
+        let barName = null;
+        if (orderRes?.bar_id) {
+          const { data: bar } = await supabase.from("bars").select("name").eq("id", orderRes.bar_id).maybeSingle();
+          barName = bar?.name;
+        }
+
         return {
-          items: (itemsRes.data ?? []).map((i: any) => ({
+          items: (itemsRes ?? []).map((i: any) => ({
             name: i.product_name_snapshot,
             qty: i.quantity,
             unit: Number(i.unit_price),
@@ -84,39 +91,45 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
           payments: sale.payment_method
             ? [{ method: sale.payment_method, amount: Number(sale.total) }]
             : [],
-          refund_amount: orderRes.data?.refund_amount ? Number(orderRes.data.refund_amount) : 0,
-          refund_reason: orderRes.data?.refunded_reason ?? null,
-          pickup_token: orderRes.data?.pickup_token,
-          pickup_code: orderRes.data?.pickup_code,
-          bar_name: null // Simplified for now
+          refund_amount: orderRes?.refund_amount ? Number(orderRes.refund_amount) : 0,
+          refund_reason: orderRes?.refunded_reason ?? null,
+          pickup_token: orderRes?.pickup_token,
+          pickup_code: orderRes?.pickup_code,
+          bar_name: barName
         };
       } else {
-        const [itemsRes, paysRes, saleRes] = await Promise.all([
-          supabase.from("sale_items")
-            .select("id, product_name, unit_price, quantity, subtotal, product_id")
-            .eq("sale_id", sale.id),
-          supabase.from("sale_payments")
-            .select("method, amount")
-            .eq("sale_id", sale.id),
-          supabase.from("sales")
-            .select("pickup_token")
-            .eq("id", sale.id).maybeSingle(),
-        ]);
+        const { data: saleRes } = await supabase.from("sales")
+          .select("pickup_token, bar_id")
+          .eq("id", sale.id).maybeSingle();
+          
+        const { data: itemsRes } = await supabase.from("sale_items")
+          .select("id, product_name, unit_price, quantity, subtotal, product_id")
+          .eq("sale_id", sale.id);
+          
+        const { data: paysRes } = await supabase.from("sale_payments")
+          .select("method, amount")
+          .eq("sale_id", sale.id);
+
+        let barName = null;
+        if (saleRes?.bar_id) {
+          const { data: bar } = await supabase.from("bars").select("name").eq("id", saleRes.bar_id).maybeSingle();
+          barName = bar?.name;
+        }
 
         return {
-          items: (itemsRes.data ?? []).map((i: any) => ({
+          items: (itemsRes ?? []).map((i: any) => ({
             name: i.product_name,
             qty: i.quantity,
             unit: Number(i.unit_price),
             subtotal: Number(i.subtotal),
             product_id: i.product_id
           })),
-          payments: (paysRes.data ?? []).map((p) => ({ method: p.method as string, amount: Number(p.amount) })),
+          payments: (paysRes ?? []).map((p) => ({ method: p.method as string, amount: Number(p.amount) })),
           refund_amount: 0,
           refund_reason: null as string | null,
-          pickup_token: saleRes.data?.pickup_token,
+          pickup_token: saleRes?.pickup_token,
           pickup_code: null,
-          bar_name: null
+          bar_name: barName
         };
       }
     },
