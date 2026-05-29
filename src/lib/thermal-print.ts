@@ -84,18 +84,20 @@ export function generateThermalTicket(opts: {
     out += "[C]*** TESTE DE IMPRESSAO ***\n";
   }
   
-  // Logotipo se disponível - Tag de imagem deve estar sozinha na linha
+  // Logotipo removido temporariamente a pedido do usuário
+  /*
   if (opts.logo_url) {
     out += `[IMAGE]${opts.logo_url}[/IMAGE]\n`;
   }
+  */
   
   out += `[C]${opts.bar_name?.toUpperCase() ?? "SISTEMA"}\n`;
   out += `[C]${timeBR()}\n`;
   if (opts.customer_name) {
     out += `[C]${opts.customer_name.toUpperCase()}\n`;
   }
-  out += "[L]" + hr + "\n\n";
-  out += `[C]PEDIDO ${formatOrderNo(opts.daily_number)}\n\n`;
+  out += "[L]" + hr + "\n";
+  out += `[C]PEDIDO ${formatOrderNo(opts.daily_number)}\n`;
   out += "[L]" + hr + "\n";
   out += `[C]${opts.product_name.toUpperCase()}\n`;
   if (opts.description) {
@@ -115,8 +117,10 @@ export function generateThermalTicket(opts: {
   out += "[L]" + hr + "\n";
 
   if (opts.qr_token) {
-    // QR Code deve estar sozinho na linha para o RawBT processar
-    out += `\n[QR]${opts.qr_token}[/QR]\n\n`;
+    out += "\n";
+    out += `[QR]${opts.qr_token}[/QR]\n`;
+    out += `[C]TOKEN: ${opts.qr_token.toUpperCase()}\n`;
+    out += "\n";
   }
   
   out += `[C]${opts.is_test ? "CONEXAO OK" : "VALIDADO COM SUCESSO"}\n`;
