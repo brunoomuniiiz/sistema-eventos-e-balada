@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { printUnitTickets, qrSvgString } from "@/lib/order-print";
 import { useAuth } from "@/hooks/useAuth";
+import { DeliverButton } from "@/components/DeliverButton";
+
 import { shouldPrintItem } from "@/lib/print-rules";
 import { 
   getPrintConfig, 
