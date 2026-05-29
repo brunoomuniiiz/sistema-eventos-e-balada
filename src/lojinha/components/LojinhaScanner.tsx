@@ -48,10 +48,13 @@ export function LojinhaScanner() {
 
   const executePrint = async (opts: {
     bar_name: string | null;
+    logo_url?: string | null;
     daily_number: number | null;
     waiter: string | null;
     tickets: any[];
     customer_name?: string | null;
+    payment_method?: string | null;
+    seller_type?: 'app' | 'staff';
   }) => {
     const printOpts = {
       ...opts,
@@ -66,6 +69,7 @@ export function LojinhaScanner() {
 
         fullText += generateThermalTicket({
           bar_name: opts.bar_name,
+          logo_url: opts.logo_url,
           daily_number: opts.daily_number,
           product_name: t.product_name,
           description: t.description,
@@ -73,7 +77,9 @@ export function LojinhaScanner() {
           unit_index: idx + 1,
           unit_total: opts.tickets.length,
           waiter: opts.waiter,
-          qr_token: t.qr_token
+          qr_token: t.qr_token,
+          payment_method: opts.payment_method,
+          seller_type: opts.seller_type
         });
       }
       if (fullText) printWithRawBT(fullText);
@@ -114,7 +120,8 @@ export function LojinhaScanner() {
           try {
             // Se for do tipo 'sale', precisamos imprimir e marcar como entregue
             if (lookup.source === 'sale') {
-              const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
+              const { data: bar } = await supabase.from("bar_settings").select("bar_name, logo_url").maybeSingle();
+              
               
               // Gera os tickets baseados nos itens da venda
               const tickets: any[] = [];
@@ -133,10 +140,13 @@ export function LojinhaScanner() {
 
               await executePrint({
                 bar_name: bar?.bar_name ?? null,
+                logo_url: bar?.logo_url ?? null,
                 daily_number: lookup.daily_number,
-                waiter: 'Validado no Balcão',
+                waiter: 'APP (Balcão)',
                 customer_name: lookup.customer_name,
                 tickets,
+                payment_method: lookup.payment_method,
+                seller_type: 'app'
               });
 
               // Efetiva a liberação no banco
@@ -148,7 +158,7 @@ export function LojinhaScanner() {
                 .select("qr_token, product_name_snapshot, product_id, order_id, products(description, pickup_description)")
                 .eq("order_id", lookup.id);
               
-              const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
+              const { data: bar } = await supabase.from("bar_settings").select("bar_name, logo_url").maybeSingle();
 
               if (units && units.length > 0) {
                 const tickets = await Promise.all(units.map(async (u: any) => ({
@@ -162,10 +172,13 @@ export function LojinhaScanner() {
 
                 await executePrint({
                   bar_name: bar?.bar_name ?? null,
+                  logo_url: bar?.logo_url ?? null,
                   daily_number: lookup.daily_number,
-                  waiter: 'Validado no Balcão',
+                  waiter: 'APP (Balcão)',
                   customer_name: lookup.customer_name,
                   tickets,
+                  payment_method: lookup.payment_method,
+                  seller_type: 'app'
                 });
                 
                 await supabase.rpc("order_release", { _source: 'order', _id: lookup.id });
