@@ -40,8 +40,8 @@ import {
 } from "@/components/ui/select";
 
 export function LojinhaScanner() {
-  const navigate = useNavigate();
   const { user } = useAuth();
+
   const { displayName } = usePermissions();
   const [scanning, setScanning] = useState(false);
   const [manual, setManual] = useState("");
