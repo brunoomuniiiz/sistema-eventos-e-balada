@@ -39,6 +39,7 @@ import {
 export function LojinhaScanner() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { displayName } = usePermissions();
   const [scanning, setScanning] = useState(false);
   const [manual, setManual] = useState("");
   const [autoPrint, setAutoPrint] = useState(true);
@@ -141,7 +142,7 @@ export function LojinhaScanner() {
                 bar_name: bar?.bar_name ?? null,
                 logo_url: bar?.logo_url ?? null,
                 daily_number: lookup.daily_number,
-                waiter: 'APP (Balcão)',
+                waiter: displayName || 'APP (Balcão)',
                 customer_name: lookup.customer_name,
                 tickets,
                 payment_method: lookup.payment_method,

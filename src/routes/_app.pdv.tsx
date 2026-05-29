@@ -84,7 +84,7 @@ type CartItem = {
 
 export function PdvView() {
   const { user } = useAuth();
-  const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, acceptedMethods, canPromoterCredit, canConsumacao, realIsOwner, loading } = usePermissions();
+  const { ownerId, can, canDiscount, maxDiscountPercent, canSellCash, acceptedMethods, canPromoterCredit, canConsumacao, realIsOwner, loading, displayName } = usePermissions();
   const qc = useQueryClient();
 
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -432,7 +432,7 @@ export function PdvView() {
                 daily_number: dailyNo,
                 product_name: item.product_name,
                 description: (productDetails as any)?.pickup_description || (productDetails as any)?.description || null,
-                waiter: user.email?.split('@')[0] ?? 'Vendedor',
+                waiter: displayName || user.email?.split('@')[0] || 'Vendedor',
                 qr_token: (sale as any).pickup_token,
                 is_test: item.product_name.includes("TESTE IMPRESSORA"),
                 payment_method: dominant,

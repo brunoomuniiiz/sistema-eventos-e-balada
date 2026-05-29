@@ -160,7 +160,10 @@ export function generateThermalTicket(opts: {
     add([0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x51, 0x30]);
     
     add("\n");
+    // Token em negrito e completo (sem truncamento)
+    add([0x1B, 0x45, 0x01]); // Bold ON
     add(`TOKEN: ${opts.qr_token}\n`);
+    add([0x1B, 0x45, 0x00]); // Bold OFF
     add("\n");
   }
 
@@ -168,8 +171,11 @@ export function generateThermalTicket(opts: {
   add([0x1B, 0x61, 0x00]); // Esquerda
   add([0x1B, 0x21, 0x01]); // Fonte B
   
-  // Primeiro nome do vendedor
-  const firstName = (opts.waiter?.split(' ')[0] || "SISTEMA").charAt(0).toUpperCase() + (opts.waiter?.split(' ')[0] || "SISTEMA").slice(1).toLowerCase();
+  // Nome do vendedor (prioriza apelido/displayName)
+  const waiterName = opts.waiter || "SISTEMA";
+  const firstName = waiterName.includes('@') 
+    ? (waiterName.split('@')[0].charAt(0).toUpperCase() + waiterName.split('@')[0].slice(1).toLowerCase())
+    : waiterName;
   add(`VENDEDOR: ${firstName}\n`);
   
   if (opts.payment_method) {
