@@ -48,6 +48,8 @@ export function generateThermalTicket(opts: {
   bar_name: string | null;
   daily_number: number | null;
   product_name: string;
+  description?: string | null;
+  customer_name?: string | null;
   unit_index?: number;
   unit_total?: number;
   waiter: string | null;
@@ -70,17 +72,24 @@ export function generateThermalTicket(opts: {
   }
   out += center(opts.bar_name?.toUpperCase() ?? "SISTEMA") + "\n";
   out += center(timeBR()) + "\n";
+  if (opts.customer_name) {
+    out += center(opts.customer_name.toUpperCase()) + "\n";
+  }
   out += hr + "\n\n";
   out += center("PEDIDO " + formatOrderNo(opts.daily_number)) + "\n\n";
   out += hr + "\n";
   out += center(opts.product_name.toUpperCase()) + "\n";
+  if (opts.description) {
+    out += center(opts.description) + "\n";
+  }
   if (opts.unit_total && opts.unit_total > 1) {
     out += center(`Unidade ${opts.unit_index} de ${opts.unit_total}`) + "\n";
   }
   out += hr + "\n";
   out += center(opts.is_test ? "CONEXAO OK" : "VALIDADO COM SUCESSO") + "\n";
   out += hr + "\n";
-  out += (opts.waiter ?? "---").slice(0, width - 11) + " ".repeat(Math.max(1, width - (opts.waiter?.slice(0, width - 11).length ?? 0) - 10)) + timeBR().split(' ')[1].slice(0, 8) + "\n";
+  const seller = (opts.customer_name ? opts.waiter : (opts.waiter ?? "---")) || "---";
+  out += seller.slice(0, width - 11) + " ".repeat(Math.max(1, width - (seller.slice(0, width - 11).length) - 10)) + timeBR().split(' ')[1].slice(0, 8) + "\n";
   out += "\n\n\n\n"; // Espaço para corte
 
   return out;

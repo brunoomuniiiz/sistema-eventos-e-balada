@@ -92,7 +92,7 @@ export function LojinhaOrdersPanel() {
       const ids = rows.map((r) => r.id);
       const { data: items } = await supabase
         .from("lojinha_order_items")
-        .select("order_id,product_name_snapshot,quantity,unit_price,products(product_type)")
+        .select("order_id,product_name_snapshot,quantity,unit_price,products(product_type, description, pickup_description)")
         .in("order_id", ids);
 
       const byOrder = new Map<string, OrderRow["items"]>();
@@ -103,6 +103,7 @@ export function LojinhaOrdersPanel() {
           quantity: it.quantity,
           unit_price: Number(it.unit_price),
           product_type: it.products?.product_type ?? "simple",
+          description: it.products?.pickup_description || it.products?.description || null
         });
         byOrder.set(it.order_id, arr);
       });

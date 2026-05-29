@@ -69,7 +69,7 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
           .eq("id", sale.id).maybeSingle();
         
         const { data: itemsRes } = await supabase.from("lojinha_order_items")
-          .select("*, lojinha_products(category_id)")
+          .select("*, lojinha_products:products(category_id, description, pickup_description)")
           .eq("order_id", sale.id);
         
         let barName = null;
@@ -85,7 +85,8 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             unit: Number(i.unit_price),
             subtotal: Number(i.unit_price) * i.quantity,
             product_id: i.product_id,
-            category_id: i.lojinha_products?.category_id
+            category_id: i.lojinha_products?.category_id,
+            description: i.lojinha_products?.pickup_description || i.lojinha_products?.description || null
           })),
           payments: sale.payment_method
             ? [{ method: sale.payment_method, amount: Number(sale.total) }]
@@ -102,7 +103,7 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
           .eq("id", sale.id).maybeSingle();
           
         const { data: itemsRes } = await supabase.from("sale_items")
-          .select("*, products(category_id)")
+          .select("*, products(category_id, description, pickup_description)")
           .eq("sale_id", sale.id);
           
         const { data: paysRes } = await supabase.from("sale_payments")
@@ -122,7 +123,8 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
             unit: Number(i.unit_price),
             subtotal: Number(i.subtotal),
             product_id: i.product_id,
-            category_id: i.products?.category_id
+            category_id: i.products?.category_id,
+            description: i.products?.pickup_description || i.products?.description || null
           })),
           payments: (paysRes ?? []).map((p) => ({ method: p.method as string, amount: Number(p.amount) })),
           refund_amount: 0,
@@ -172,6 +174,8 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
       const tickets = details.items.flatMap((i: any) => 
         Array.from({ length: i.qty }).map(() => ({
           product_name: i.name,
+          description: i.description,
+          customer_name: sale.customer_name,
           qr_token: details.pickup_token || "",
           qr_svg_string: qrSvg,
           product_id: i.product_id,

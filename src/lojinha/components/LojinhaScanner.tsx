@@ -51,6 +51,7 @@ export function LojinhaScanner() {
     daily_number: number | null;
     waiter: string | null;
     tickets: any[];
+    customer_name?: string | null;
   }) => {
     const printOpts = {
       ...opts,
@@ -67,6 +68,8 @@ export function LojinhaScanner() {
           bar_name: opts.bar_name,
           daily_number: opts.daily_number,
           product_name: t.product_name,
+          description: t.description,
+          customer_name: opts.customer_name,
           unit_index: idx + 1,
           unit_total: opts.tickets.length,
           waiter: opts.waiter,
@@ -115,11 +118,11 @@ export function LojinhaScanner() {
               // Gera os tickets baseados nos itens da venda
               const tickets: any[] = [];
               for (const item of lookup.items) {
-                // Se for combo, deveria expandir? Por enquanto 1 ticket por item
                 for (let i = 0; i < item.quantity; i++) {
                   tickets.push({
                     product_name: item.product_name,
-                    qr_token: token, // Usa o token principal para o QR da ficha
+                    description: (item as any).pickup_description || (item as any).description || null,
+                    qr_token: token,
                     qr_svg_string: await qrSvgString(token),
                     product_id: item.product_id,
                     category_id: (item as any).category_id || null
@@ -130,7 +133,8 @@ export function LojinhaScanner() {
               await executePrint({
                 bar_name: bar?.bar_name ?? null,
                 daily_number: lookup.daily_number,
-                waiter: lookup.customer_name || 'Balcão',
+                waiter: 'Validado no Balcão',
+                customer_name: lookup.customer_name,
                 tickets,
               });
 
@@ -140,14 +144,15 @@ export function LojinhaScanner() {
               // Pedido Online (order)
               const { data: units } = await supabase
                 .from("lojinha_order_units")
-                .select("qr_token, product_name_snapshot, product_id, order_id")
+                .select("qr_token, product_name_snapshot, product_id, order_id, products(description, pickup_description)")
                 .eq("order_id", lookup.id);
               
               const { data: bar } = await supabase.from("bar_settings").select("bar_name").maybeSingle();
 
               if (units && units.length > 0) {
-                const tickets = await Promise.all(units.map(async (u) => ({
+                const tickets = await Promise.all(units.map(async (u: any) => ({
                   product_name: u.product_name_snapshot,
+                  description: u.products?.pickup_description || u.products?.description || null,
                   qr_token: u.qr_token,
                   qr_svg_string: await qrSvgString(u.qr_token),
                   product_id: u.product_id,
@@ -157,7 +162,8 @@ export function LojinhaScanner() {
                 await executePrint({
                   bar_name: bar?.bar_name ?? null,
                   daily_number: lookup.daily_number,
-                  waiter: lookup.customer_name || 'Cliente',
+                  waiter: 'Validado no Balcão',
+                  customer_name: lookup.customer_name,
                   tickets,
                 });
                 

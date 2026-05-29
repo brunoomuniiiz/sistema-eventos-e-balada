@@ -104,6 +104,8 @@ export function printPrepSlips(slips: PrepSlip[]): boolean {
 // Ticket por unidade vendida: 1 QR + nome do produto. Combo gera 1 ticket por componente.
 export type UnitTicket = {
   product_name: string;
+  description?: string | null;
+  customer_name?: string | null;
   qr_token: string;
   qr_svg_string: string;
   product_id?: string;
@@ -138,16 +140,17 @@ export async function printUnitTickets(opts: {
   const pages = filteredTickets
     .map((t, idx) => `
       <div class="sheet pagebreak">
-        <div class="center big">HAPPYBEER</div>
-        <div class="center bold">${escapeHtml(opts.bar_name ?? "TICKET")}</div>
+        <div class="center small muted">${escapeHtml(opts.bar_name ?? "HAPPYBEER")}</div>
+        <div class="center bold">${escapeHtml(t.customer_name ?? "CLIENTE")}</div>
         <hr />
         <div class="center big">${escapeHtml(t.product_name)}</div>
-        ${total > 1 ? `<div class="center">Unidade ${idx + 1} de ${total}</div>` : ""}
-        <div class="center small">${escapeHtml(timeBR())}</div>
+        ${t.description ? `<div class="center small">${escapeHtml(t.description)}</div>` : ""}
+        ${total > 1 ? `<div class="center small muted" style="margin-top:2px">Unidade ${idx + 1} de ${total}</div>` : ""}
         <hr />
         <div class="qr-wrap">${t.qr_svg_string}</div>
         <div class="center bold">${escapeHtml(formatOrderNo(opts.daily_number))}</div>
-        <div class="center small" style="margin-top:4px">Apresente para retirar</div>
+        <div class="center small muted" style="margin-top:4px">${escapeHtml(timeBR())}</div>
+        <div class="center small" style="margin-top:4px; font-weight:bold">Apresente para retirar</div>
       </div>
     `)
     .join("");
