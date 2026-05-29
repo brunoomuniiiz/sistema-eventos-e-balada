@@ -15,7 +15,6 @@ import { refundLojinhaOrder } from "@/lib/refund.functions";
 import { useOperationPin } from "@/hooks/useOperationPin";
 import { printReceipt, printUnitTickets, qrSvgString } from "@/lib/order-print";
 import { useAuth } from "@/hooks/useAuth";
-import { usePermissions } from "@/hooks/usePermissions";
 
 export type UnifiedSale = {
   id: string;
@@ -48,7 +47,6 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
   const qc = useQueryClient();
   const { token: pinToken } = useOperationPin();
   const { user } = useAuth();
-  const { ownerId } = usePermissions();
   const refundOnlineFn = useServerFn(refundLojinhaOrder);
 
   const [mode, setMode] = useState<"none" | "total" | "partial">("none");

@@ -36,6 +36,7 @@ import {
   generateThermalTicket, 
   type PrintConfig 
 } from "@/lib/thermal-print";
+import { shouldPrintItem } from "@/lib/print-rules";
 import { 
   Dialog, 
   DialogContent, 
