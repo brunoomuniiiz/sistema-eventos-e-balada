@@ -57,9 +57,9 @@ export function EstoqueView() {
     enabled: !!ownerId && can("estoque"),
     queryFn: async () => {
       const { data, error } = await supabase.from("products")
-        .select("id, name, cost_price, product_type, track_stock").order("name");
+        .select("id, name, price, cost_price, product_type, track_stock").order("name");
       if (error) throw error;
-      return (data as Product[]).filter((p) => p.product_type === "simple" || p.track_stock);
+      return (data as (Product & { price: number })[]).filter((p) => p.product_type === "simple" || p.track_stock);
     },
   });
 
