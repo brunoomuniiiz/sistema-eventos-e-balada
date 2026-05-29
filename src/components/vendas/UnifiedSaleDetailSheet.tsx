@@ -76,8 +76,8 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
         
         let barName = null;
         if ((orderRes as any)?.bar_id) {
-          const { data: bar } = await supabase.from("bars").select("name").eq("id", (orderRes as any).bar_id).maybeSingle();
-          barName = bar?.name;
+          const { data: bar } = await supabase.from("bars" as any).select("name").eq("id", (orderRes as any).bar_id).maybeSingle();
+          barName = (bar as any)?.name;
         }
 
         return {
@@ -113,8 +113,8 @@ export function UnifiedSaleDetailSheet({ open, onOpenChange, sale, onRequestUnlo
 
         let barName = null;
         if ((saleRes as any)?.bar_id) {
-          const { data: bar } = await supabase.from("bars").select("name").eq("id", (saleRes as any).bar_id).maybeSingle();
-          barName = bar?.name;
+          const { data: bar } = await supabase.from("bars" as any).select("name").eq("id", (saleRes as any).bar_id).maybeSingle();
+          barName = (bar as any)?.name;
         }
 
         return {
