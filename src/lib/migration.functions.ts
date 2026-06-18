@@ -161,6 +161,21 @@ const TABLES: string[] = [
   "lojinha_stock_reservations",
 ];
 
+// Tabelas com unique constraint diferente da PK — precisam de on_conflict explícito
+// para que o upsert do PostgREST faça MERGE em vez de tentar INSERT (erro 23505).
+const ON_CONFLICT: Record<string, string> = {
+  profiles: "user_id",
+  user_roles: "user_id,owner_id",
+  product_stock: "product_id,location_id",
+  combo_items: "combo_id,component_id",
+  terminal_assignments: "terminal_id,user_role_id",
+  event_promoters: "event_id,promoter_id",
+  promoter_credit_campaign_members: "campaign_id,promoter_id",
+  print_rules_products: "print_rule_id,product_id",
+  auth_grants: "user_role_id,resource,action",
+  daily_order_counter: "owner_id,date",
+};
+
 const Input = z.object({
   targetUrl: z.string().url(),
   targetServiceKey: z.string().min(20),
