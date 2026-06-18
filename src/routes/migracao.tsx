@@ -180,6 +180,39 @@ function MigracaoPage() {
       </Card>
 
       <Card className="p-6 space-y-3">
+        <div>
+          <h2 className="font-bold">Passo 1 — Migrar usuários do Auth</h2>
+          <p className="text-xs text-muted-foreground">
+            Copia <code>auth.users</code> preservando UUIDs. Necessário ANTES das tabelas (FKs apontam para esses IDs). Senhas não são copiadas.
+          </p>
+        </div>
+        <Button onClick={runAuth} disabled={runningAuth} variant="secondary" className="gap-2">
+          {runningAuth ? <><Loader2 className="h-4 w-4 animate-spin" /> Migrando usuários…</> : <>Migrar usuários do Auth</>}
+        </Button>
+        {authResults.length > 0 && (
+          <div className="space-y-1 text-xs font-mono max-h-60 overflow-auto border-t pt-2">
+            {authResults.map((r) => (
+              <div key={r.id} className="flex items-start gap-2 py-0.5">
+                {r.status === "error" ? (
+                  <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                ) : r.status === "exists" ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold">{r.email}</span>{" "}
+                  <span className="text-muted-foreground">{r.status}</span>
+                  {r.error && <div className="text-destructive break-all">{r.error}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+
+      <Card className="p-6 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-bold">Tabelas a migrar ({selected.size}/{tables.length})</h2>
           <div className="flex gap-2">
