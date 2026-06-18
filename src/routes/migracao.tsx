@@ -110,6 +110,29 @@ function MigracaoPage() {
     }
   };
 
+  const runAuth = async () => {
+    if (!targetUrl || !targetKey) {
+      toast.error("Preencha URL e service role key do destino");
+      return;
+    }
+    if (!confirm(`Migrar TODOS os usuários do Auth para ${targetUrl}?\n\nUUIDs serão preservados. Usuários existentes serão ignorados. Senhas NÃO são copiadas — usuários precisarão fazer "esqueci minha senha" no destino.`)) return;
+
+    setRunningAuth(true);
+    setAuthResults([]);
+    try {
+      const r = await fnAuth({ data: { targetUrl, targetServiceKey: targetKey } });
+      setAuthResults(r.results);
+      const created = r.results.filter((x) => x.status === "created").length;
+      const exists = r.results.filter((x) => x.status === "exists").length;
+      const errs = r.results.filter((x) => x.status === "error").length;
+      toast.success(`Auth: ${created} criados, ${exists} já existiam, ${errs} erros (total ${r.total})`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    } finally {
+      setRunningAuth(false);
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
