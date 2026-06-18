@@ -97,13 +97,15 @@ const TABLES: string[] = [
   "products",
   "combo_items",
   "product_stock",
-  "print_rules",
-  "print_rules_products",
 
   // Equipe / permissões
   "user_roles",
   "auth_grants",
   "terminal_assignments",
+
+  // Impressão depende de user_roles
+  "print_rules",
+  "print_rules_products",
 
   // Promoters
   "promoters",
@@ -169,7 +171,6 @@ const ON_CONFLICT: Record<string, string> = {
   product_stock: "product_id,location_id",
   combo_items: "combo_product_id,component_product_id",
   terminal_assignments: "terminal_id,seller_user_id",
-  event_promoters: "event_id,promoter_id",
   promoter_credit_campaign_members: "campaign_id,promoter_id",
   print_rules_products: "user_role_id,product_id",
   auth_grants: "token",
