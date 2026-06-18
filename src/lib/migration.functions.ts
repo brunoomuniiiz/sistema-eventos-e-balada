@@ -235,7 +235,9 @@ export const runMigration = createServerFn({ method: "POST" })
           read += rows.length;
 
           // Envia para o destino via PostgREST com upsert
-          const res = await fetch(`${targetUrl}/rest/v1/${table}`, {
+          const onConflict = ON_CONFLICT[table];
+          const url = `${targetUrl}/rest/v1/${table}${onConflict ? `?on_conflict=${encodeURIComponent(onConflict)}` : ""}`;
+          const res = await fetch(url, {
             method: "POST",
             headers: {
               apikey: targetKey,
