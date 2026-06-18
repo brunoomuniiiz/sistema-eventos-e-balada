@@ -132,9 +132,14 @@ export const runMigration = createServerFn({ method: "POST" })
         let from = 0;
         // eslint-disable-next-line no-constant-condition
         while (true) {
-          const { data: rows, error } = await supabaseAdmin
+          const { data: rows, error } = await (supabaseAdmin as unknown as {
+            from: (t: string) => {
+              select: (s: string) => {
+                range: (a: number, b: number) => Promise<{ data: Record<string, unknown>[] | null; error: { message: string } | null }>;
+              };
+            };
+          })
             .from(table)
-            // @ts-expect-error dynamic
             .select("*")
             .range(from, from + BATCH - 1);
           if (error) throw new Error(error.message);
