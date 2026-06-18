@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useServerFn } from "@tanstack/react-start";
-import { listMigrationTables, runMigration } from "@/lib/migration.functions";
+import { listMigrationTables, runMigration, migrateAuthUsers } from "@/lib/migration.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,12 +22,15 @@ function MigracaoPage() {
   const navigate = useNavigate();
   const fnList = useServerFn(listMigrationTables);
   const fnRun = useServerFn(runMigration);
+  const fnAuth = useServerFn(migrateAuthUsers);
 
   const [tables, setTables] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [targetUrl, setTargetUrl] = useState("");
   const [targetKey, setTargetKey] = useState("");
   const [running, setRunning] = useState(false);
+  const [runningAuth, setRunningAuth] = useState(false);
+  const [authResults, setAuthResults] = useState<Array<{ email: string; id: string; status: string; error?: string }>>([]);
   const [results, setResults] = useState<Result[]>([]);
 
   const allowed = user?.email === "mateusdeleonmd@gmail.com";
@@ -107,6 +110,29 @@ function MigracaoPage() {
     }
   };
 
+  const runAuth = async () => {
+    if (!targetUrl || !targetKey) {
+      toast.error("Preencha URL e service role key do destino");
+      return;
+    }
+    if (!confirm(`Migrar TODOS os usuários do Auth para ${targetUrl}?\n\nUUIDs serão preservados. Usuários existentes serão ignorados. Senhas NÃO são copiadas — usuários precisarão fazer "esqueci minha senha" no destino.`)) return;
+
+    setRunningAuth(true);
+    setAuthResults([]);
+    try {
+      const r = await fnAuth({ data: { targetUrl, targetServiceKey: targetKey } });
+      setAuthResults(r.results);
+      const created = r.results.filter((x) => x.status === "created").length;
+      const exists = r.results.filter((x) => x.status === "exists").length;
+      const errs = r.results.filter((x) => x.status === "error").length;
+      toast.success(`Auth: ${created} criados, ${exists} já existiam, ${errs} erros (total ${r.total})`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    } finally {
+      setRunningAuth(false);
+    }
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
@@ -152,6 +178,39 @@ function MigracaoPage() {
           </ul>
         </div>
       </Card>
+
+      <Card className="p-6 space-y-3">
+        <div>
+          <h2 className="font-bold">Passo 1 — Migrar usuários do Auth</h2>
+          <p className="text-xs text-muted-foreground">
+            Copia <code>auth.users</code> preservando UUIDs. Necessário ANTES das tabelas (FKs apontam para esses IDs). Senhas não são copiadas.
+          </p>
+        </div>
+        <Button onClick={runAuth} disabled={runningAuth} variant="secondary" className="gap-2">
+          {runningAuth ? <><Loader2 className="h-4 w-4 animate-spin" /> Migrando usuários…</> : <>Migrar usuários do Auth</>}
+        </Button>
+        {authResults.length > 0 && (
+          <div className="space-y-1 text-xs font-mono max-h-60 overflow-auto border-t pt-2">
+            {authResults.map((r) => (
+              <div key={r.id} className="flex items-start gap-2 py-0.5">
+                {r.status === "error" ? (
+                  <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                ) : r.status === "exists" ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                ) : (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold">{r.email}</span>{" "}
+                  <span className="text-muted-foreground">{r.status}</span>
+                  {r.error && <div className="text-destructive break-all">{r.error}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
 
       <Card className="p-6 space-y-3">
         <div className="flex items-center justify-between">

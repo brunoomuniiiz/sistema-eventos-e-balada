@@ -4,6 +4,79 @@ import { z } from "zod";
 
 const ALLOWED_EMAIL = "mateusdeleonmd@gmail.com";
 
+const AuthInput = z.object({
+  targetUrl: z.string().url(),
+  targetServiceKey: z.string().min(20),
+});
+
+export const migrateAuthUsers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => AuthInput.parse(d))
+  .handler(async ({ data, context }) => {
+    if (context.claims.email !== ALLOWED_EMAIL) throw new Error("Acesso negado");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const targetUrl = data.targetUrl.replace(/\/$/, "");
+    const targetKey = data.targetServiceKey;
+
+    const results: Array<{ email: string; id: string; status: "created" | "exists" | "error"; error?: string }> = [];
+
+    // Lista todos os usuários da origem (paginado)
+    let page = 1;
+    const perPage = 1000;
+    const allUsers: Array<{ id: string; email?: string; phone?: string; email_confirmed_at?: string | null; phone_confirmed_at?: string | null; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown>; created_at?: string }> = [];
+
+    while (true) {
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (error) throw new Error(`Falha ao listar usuários origem: ${error.message}`);
+      if (!list.users.length) break;
+      allUsers.push(...(list.users as typeof allUsers));
+      if (list.users.length < perPage) break;
+      page++;
+    }
+
+    for (const u of allUsers) {
+      try {
+        // Cria no destino preservando o UUID. Sem senha (usuário fará reset).
+        const body: Record<string, unknown> = {
+          id: u.id,
+          email: u.email,
+          phone: u.phone,
+          email_confirm: !!u.email_confirmed_at,
+          phone_confirm: !!u.phone_confirmed_at,
+          user_metadata: u.user_metadata ?? {},
+          app_metadata: u.app_metadata ?? {},
+        };
+
+        const res = await fetch(`${targetUrl}/auth/v1/admin/users`, {
+          method: "POST",
+          headers: {
+            apikey: targetKey,
+            Authorization: `Bearer ${targetKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (res.ok) {
+          results.push({ email: u.email ?? "(sem email)", id: u.id, status: "created" });
+        } else {
+          const txt = await res.text();
+          // Já existe?
+          if (res.status === 422 || /already.*registered|exists/i.test(txt)) {
+            results.push({ email: u.email ?? "(sem email)", id: u.id, status: "exists" });
+          } else {
+            results.push({ email: u.email ?? "(sem email)", id: u.id, status: "error", error: `HTTP ${res.status}: ${txt.slice(0, 300)}` });
+          }
+        }
+      } catch (e) {
+        results.push({ email: u.email ?? "(sem email)", id: u.id, status: "error", error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    return { ok: true, total: allUsers.length, results };
+  });
+
 // Ordem aproximada respeitando FKs (pais antes de filhos).
 const TABLES: string[] = [
   // Cadastros básicos
