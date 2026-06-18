@@ -167,13 +167,13 @@ const ON_CONFLICT: Record<string, string> = {
   profiles: "user_id",
   user_roles: "user_id,owner_id",
   product_stock: "product_id,location_id",
-  combo_items: "combo_id,component_id",
-  terminal_assignments: "terminal_id,user_role_id",
+  combo_items: "combo_product_id,component_product_id",
+  terminal_assignments: "terminal_id,seller_user_id",
   event_promoters: "event_id,promoter_id",
   promoter_credit_campaign_members: "campaign_id,promoter_id",
-  print_rules_products: "print_rule_id,product_id",
-  auth_grants: "user_role_id,resource,action",
-  daily_order_counter: "owner_id,date",
+  print_rules_products: "user_role_id,product_id",
+  auth_grants: "token",
+  daily_order_counter: "user_id,daily_date",
 };
 
 const Input = z.object({
