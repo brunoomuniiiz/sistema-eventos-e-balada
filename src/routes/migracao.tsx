@@ -22,12 +22,15 @@ function MigracaoPage() {
   const navigate = useNavigate();
   const fnList = useServerFn(listMigrationTables);
   const fnRun = useServerFn(runMigration);
+  const fnAuth = useServerFn(migrateAuthUsers);
 
   const [tables, setTables] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [targetUrl, setTargetUrl] = useState("");
   const [targetKey, setTargetKey] = useState("");
   const [running, setRunning] = useState(false);
+  const [runningAuth, setRunningAuth] = useState(false);
+  const [authResults, setAuthResults] = useState<Array<{ email: string; id: string; status: string; error?: string }>>([]);
   const [results, setResults] = useState<Result[]>([]);
 
   const allowed = user?.email === "mateusdeleonmd@gmail.com";
