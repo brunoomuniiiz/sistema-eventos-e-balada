@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupOwnerRouteImport } from './routes/signup-owner'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as MigracaoRouteImport } from './routes/migracao'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
@@ -50,6 +51,11 @@ const SignupOwnerRoute = SignupOwnerRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MigracaoRoute = MigracaoRouteImport.update({
+  id: '/migracao',
+  path: '/migracao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -205,6 +211,7 @@ const LojaSlugPedidoOrderIdRoute = LojaSlugPedidoOrderIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/migracao': typeof MigracaoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup-owner': typeof SignupOwnerRoute
   '/admin-caixas': typeof AppAdminCaixasRoute
@@ -238,6 +245,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/migracao': typeof MigracaoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup-owner': typeof SignupOwnerRoute
   '/admin-caixas': typeof AppAdminCaixasRoute
@@ -273,6 +281,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/migracao': typeof MigracaoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup-owner': typeof SignupOwnerRoute
   '/_app/admin-caixas': typeof AppAdminCaixasRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/migracao'
     | '/reset-password'
     | '/signup-owner'
     | '/admin-caixas'
@@ -341,6 +351,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/migracao'
     | '/reset-password'
     | '/signup-owner'
     | '/admin-caixas'
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/auth'
+    | '/migracao'
     | '/reset-password'
     | '/signup-owner'
     | '/_app/admin-caixas'
@@ -410,6 +422,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  MigracaoRoute: typeof MigracaoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupOwnerRoute: typeof SignupOwnerRoute
   ESlugRoute: typeof ESlugRoute
@@ -434,6 +447,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/migracao': {
+      id: '/migracao'
+      path: '/migracao'
+      fullPath: '/migracao'
+      preLoaderRoute: typeof MigracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -703,6 +723,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  MigracaoRoute: MigracaoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupOwnerRoute: SignupOwnerRoute,
   ESlugRoute: ESlugRoute,
